@@ -1,10 +1,10 @@
-/* Aura — 像素积木设计系统（Tailwind v4 + NES.css）
+/* Aura — 像素积木设计系统（Tailwind v4 + NES.css core）
    CRT 深色底 + 霓虹青绿积木块。UI 壳用小圆角/硬阴影/像素边框，正文保持可读。 */
 
 @import "tailwindcss";
-
-/* NES.css：8-bit 像素组件（按钮/面板/徽章/进度条/输入框），下方已深色化适配 */
-@import "../node_modules/nes.css/css/nes.css";
+/* NES.css 核心组件（btn/container/progress），只引入用到的部分，
+   放入 components 层，使组件层 Tailwind utilities 可无 `!` 覆盖其默认值 */
+@import "../node_modules/nes.css/css/nes-core.min.css" layer(components);
 
 /* ---------- 设计令牌 ---------- */
 @theme {
@@ -67,144 +67,87 @@
   --radius-full: 6px;
 }
 
-/* ---------- 面板：深色实色（替换原毛玻璃） ---------- */
-.apple-glass {
-  background: rgba(16, 22, 31, 0.96);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+/* ---------- NES.css 深色霓虹主题适配（components 层，唯一真源用 token 变量） ---------- */
+@layer components {
+  /* 像素边框：只覆盖实际使用的组件（5x5 通用 / 8x8 圆角容器） */
+  .nes-btn,
+  .nes-progress {
+    border-image-slice: 2;
+    border-image-width: 2;
+    border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="5" height="5" xmlns="http://www.w3.org/2000/svg"><path d="M2 1 h1 v1 h-1 z M1 2 h1 v1 h-1 z M3 2 h1 v1 h-1 z M2 3 h1 v1 h-1 z" fill="rgb(85,101,122)" /></svg>');
+  }
+
+  .nes-container.is-rounded,
+  .nes-container.is-rounded.is-dark {
+    border-image-slice: 3;
+    border-image-width: 3;
+    border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 h1 v1 h-1 z M4 1 h1 v1 h-1 z M2 2 h1 v1 h-1 z M5 2 h1 v1 h-1 z M1 3 h1 v1 h-1 z M6 3 h1 v1 h-1 z M1 4 h1 v1 h-1 z M6 4 h1 v1 h-1 z M2 5 h1 v1 h-1 z M5 5 h1 v1 h-1 z M3 6 h1 v1 h-1 z M4 6 h1 v1 h-1 z" fill="rgb(85,101,122)" /></svg>');
+  }
+
+  /* 按钮：深色面板 + 像素立体底边（margin 归零，避免组件层到处 !important） */
+  .nes-btn {
+    background-color: var(--color-slate-200);
+    color: var(--color-slate-700);
+    font-family: var(--font-sans);
+    margin: 0;
+  }
+  .nes-btn::after {
+    box-shadow: inset -4px -4px var(--color-slate-300);
+  }
+  .nes-btn:hover {
+    background-color: var(--color-slate-300);
+    color: var(--color-slate-800);
+  }
+  .nes-btn:hover::after {
+    box-shadow: inset -6px -6px #222c3d;
+  }
+  .nes-btn:focus {
+    box-shadow: 0 0 0 4px rgba(0, 229, 184, 0.2);
+  }
+  .nes-btn:active:not(.is-disabled)::after {
+    box-shadow: inset 4px 4px #222c3d;
+  }
+
+  /* 主按钮：荧光青绿 */
+  .nes-btn.is-primary {
+    background-color: var(--color-indigo-500);
+    color: var(--color-slate-50);
+  }
+  .nes-btn.is-primary::after {
+    box-shadow: inset -4px -4px var(--color-indigo-700);
+  }
+  .nes-btn.is-primary:hover {
+    background-color: #00c9a1;
+  }
+
+  /* 危险按钮：错误红（用于停止生成） */
+  .nes-btn.is-error {
+    background-color: var(--color-red-500);
+    color: var(--color-slate-50);
+  }
+  .nes-btn.is-error::after {
+    box-shadow: inset -4px -4px #d63b3b;
+  }
+
+  /* 深色面板容器 */
+  .nes-container.is-dark {
+    background-color: var(--color-slate-100);
+    color: var(--color-slate-800);
+  }
+
+  /* 进度条：青绿填充 */
+  .nes-progress {
+    background-color: var(--color-slate-100);
+  }
+  .nes-progress.is-success span {
+    background-color: var(--color-indigo-500);
+  }
 }
 
+/* ---------- 面板：深色实色（原毛玻璃类保留语义为深色面板） ---------- */
+.apple-glass,
 .apple-glass-subtle {
-  background: rgba(16, 22, 31, 0.94);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-/* ---------- NES.css 深色霓虹主题适配 ---------- */
-/* 像素边框 SVG（5x5 通用 / 8x8 圆角容器） */
-.nes-btn,
-.nes-input,
-.nes-textarea,
-.nes-select select,
-.nes-progress,
-.nes-dialog.is-rounded {
-  border-image-slice: 2;
-  border-image-width: 2;
-  border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="5" height="5" xmlns="http://www.w3.org/2000/svg"><path d="M2 1 h1 v1 h-1 z M1 2 h1 v1 h-1 z M3 2 h1 v1 h-1 z M2 3 h1 v1 h-1 z" fill="rgb(42,53,71)" /></svg>');
-}
-
-.nes-container.is-rounded,
-.nes-container.is-rounded.is-dark {
-  border-image-slice: 3;
-  border-image-width: 3;
-  border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 h1 v1 h-1 z M4 1 h1 v1 h-1 z M2 2 h1 v1 h-1 z M5 2 h1 v1 h-1 z M1 3 h1 v1 h-1 z M6 3 h1 v1 h-1 z M1 4 h1 v1 h-1 z M6 4 h1 v1 h-1 z M2 5 h1 v1 h-1 z M5 5 h1 v1 h-1 z M3 6 h1 v1 h-1 z M4 6 h1 v1 h-1 z" fill="rgb(42,53,71)" /></svg>');
-}
-
-/* 按钮：深色面板 + 像素立体底边 */
-.nes-btn {
-  background-color: #141b26;
-  color: #a9b6c8;
-  font-family: var(--font-sans);
-  margin: 2px;
-}
-.nes-btn::after {
-  box-shadow: inset -4px -4px #1c2533;
-}
-.nes-btn:hover {
-  background-color: #1c2533;
-  color: #e8edf5;
-}
-.nes-btn:hover::after {
-  box-shadow: inset -6px -6px #222c3d;
-}
-.nes-btn:focus {
-  box-shadow: 0 0 0 4px rgba(0, 229, 184, 0.2);
-}
-.nes-btn:active:not(.is-disabled)::after {
-  box-shadow: inset 4px 4px #222c3d;
-}
-
-/* 主按钮：荧光青绿 */
-.nes-btn.is-primary {
-  background-color: #00b894;
-  color: #0a0e14;
-}
-.nes-btn.is-primary::after {
-  box-shadow: inset -4px -4px #00856c;
-}
-.nes-btn.is-primary:hover {
-  background-color: #00c9a1;
-}
-
-/* 状态按钮 */
-.nes-btn.is-success {
-  background-color: #22c966;
-  color: #0a0e14;
-}
-.nes-btn.is-success::after {
-  box-shadow: inset -4px -4px #0f9b4b;
-}
-.nes-btn.is-error {
-  background-color: #ff5d5d;
-  color: #0a0e14;
-}
-.nes-btn.is-error::after {
-  box-shadow: inset -4px -4px #d63b3b;
-}
-.nes-btn.is-warning {
-  background-color: #ffb020;
-  color: #0a0e14;
-}
-.nes-btn.is-warning::after {
-  box-shadow: inset -4px -4px #d68a00;
-}
-
-/* 深色面板容器 */
-.nes-container.is-dark {
-  background-color: #10161f;
-  color: #e8edf5;
-}
-.nes-container.is-rounded.is-dark {
-  background-color: #10161f;
-  color: #e8edf5;
-}
-
-/* 徽章 */
-.nes-badge {
-  margin: 0;
-  font-family: var(--font-sans);
-}
-.nes-badge.is-primary {
-  background-color: #00b894;
-  color: #0a0e14;
-}
-.nes-badge.is-dark {
-  background-color: #141b26;
-  color: #a9b6c8;
-}
-.nes-badge.is-success {
-  background-color: #22c966;
-  color: #0a0e14;
-}
-
-/* 进度条：青绿填充 */
-.nes-progress {
-  background-color: #10161f;
-}
-.nes-progress.is-success span {
-  background-color: #00b894 !important;
-}
-
-/* 输入框 */
-.nes-input,
-.nes-textarea,
-.nes-select select {
-  background-color: #0a0e14;
-  color: #e8edf5;
-}
-.nes-input::placeholder,
-.nes-textarea::placeholder {
-  color: #5c6b82;
+  background: var(--color-slate-100);
 }
 
 /* ---------- 极简像素滚动条 ---------- */
@@ -217,7 +160,7 @@
 }
 ::-webkit-scrollbar-thumb {
   background: #2a3547;
-  border: 2px solid #0a0e14;
+  border: 2px solid var(--color-slate-50);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -264,21 +207,6 @@
   vertical-align: text-bottom;
   background: var(--color-indigo-500);
   animation: cursorBlink 1s infinite;
-}
-
-/* 像素落块：阶跃出现 */
-@keyframes pixelRise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.pixel-rise {
-  animation: pixelRise 0.16s steps(2, end) both;
 }
 
 /* 积木按压：按下时实体阴影消失、位移 */

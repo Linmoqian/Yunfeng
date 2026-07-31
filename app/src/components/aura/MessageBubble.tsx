@@ -14,7 +14,7 @@ export function MessageBubble({ message, streaming }: MessageBubbleProps) {
     const text = typeof message.content === "string" ? message.content : "";
     return (
       <div className="flex items-start justify-end space-x-3">
-        <div className="bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-none text-sm max-w-[80%] shadow-md whitespace-pre-wrap break-words">
+        <div className="bg-indigo-700 text-white px-4 py-3 rounded-2xl rounded-tr-none text-sm max-w-[80%] shadow-md whitespace-pre-wrap break-words">
           {text}
         </div>
       </div>

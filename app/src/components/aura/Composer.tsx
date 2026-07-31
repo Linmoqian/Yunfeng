@@ -32,7 +32,7 @@ export function Composer({
     <div className="p-4 z-20">
       <form
         onSubmit={handleSubmit}
-        className="max-w-3xl nes-container is-rounded is-dark mx-auto! p-2! shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-indigo-500/10"
+        className="max-w-3xl nes-container is-rounded is-dark mx-auto p-2 shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-indigo-500/10"
       >
         <div className="flex items-end space-x-2">
           <button
@@ -49,7 +49,7 @@ export function Composer({
             rows={1}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none resize-none py-1.5 leading-relaxed"
+            className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-500 focus:outline-none resize-none py-1.5 leading-relaxed"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -62,7 +62,7 @@ export function Composer({
             <button
               type="button"
               onClick={() => void onAbort()}
-              className="p-2 rounded-xl bg-slate-600 hover:bg-slate-500 text-white shadow-md transition active:scale-95 flex items-center justify-center"
+              className="nes-btn is-error flex items-center justify-center shadow-md"
               title="停止生成"
             >
               <Icons.Square className="w-4 h-4 fill-current" />
@@ -71,7 +71,7 @@ export function Composer({
             <button
               type="submit"
               disabled={disabled}
-              className="nes-btn is-primary m-0! flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="nes-btn is-primary m-0 flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               title="发送"
             >
               <Icons.ArrowUp className="w-4 h-4" />

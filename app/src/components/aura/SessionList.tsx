@@ -63,7 +63,7 @@ export function SessionList({ sessions, loading, activeId, onPick }: SessionList
                 )}
                 <span className="truncate">{s.name || s.firstMessage || "(无消息)"}</span>
               </div>
-              <span className={`text-[10px] shrink-0 group-hover:hidden font-pixel ${active ? "text-slate-500" : "text-slate-500"}`}>
+              <span className="text-[10px] shrink-0 group-hover:hidden font-pixel text-slate-500">
                 {formatDay(s.modified)}
               </span>
               <Icons.MoreHorizontal className="w-3.5 h-3.5 text-slate-500 hidden group-hover:inline-block shrink-0 hover:text-slate-600" />
