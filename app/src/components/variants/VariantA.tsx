@@ -2,8 +2,11 @@
 // 会话/文件/模型统一收进 ⌘K 风格命令面板。
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { MessageBody } from "../Markdown";
+import { Composer } from "../Composer";
+import { MessageList } from "../MessageList";
+import { Banner } from "../Banner";
 import { Icons } from "../Icons";
+import { openSessionAndSyncTree } from "../../lib/sessionActions";
 import type { SessionInfo } from "../../lib/types";
 import type { VariantProps } from "./variantTypes";
 
@@ -13,12 +16,7 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
   const [panelOpen, setPanelOpen] = useState(false);
   const [tab, setTab] = useState<PanelTab>("sessions");
   const [query, setQuery] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [session.messages, session.streamingMessage]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,21 +46,14 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
 
   const pickSession = async (s: SessionInfo) => {
     setPanelOpen(false);
-    const cwd = s.cwd ?? sessions.projectRoot ?? "";
-    if (!cwd) return;
     try {
-      await session.openSession(s, cwd);
-      if (sessions.projectRoot !== cwd) fileTree.setRoot(cwd);
+      await openSessionAndSyncTree(s, sessions, session, fileTree);
     } catch {
       // 打开失败由 session.error 呈现
     }
   };
 
-  const currentModel =
-    session.state?.model &&
-    models.grouped
-      .find((g) => g.providerId === session.state?.model?.provider)
-      ?.models.find((m) => m.id === session.state?.model?.id);
+  const currentModel = models.findModel(session.state?.model?.provider, session.state?.model?.id);
 
   return (
     <div className="va-shell">
@@ -81,68 +72,33 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
         </button>
       </header>
 
-      {bannerError && (
-        <div className="va-banner">
-          {bannerError}
-          <button onClick={dismissBannerError}>✕</button>
-        </div>
-      )}
+      {bannerError && <Banner prefix="va" message={bannerError} onDismiss={dismissBannerError} />}
 
-      <div className="va-canvas" ref={scrollRef}>
-        {session.messages.length === 0 && !session.streamingMessage && (
+      <MessageList
+        prefix="va"
+        className="va-canvas"
+        messages={session.messages}
+        streamingMessage={session.streamingMessage}
+        showRoleLabels
+        bodyClass="va-msg-body"
+        empty={
           <div className="va-empty">
             <div className="va-empty-title">开始一次对话</div>
             <div className="va-empty-sub">
               按 <kbd>⌘K</kbd> 选择会话、浏览文件或切换模型
             </div>
           </div>
-        )}
-        {[...session.messages, ...(session.streamingMessage ? [session.streamingMessage] : [])].map(
-          (m, i) => (
-            <div key={i} className={`va-msg va-msg-${m.role}`}>
-              {m.role !== "user" && <div className="va-msg-role">{m.role === "assistant" ? "Pi" : "工具"}</div>}
-              <div className="va-msg-body">
-                <MessageBody message={m} />
-                {session.streamingMessage === m && m.role === "assistant" && (
-                  <span className="cursor-blink" />
-                )}
-              </div>
-            </div>
-          ),
-        )}
-      </div>
+        }
+      />
 
-      <form
-        className="va-composer"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const text = (e.currentTarget.elements.namedItem("msg") as HTMLTextAreaElement).value;
-          if (!text.trim() || !session.rpcSessionId) return;
-          (e.currentTarget.elements.namedItem("msg") as HTMLTextAreaElement).value = "";
-          void session.sendPrompt(text.trim());
-        }}
-      >
-        <textarea
-          name="msg"
-          placeholder={session.rpcSessionId ? "输入消息…" : "先选择一个会话或项目"}
-          disabled={!session.rpcSessionId}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              (e.currentTarget.form as HTMLFormElement).requestSubmit();
-            }
-          }}
-        />
-        {session.isStreaming ? (
-          <button type="button" className="va-send" onClick={() => void session.abort()}>
-            停止
-          </button>
-        ) : (
-          <button type="submit" className="va-send" disabled={!session.rpcSessionId}>
-            发送
-          </button>
-        )}
-      </form>
+      <Composer
+        prefix="va"
+        disabled={!session.rpcSessionId}
+        isStreaming={session.isStreaming}
+        placeholder={session.rpcSessionId ? "输入消息…" : "先选择一个会话或项目"}
+        onSend={session.sendPrompt}
+        onAbort={session.abort}
+      />
 
       <AnimatePresence>
         {panelOpen && (

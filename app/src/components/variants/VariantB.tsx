@@ -1,9 +1,14 @@
 // 变体 B：工程工作台。IDE 式 dock 布局：
 // 左侧工具 dock（会话/项目 tab 切换）+ 中部对话 + 右侧文件树 dock + 底部活动条。
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { MessageBody } from "../Markdown";
+import { Composer } from "../Composer";
+import { MessageList } from "../MessageList";
+import { Banner } from "../Banner";
+import { TreeView } from "../TreeView";
+import { ModelList } from "../ModelList";
 import { Icons } from "../Icons";
+import { openSessionAndSyncTree } from "../../lib/sessionActions";
 import type { SessionInfo } from "../../lib/types";
 import type { VariantProps } from "./variantTypes";
 
@@ -20,32 +25,20 @@ export function VariantB({
   const [leftTab, setLeftTab] = useState<LeftTab>("sessions");
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [session.messages, session.streamingMessage]);
 
   useEffect(() => {
     if (fileTree.selectedFile) setFilePreviewOpen(true);
   }, [fileTree.selectedFile]);
 
   const pickSession = async (s: SessionInfo) => {
-    const cwd = s.cwd ?? sessions.projectRoot ?? "";
-    if (!cwd) return;
     try {
-      await session.openSession(s, cwd);
-      if (sessions.projectRoot !== cwd) fileTree.setRoot(cwd);
+      await openSessionAndSyncTree(s, sessions, session, fileTree);
     } catch {
       // 错误由 session.error 呈现
     }
   };
 
-  const currentModel =
-    session.state?.model &&
-    models.grouped
-      .find((g) => g.providerId === session.state?.model?.provider)
-      ?.models.find((m) => m.id === session.state?.model?.id);
+  const currentModel = models.findModel(session.state?.model?.provider, session.state?.model?.id);
 
   return (
     <div className="vb-shell">
@@ -80,23 +73,16 @@ export function VariantB({
                   exit={{ opacity: 0, y: -6, scale: 0.98 }}
                   transition={{ duration: 0.13, ease: "easeOut" }}
                 >
-                {models.grouped.map((g) => (
-                  <div key={g.providerId}>
-                    <div className="vb-model-group">{g.providerName}</div>
-                    {g.models.map((m) => (
-                      <button
-                        key={m.id}
-                        className={`vb-model-item ${session.state?.model?.id === m.id ? "vb-model-item-active" : ""}`}
-                        onClick={() => {
-                          setModelMenuOpen(false);
-                          if (session.rpcSessionId) void session.setModel(m.provider, m.id);
-                        }}
-                      >
-                        {m.name}
-                      </button>
-                    ))}
-                  </div>
-                ))}
+                <ModelList
+                  prefix="vb"
+                  grouped={models.grouped}
+                  activeModel={session.state?.model}
+                  disabled={!session.rpcSessionId}
+                  onSelect={(provider, modelId) => {
+                    setModelMenuOpen(false);
+                    return session.setModel(provider, modelId);
+                  }}
+                />
                 </motion.div>
               </>
             )}
@@ -104,12 +90,7 @@ export function VariantB({
         </div>
       </header>
 
-      {bannerError && (
-        <div className="vb-banner">
-          {bannerError}
-          <button onClick={dismissBannerError}>✕</button>
-        </div>
-      )}
+      {bannerError && <Banner prefix="vb" message={bannerError} onDismiss={dismissBannerError} />}
 
       <div className="vb-body">
         {/* 左 dock */}
@@ -182,55 +163,22 @@ export function VariantB({
               </span>
             )}
           </div>
-          <div className="vb-chat-scroll" ref={scrollRef}>
-            {session.messages.length === 0 && !session.streamingMessage && (
-              <div className="vb-empty">
-                选择一个会话，或从左侧 dock 新建会话开始
-              </div>
-            )}
-            {[...session.messages, ...(session.streamingMessage ? [session.streamingMessage] : [])].map(
-              (m, i) => (
-                <div key={i} className={`vb-msg vb-msg-${m.role}`}>
-                  {m.role !== "user" && <div className="vb-msg-role">{m.role === "assistant" ? "Pi" : "工具"}</div>}
-                  <MessageBody message={m} />
-                  {session.streamingMessage === m && m.role === "assistant" && (
-                    <span className="cursor-blink" />
-                  )}
-                </div>
-              ),
-            )}
-          </div>
-          <form
-            className="vb-composer"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const el = e.currentTarget.elements.namedItem("msg") as HTMLTextAreaElement;
-              if (!el.value.trim() || !session.rpcSessionId) return;
-              void session.sendPrompt(el.value.trim());
-              el.value = "";
-            }}
-          >
-            <textarea
-              name="msg"
-              placeholder={session.rpcSessionId ? "输入消息…" : "先选择会话"}
-              disabled={!session.rpcSessionId}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  (e.currentTarget.form as HTMLFormElement).requestSubmit();
-                }
-              }}
-            />
-            {session.isStreaming ? (
-              <button type="button" className="vb-send" onClick={() => void session.abort()}>
-                停止
-              </button>
-            ) : (
-              <button type="submit" className="vb-send" disabled={!session.rpcSessionId}>
-                发送
-              </button>
-            )}
-          </form>
+          <MessageList
+            prefix="vb"
+            className="vb-chat-scroll"
+            messages={session.messages}
+            streamingMessage={session.streamingMessage}
+            showRoleLabels
+            empty={<div className="vb-empty">选择一个会话，或从左侧 dock 新建会话开始</div>}
+          />
+          <Composer
+            prefix="vb"
+            disabled={!session.rpcSessionId}
+            isStreaming={session.isStreaming}
+            placeholder={session.rpcSessionId ? "输入消息…" : "先选择会话"}
+            onSend={session.sendPrompt}
+            onAbort={session.abort}
+          />
         </main>
 
         {/* 右 dock：文件树 + 预览 */}
@@ -251,16 +199,13 @@ export function VariantB({
             <div className="vb-dock-empty">未选择项目</div>
           ) : (
             <div className="vb-tree">
-              {fileTree.tree.map((n) => (
-                <VbNode
-                  key={n.path}
-                  node={n}
-                  depth={0}
-                  onToggle={fileTree.toggleDir}
-                  onSelect={fileTree.selectFile}
-                  selectedPath={fileTree.selectedFile?.path ?? null}
-                />
-              ))}
+              <TreeView
+                prefix="vb"
+                nodes={fileTree.tree}
+                selectedPath={fileTree.selectedFile?.path ?? null}
+                onToggle={fileTree.toggleDir}
+                onSelect={fileTree.selectFile}
+              />
             </div>
           )}
           {filePreviewOpen && fileTree.selectedFile && (
@@ -293,47 +238,5 @@ export function VariantB({
         </span>
       </footer>
     </div>
-  );
-}
-
-function VbNode({
-  node,
-  depth,
-  onToggle,
-  onSelect,
-  selectedPath,
-}: {
-  node: { name: string; path: string; type: "file" | "dir"; children?: { name: string; path: string; type: "file" | "dir"; children?: unknown[]; expanded?: boolean; size: number }[]; expanded?: boolean; size: number };
-  depth: number;
-  onToggle: (n: { name: string; path: string; type: "file" | "dir"; size: number }) => Promise<void>;
-  onSelect: (n: { name: string; path: string; type: "file" | "dir"; size: number }) => Promise<void>;
-  selectedPath: string | null;
-}) {
-  const isDir = node.type === "dir";
-  return (
-    <>
-      <div
-        className={`vb-node ${selectedPath === node.path ? "vb-node-selected" : ""}`}
-        style={{ paddingLeft: `${depth * 14 + 8}px` }}
-        onClick={() => (isDir ? void onToggle(node) : void onSelect(node))}
-      >
-        <span>
-          {isDir ? (node.expanded ? <Icons.FolderOpen size={13} /> : <Icons.Folder size={13} />) : <Icons.File size={13} />}
-        </span>
-        <span className="vb-node-name">{node.name}</span>
-      </div>
-      {isDir &&
-        node.expanded &&
-        node.children?.map((c) => (
-          <VbNode
-            key={c.path}
-            node={c as typeof node}
-            depth={depth + 1}
-            onToggle={onToggle}
-            onSelect={onSelect}
-            selectedPath={selectedPath}
-          />
-        ))}
-    </>
   );
 }

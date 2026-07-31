@@ -9,6 +9,8 @@ interface UseModelsResult {
   refresh: () => Promise<void>;
   /** 按提供商分组后的可用模型 */
   grouped: { providerId: string; providerName: string; configured: boolean; models: ModelInfo[] }[];
+  /** 按 provider + id 查找模型（未找到返回 null） */
+  findModel: (provider: string | undefined, modelId: string | undefined) => ModelInfo | null;
 }
 
 export { type UseModelsResult };
@@ -50,5 +52,13 @@ export function useModels(client: SidecarClient | null): UseModelsResult {
       .filter((g) => g.models.length > 0);
   }, [models]);
 
-  return { models, loading, error, refresh, grouped: grouped() };
+  const findModel = useCallback(
+    (provider: string | undefined, modelId: string | undefined): ModelInfo | null => {
+      if (!models || !provider || !modelId) return null;
+      return models.available.find((m) => m.provider === provider && m.id === modelId) ?? null;
+    },
+    [models],
+  );
+
+  return { models, loading, error, refresh, grouped: grouped(), findModel };
 }
