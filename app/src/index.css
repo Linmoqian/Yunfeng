@@ -491,14 +491,19 @@ a:focus-visible {
 }
 
 .chat-header {
+  border-bottom: 1px solid var(--border);
+  padding: 14px clamp(24px, 5vw, 56px);
+  background: color-mix(in srgb, var(--background) 70%, transparent);
+  backdrop-filter: blur(24px) saturate(145%);
+}
+
+.chat-header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid var(--border);
-  padding: 14px 26px;
-  background: color-mix(in srgb, var(--background) 70%, transparent);
-  backdrop-filter: blur(24px) saturate(145%);
+  max-width: 860px;
+  margin: 0 auto;
 }
 
 .chat-title {
@@ -753,7 +758,7 @@ a:focus-visible {
 /* ---------- 输入条 ---------- */
 .composer {
   border-top: 1px solid var(--border);
-  padding: 14px clamp(20px, 5vw, 48px) 18px;
+  padding: 14px clamp(24px, 5vw, 56px) 18px;
   background: color-mix(in srgb, var(--background) 70%, transparent);
   backdrop-filter: blur(24px) saturate(145%);
 }

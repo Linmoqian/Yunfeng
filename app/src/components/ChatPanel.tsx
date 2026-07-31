@@ -35,23 +35,25 @@ export function ChatPanel({ session, models, onPickDirectory }: ChatPanelProps) 
   return (
     <>
       <div className="chat-header" data-tauri-drag-region>
-        <div className="chat-title">
-          <strong>{session.session?.name || (hasSession ? "当前会话" : "Yunfeng")}</strong>
-          <span>
-            {hasSession && <span className="chat-status-dot" />}
-            {isBusy
-              ? session.runningTools.map((t) => t.name).join(", ") || "思考中…"
-              : currentModel
-                ? currentModel.name
-                : "未选择模型"}
-          </span>
+        <div className="chat-header-inner">
+          <div className="chat-title">
+            <strong>{session.session?.name || (hasSession ? "当前会话" : "Yunfeng")}</strong>
+            <span>
+              {hasSession && <span className="chat-status-dot" />}
+              {isBusy
+                ? session.runningTools.map((t) => t.name).join(", ") || "思考中…"
+                : currentModel
+                  ? currentModel.name
+                  : "未选择模型"}
+            </span>
+          </div>
+          <ModelMenu
+            grouped={models.grouped}
+            currentModel={currentModel}
+            disabled={!hasSession}
+            onSelect={session.setModel}
+          />
         </div>
-        <ModelMenu
-          grouped={models.grouped}
-          currentModel={currentModel}
-          disabled={!hasSession}
-          onSelect={session.setModel}
-        />
       </div>
 
       <div ref={scrollRef} className="message-stream">
