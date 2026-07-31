@@ -4,6 +4,7 @@
 
 import { useEffect } from "react";
 import { VARIANT_NAMES } from "./variants/variantTypes";
+import { Icons } from "./Icons";
 
 interface PrototypeSwitcherProps {
   variants: string[];
@@ -48,13 +49,13 @@ export function PrototypeSwitcher({ variants, current, onChange }: PrototypeSwit
   return (
     <div className="proto-switcher" data-testid="proto-switcher">
       <button className="proto-switcher-btn" onClick={() => cycle(-1)} title="上一个变体 (←)">
-        ←
+        <Icons.ArrowLeft size={14} />
       </button>
       <span className="proto-switcher-label">
         {current} — {label}
       </span>
       <button className="proto-switcher-btn" onClick={() => cycle(1)} title="下一个变体 (→)">
-        →
+        <Icons.ArrowRight size={14} />
       </button>
     </div>
   );

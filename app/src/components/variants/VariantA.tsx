@@ -2,6 +2,7 @@
 // 会话/文件/模型统一收进 ⌘K 风格命令面板。
 import { useEffect, useRef, useState } from "react";
 import { MessageBody } from "../Markdown";
+import { Icons } from "../Icons";
 import type { SessionInfo } from "../../lib/types";
 import type { VariantProps } from "./variantTypes";
 
@@ -75,7 +76,7 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
           </span>
         </button>
         <button className="va-kbd" onClick={() => setPanelOpen(true)} title="打开命令面板 (⌘K)">
-          ⌘K
+          <Icons.Command size={12} /> K
         </button>
       </header>
 
@@ -175,7 +176,9 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
                       void session.newSession(sessions.projectRoot ?? "");
                     }}
                   >
-                    <span className="va-panel-item-main">＋ 新建会话</span>
+                    <span className="va-panel-item-main">
+                      <Icons.Plus size={14} /> 新建会话
+                    </span>
                   </button>
                   {filteredSessions.map((s) => (
                     <button
@@ -210,7 +213,9 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
                         });
                       }}
                     >
-                      <span className="va-panel-item-main">📁 选择项目目录</span>
+                      <span className="va-panel-item-main">
+                        <Icons.Folder size={14} /> 选择项目目录
+                      </span>
                     </button>
                   )}
                   {filteredFiles.map((n) => (
@@ -224,7 +229,7 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
                       }}
                     >
                       <span className="va-panel-item-main">
-                        {n.type === "dir" ? "📁" : "📄"} {n.name}
+                        {n.type === "dir" ? <Icons.Folder size={14} /> : <Icons.File size={14} />} {n.name}
                       </span>
                     </button>
                   ))}

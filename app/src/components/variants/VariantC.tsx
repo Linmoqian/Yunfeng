@@ -2,6 +2,7 @@
 // 文件与模型走浮层。强调专注与对话连续性。
 import { useEffect, useRef, useState } from "react";
 import { MessageBody } from "../Markdown";
+import { Icons } from "../Icons";
 import type { SessionInfo } from "../../lib/types";
 import type { VariantProps } from "./variantTypes";
 
@@ -45,7 +46,7 @@ export function VariantC({
     <div className="vc-shell">
       <header className="vc-topbar">
         <button className="vc-iconbtn" onClick={() => setDrawerOpen(true)} title="会话列表">
-          ☰
+          <Icons.Menu size={17} />
         </button>
         <div className="vc-title">
           <div className="vc-title-main">{session.session?.name || "Pi"}</div>
@@ -59,10 +60,10 @@ export function VariantC({
         </div>
         <div className="vc-actions">
           <button className="vc-iconbtn" onClick={() => setModelPanel(true)} title="切换模型">
-            ⚙
+            <Icons.Settings size={16} />
           </button>
           <button className="vc-iconbtn" onClick={() => setFilePanel(true)} title="文件">
-            📁
+            <Icons.FolderTree size={16} />
           </button>
         </div>
       </header>
@@ -140,7 +141,7 @@ export function VariantC({
                   void session.newSession(sessions.projectRoot ?? "");
                 }}
               >
-                ＋ 新建
+                <Icons.Plus size={13} /> 新建
               </button>
             </div>
             <div className="vc-drawer-list">
@@ -149,7 +150,7 @@ export function VariantC({
                   className="vc-drawer-pick"
                   onClick={() => void sessions.pickDirectory().then((d) => d && fileTree.setRoot(d))}
                 >
-                  📁 选择项目目录
+                  <Icons.Folder size={14} /> 选择项目目录
                 </button>
               )}
               {sessions.sessions.map((s) => (
@@ -178,7 +179,7 @@ export function VariantC({
             <div className="vc-sheet-header">
               <span>切换模型</span>
               <button className="vc-iconbtn" onClick={() => setModelPanel(false)}>
-                ✕
+                <Icons.X size={16} />
               </button>
             </div>
             <div className="vc-sheet-body">
@@ -212,7 +213,7 @@ export function VariantC({
             <div className="vc-sheet-header">
               <span>文件</span>
               <button className="vc-iconbtn" onClick={() => setFilePanel(false)}>
-                ✕
+                <Icons.X size={16} />
               </button>
             </div>
             <div className="vc-sheet-body vc-files">
@@ -221,7 +222,7 @@ export function VariantC({
                   <button
                     onClick={() => void sessions.pickDirectory().then((d) => d && fileTree.setRoot(d))}
                   >
-                    📁 选择项目目录
+                    <Icons.Folder size={14} /> 选择项目目录
                   </button>
                 </div>
               ) : (
@@ -277,7 +278,9 @@ function VcNode({
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
         onClick={() => (isDir ? void onToggle(node) : void onSelect(node))}
       >
-        <span>{isDir ? (node.expanded ? "📂" : "📁") : "📄"}</span>
+        <span>
+          {isDir ? (node.expanded ? <Icons.FolderOpen size={13} /> : <Icons.Folder size={13} />) : <Icons.File size={13} />}
+        </span>
         <span className="vc-node-name">{node.name}</span>
       </div>
       {isDir &&

@@ -2,6 +2,7 @@
 // 左侧工具 dock（会话/项目 tab 切换）+ 中部对话 + 右侧文件树 dock + 底部活动条。
 import { useEffect, useRef, useState } from "react";
 import { MessageBody } from "../Markdown";
+import { Icons } from "../Icons";
 import type { SessionInfo } from "../../lib/types";
 import type { VariantProps } from "./variantTypes";
 
@@ -114,7 +115,7 @@ export function VariantB({
                   onClick={() => void session.newSession(sessions.projectRoot ?? "")}
                   title="新建会话"
                 >
-                  ＋
+                  <Icons.Plus size={14} />
                 </button>
               </div>
               <div className="vb-dock-list">
@@ -140,8 +141,8 @@ export function VariantB({
               <div className="vb-dock-toolbar">
                 <span className="vb-dock-label">项目</span>
                 {sessions.projectRoot && (
-                  <button className="vb-dock-new" onClick={() => void sessions.pickDirectory()}>
-                    ⇄
+                  <button className="vb-dock-new" onClick={() => void sessions.pickDirectory()} title="切换目录">
+                    <Icons.RefreshCw size={12} />
                   </button>
                 )}
               </div>
@@ -272,8 +273,14 @@ export function VariantB({
             : "空闲"}
         </span>
         <span className="vb-status-item">{session.messages.length} 条消息</span>
-        <span className="vb-status-item">
-          {fileTree.root ? `📁 ${fileTree.root.split(/[\\/]/).pop()}` : "无项目"}
+        <span className="vb-status-item" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {fileTree.root ? (
+            <>
+              <Icons.Folder size={11} /> {fileTree.root.split(/[\\/]/).pop()}
+            </>
+          ) : (
+            "无项目"
+          )}
         </span>
       </footer>
     </div>
@@ -301,7 +308,9 @@ function VbNode({
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
         onClick={() => (isDir ? void onToggle(node) : void onSelect(node))}
       >
-        <span>{isDir ? (node.expanded ? "📂" : "📁") : "📄"}</span>
+        <span>
+          {isDir ? (node.expanded ? <Icons.FolderOpen size={13} /> : <Icons.Folder size={13} />) : <Icons.File size={13} />}
+        </span>
         <span className="vb-node-name">{node.name}</span>
       </div>
       {isDir &&
