@@ -3,72 +3,40 @@
    Tailwind 入口与 Aura 布局样式见 index.css
    ============================================================ */
 
-/* ---------- 色彩系统（苹果风格，跟随系统亮暗） ---------- */
+/* ---------- 色彩系统（CRT 深色像素风） ---------- */
 :root {
-  --bg: #f5f5f7;
-  --bg-gradient: radial-gradient(1200px 600px at 20% -10%, rgba(0, 122, 255, 0.08), transparent 60%),
-    radial-gradient(1000px 500px at 90% 0%, rgba(175, 82, 222, 0.06), transparent 55%),
-    #f5f5f7;
-  --panel: rgba(255, 255, 255, 0.72);
-  --panel-solid: #ffffff;
-  --panel-hover: rgba(0, 0, 0, 0.05);
-  --panel-active: rgba(0, 0, 0, 0.07);
-  --border: rgba(0, 0, 0, 0.09);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --text: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --text-tertiary: #86868b;
-  --accent: #007aff;
-  --accent-hover: #0071eb;
-  --accent-soft: rgba(0, 122, 255, 0.12);
-  --danger: #ff3b30;
-  --success: #34c759;
-  --warning: #ff9500;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.16);
+  --bg: #0a0e14;
+  --bg-gradient: radial-gradient(900px 500px at 15% -5%, rgba(0, 229, 184, 0.07), transparent 60%),
+    radial-gradient(800px 420px at 95% 0%, rgba(77, 163, 255, 0.06), transparent 55%),
+    #0a0e14;
+  --panel: rgba(16, 22, 31, 0.92);
+  --panel-solid: #10161f;
+  --panel-hover: rgba(255, 255, 255, 0.05);
+  --panel-active: rgba(255, 255, 255, 0.09);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #e8edf5;
+  --text-secondary: #a9b6c8;
+  --text-tertiary: #7d8ca3;
+  --accent: #00b894;
+  --accent-hover: #00c9a1;
+  --accent-soft: rgba(0, 229, 184, 0.16);
+  --danger: #ff5d5d;
+  --success: #22c966;
+  --warning: #ffb020;
+  --shadow-sm: 0 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 3px 0 rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 4px 0 rgba(0, 0, 0, 0.5);
   --blur: 24px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
   --bubble-user-bg: var(--accent);
-  --bubble-user-text: #fff;
-  --bubble-assistant-bg: rgba(0, 0, 0, 0.05);
-  --code-bg: rgba(0, 0, 0, 0.06);
-  --scrollbar: rgba(0, 0, 0, 0.25);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1c1c1e;
-    --bg-gradient: radial-gradient(1200px 600px at 20% -10%, rgba(10, 132, 255, 0.1), transparent 60%),
-      radial-gradient(1000px 500px at 90% 0%, rgba(175, 82, 222, 0.08), transparent 55%),
-      #1c1c1e;
-    --panel: rgba(44, 44, 46, 0.72);
-    --panel-solid: #2c2c2e;
-    --panel-hover: rgba(255, 255, 255, 0.06);
-    --panel-active: rgba(255, 255, 255, 0.1);
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.18);
-    --text: #f5f5f7;
-    --text-secondary: #98989d;
-    --text-tertiary: #7c7c80;
-    --accent: #0a84ff;
-    --accent-hover: #3395ff;
-    --accent-soft: rgba(10, 132, 255, 0.2);
-    --danger: #ff453a;
-    --success: #32d74b;
-    --warning: #ff9f0a;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
-    --bubble-user-bg: var(--accent);
-    --bubble-user-text: #fff;
-    --bubble-assistant-bg: rgba(255, 255, 255, 0.07);
-    --code-bg: rgba(0, 0, 0, 0.35);
-    --scrollbar: rgba(255, 255, 255, 0.3);
-  }
+  --bubble-user-text: #0a0e14;
+  --bubble-assistant-bg: rgba(255, 255, 255, 0.05);
+  --code-bg: rgba(0, 0, 0, 0.35);
+  --scrollbar: rgba(255, 255, 255, 0.3);
 }
 
 /* ---------- 基础 ---------- */
@@ -94,6 +62,9 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* 像素点阵网格质感 */
+  background-image: var(--bg-gradient), radial-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: auto, 16px 16px;
 }
 
 ::selection {

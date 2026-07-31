@@ -1,45 +1,236 @@
-/* Aura — 正式 UI 样式入口（Tailwind v4） */
+/* Aura — 像素积木设计系统（Tailwind v4 + NES.css）
+   CRT 深色底 + 霓虹青绿积木块。UI 壳用小圆角/硬阴影/像素边框，正文保持可读。 */
 
 @import "tailwindcss";
 
-/* 设计令牌（对应设计稿 tailwind.config 扩展） */
+/* NES.css：8-bit 像素组件（按钮/面板/徽章/进度条/输入框），下方已深色化适配 */
+@import "../node_modules/nes.css/css/nes.css";
+
+/* ---------- 设计令牌 ---------- */
 @theme {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --color-apple-blue: #007aff;
-  --color-apple-gray: #8e8e93;
-  --color-apple-accent: #6366f1;
-  --shadow-apple-glow: 0 0 35px -5px rgba(99, 102, 241, 0.15);
-  --shadow-apple-float: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+  /* 字体：正文可读 / 代码等宽 / 壳标签等宽像素感 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+  --font-pixel: "Courier New", "Cascadia Code", monospace;
+
+  /* accent 荧光青绿（替换原 indigo 蓝紫色系） */
+  --color-indigo-50: rgba(0, 229, 184, 0.12);
+  --color-indigo-100: rgba(0, 229, 184, 0.18);
+  --color-indigo-200: rgba(0, 229, 184, 0.3);
+  --color-indigo-400: rgba(0, 229, 184, 0.55);
+  --color-indigo-500: #00b894;
+  --color-indigo-600: #009f80;
+  --color-indigo-700: #00856c;
+
+  /* 中性 slate：深色面板 + 浅文字（深色主题下语义反转） */
+  --color-slate-50: #0a0e14;
+  --color-slate-100: #10161f;
+  --color-slate-200: #141b26;
+  --color-slate-300: #1c2533;
+  --color-slate-400: #55657a;
+  --color-slate-500: #5c6b82;
+  --color-slate-600: #7d8ca3;
+  --color-slate-700: #a9b6c8;
+  --color-slate-800: #e8edf5;
+  --color-slate-900: #f4f8fc;
+
+  /* 状态 / 积木点缀色 */
+  --color-emerald-500: #3aff8f;
+  --color-emerald-600: #22c966;
+  --color-amber-500: #ffb020;
+  --color-blue-500: #4da3ff;
+  --color-red-500: #ff5d5d;
+  --color-red-600: #ff6b6b;
+  --color-red-800: #ff7a7a;
+  --color-pink-500: #ff9ecf;
+  --color-purple-500: #b49cff;
+  --color-cyan-500: #4de8ff;
+
+  /* 像素硬阴影：底部实体投影，模拟积木厚度 */
+  --shadow-sm: 0 2px 0 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 3px 0 0 rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 4px 0 0 rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 5px 0 0 rgba(0, 0, 0, 0.55);
+  --shadow-apple-float: 0 4px 0 0 rgba(0, 0, 0, 0.45);
+  --shadow-apple-glow: 0 0 0 2px rgba(0, 229, 184, 0.35);
+
+  /* 像素小圆角：块状而非圆润 */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --radius-3xl: 8px;
+  --radius-4xl: 8px;
+  --radius-full: 6px;
 }
 
-/* Apple Glassmorphism */
+/* ---------- 面板：深色实色（替换原毛玻璃） ---------- */
 .apple-glass {
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  background: rgba(16, 22, 31, 0.96);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .apple-glass-subtle {
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(16, 22, 31, 0.94);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
-/* 极简滚动条 */
+/* ---------- NES.css 深色霓虹主题适配 ---------- */
+/* 像素边框 SVG（5x5 通用 / 8x8 圆角容器） */
+.nes-btn,
+.nes-input,
+.nes-textarea,
+.nes-select select,
+.nes-progress,
+.nes-dialog.is-rounded {
+  border-image-slice: 2;
+  border-image-width: 2;
+  border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="5" height="5" xmlns="http://www.w3.org/2000/svg"><path d="M2 1 h1 v1 h-1 z M1 2 h1 v1 h-1 z M3 2 h1 v1 h-1 z M2 3 h1 v1 h-1 z" fill="rgb(42,53,71)" /></svg>');
+}
+
+.nes-container.is-rounded,
+.nes-container.is-rounded.is-dark {
+  border-image-slice: 3;
+  border-image-width: 3;
+  border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M3 1 h1 v1 h-1 z M4 1 h1 v1 h-1 z M2 2 h1 v1 h-1 z M5 2 h1 v1 h-1 z M1 3 h1 v1 h-1 z M6 3 h1 v1 h-1 z M1 4 h1 v1 h-1 z M6 4 h1 v1 h-1 z M2 5 h1 v1 h-1 z M5 5 h1 v1 h-1 z M3 6 h1 v1 h-1 z M4 6 h1 v1 h-1 z" fill="rgb(42,53,71)" /></svg>');
+}
+
+/* 按钮：深色面板 + 像素立体底边 */
+.nes-btn {
+  background-color: #141b26;
+  color: #a9b6c8;
+  font-family: var(--font-sans);
+  margin: 2px;
+}
+.nes-btn::after {
+  box-shadow: inset -4px -4px #1c2533;
+}
+.nes-btn:hover {
+  background-color: #1c2533;
+  color: #e8edf5;
+}
+.nes-btn:hover::after {
+  box-shadow: inset -6px -6px #222c3d;
+}
+.nes-btn:focus {
+  box-shadow: 0 0 0 4px rgba(0, 229, 184, 0.2);
+}
+.nes-btn:active:not(.is-disabled)::after {
+  box-shadow: inset 4px 4px #222c3d;
+}
+
+/* 主按钮：荧光青绿 */
+.nes-btn.is-primary {
+  background-color: #00b894;
+  color: #0a0e14;
+}
+.nes-btn.is-primary::after {
+  box-shadow: inset -4px -4px #00856c;
+}
+.nes-btn.is-primary:hover {
+  background-color: #00c9a1;
+}
+
+/* 状态按钮 */
+.nes-btn.is-success {
+  background-color: #22c966;
+  color: #0a0e14;
+}
+.nes-btn.is-success::after {
+  box-shadow: inset -4px -4px #0f9b4b;
+}
+.nes-btn.is-error {
+  background-color: #ff5d5d;
+  color: #0a0e14;
+}
+.nes-btn.is-error::after {
+  box-shadow: inset -4px -4px #d63b3b;
+}
+.nes-btn.is-warning {
+  background-color: #ffb020;
+  color: #0a0e14;
+}
+.nes-btn.is-warning::after {
+  box-shadow: inset -4px -4px #d68a00;
+}
+
+/* 深色面板容器 */
+.nes-container.is-dark {
+  background-color: #10161f;
+  color: #e8edf5;
+}
+.nes-container.is-rounded.is-dark {
+  background-color: #10161f;
+  color: #e8edf5;
+}
+
+/* 徽章 */
+.nes-badge {
+  margin: 0;
+  font-family: var(--font-sans);
+}
+.nes-badge.is-primary {
+  background-color: #00b894;
+  color: #0a0e14;
+}
+.nes-badge.is-dark {
+  background-color: #141b26;
+  color: #a9b6c8;
+}
+.nes-badge.is-success {
+  background-color: #22c966;
+  color: #0a0e14;
+}
+
+/* 进度条：青绿填充 */
+.nes-progress {
+  background-color: #10161f;
+}
+.nes-progress.is-success span {
+  background-color: #00b894 !important;
+}
+
+/* 输入框 */
+.nes-input,
+.nes-textarea,
+.nes-select select {
+  background-color: #0a0e14;
+  color: #e8edf5;
+}
+.nes-input::placeholder,
+.nes-textarea::placeholder {
+  color: #5c6b82;
+}
+
+/* ---------- 极简像素滚动条 ---------- */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-  border-radius: 10px;
+  background: #2a3547;
+  border: 2px solid #0a0e14;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: #34415a;
 }
 
-/* 智能体脉冲动画 */
+/* ---------- 选中：像素亮块 ---------- */
+::selection {
+  background: rgba(0, 229, 184, 0.28);
+  color: #e8edf5;
+}
+
+/* ---------- 动效 ---------- */
 @keyframes subtlePulse {
   0%,
   100% {
@@ -55,7 +246,7 @@
   animation: subtlePulse 3s infinite ease-in-out;
 }
 
-/* 流式光标 */
+/* 流式光标：像素方块 */
 @keyframes cursorBlink {
   0%,
   100% {
@@ -67,10 +258,36 @@
 }
 .cursor-blink {
   display: inline-block;
-  width: 2px;
+  width: 8px;
   height: 1em;
   margin-left: 2px;
   vertical-align: text-bottom;
-  background: var(--color-apple-accent);
+  background: var(--color-indigo-500);
   animation: cursorBlink 1s infinite;
+}
+
+/* 像素落块：阶跃出现 */
+@keyframes pixelRise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.pixel-rise {
+  animation: pixelRise 0.16s steps(2, end) both;
+}
+
+/* 积木按压：按下时实体阴影消失、位移 */
+.pixel-press {
+  transition:
+    transform 0.05s steps(2, end),
+    box-shadow 0.05s steps(2, end);
+}
+.pixel-press:active {
+  transform: translate(1px, 1px);
+  box-shadow: none !important;
 }

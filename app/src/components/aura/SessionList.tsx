@@ -27,20 +27,20 @@ function formatDay(iso: string): string {
 export function SessionList({ sessions, loading, activeId, onPick }: SessionListProps) {
   return (
     <div className="space-y-1">
-      <div className="px-2 py-1 flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-        <span className="flex items-center space-x-1.5">
+      <div className="px-2 py-1 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+        <span className="flex items-center space-x-1.5 font-pixel">
           <Icons.MessageSquare className="w-3.5 h-3.5" />
           <span>历史会话</span>
         </span>
-        <span className="text-[10px] bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded-full font-mono">
+        <span className="text-[10px] bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded-full font-pixel">
           {sessions.length}
         </span>
       </div>
 
       <div className="space-y-0.5">
-        {loading && <div className="px-3 py-2 text-[11px] text-slate-400">加载中…</div>}
+        {loading && <div className="px-3 py-2 text-[11px] text-slate-500">加载中…</div>}
         {!loading && sessions.length === 0 && (
-          <div className="px-3 py-2 text-[11px] text-slate-400">暂无会话</div>
+          <div className="px-3 py-2 text-[11px] text-slate-500">暂无会话</div>
         )}
         {sessions.map((s) => {
           const active = activeId === s.id;
@@ -48,9 +48,9 @@ export function SessionList({ sessions, loading, activeId, onPick }: SessionList
             <button
               key={s.id}
               onClick={() => onPick(s)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition text-left group ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition text-left group pixel-press ${
                 active
-                  ? "bg-indigo-50 border border-indigo-200/60 text-indigo-600 font-medium shadow-sm"
+                  ? "bg-indigo-100/50 border-2 border-indigo-400/60 text-indigo-500 font-medium shadow-md"
                   : "hover:bg-slate-200/40 text-slate-600"
               }`}
               title={s.path}
@@ -59,14 +59,14 @@ export function SessionList({ sessions, loading, activeId, onPick }: SessionList
                 {active ? (
                   <Icons.MessageCircleMore className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
                 ) : (
-                  <Icons.MessageCircle className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  <Icons.MessageCircle className="w-3.5 h-3.5 shrink-0 text-slate-500" />
                 )}
                 <span className="truncate">{s.name || s.firstMessage || "(无消息)"}</span>
               </div>
-              <span className={`text-[10px] shrink-0 group-hover:hidden ${active ? "text-slate-400" : "text-slate-400"}`}>
+              <span className={`text-[10px] shrink-0 group-hover:hidden font-pixel ${active ? "text-slate-500" : "text-slate-500"}`}>
                 {formatDay(s.modified)}
               </span>
-              <Icons.MoreHorizontal className="w-3.5 h-3.5 text-slate-400 hidden group-hover:inline-block shrink-0 hover:text-slate-600" />
+              <Icons.MoreHorizontal className="w-3.5 h-3.5 text-slate-500 hidden group-hover:inline-block shrink-0 hover:text-slate-600" />
             </button>
           );
         })}

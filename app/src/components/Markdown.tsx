@@ -41,7 +41,7 @@ export function ThinkingBlocks({ content }: { content: unknown }) {
       className="group bg-slate-100/60 rounded-xl border border-slate-200/60 overflow-hidden text-xs"
     >
       <summary className="flex items-center justify-between px-3.5 py-2 cursor-pointer select-none text-slate-500 hover:text-slate-700 list-none [&::-webkit-details-marker]:hidden">
-        <span className="flex items-center space-x-2 font-mono">
+        <span className="flex items-center space-x-2 font-pixel">
           <Icons.BrainCircuit className="w-3.5 h-3.5 text-indigo-500" />
           <span>推理思考过程</span>
         </span>

@@ -32,13 +32,13 @@ export function Composer({
     <div className="p-4 z-20">
       <form
         onSubmit={handleSubmit}
-        className="max-w-3xl mx-auto bg-white/90 apple-glass border border-slate-200/80 rounded-2xl shadow-xl p-2 transition-all duration-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/10"
+        className="max-w-3xl nes-container is-rounded is-dark mx-auto! p-2! shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-indigo-500/10"
       >
         <div className="flex items-end space-x-2">
           <button
             type="button"
             onClick={onAttach}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0 pixel-press"
             title="附加上下文（选择项目目录）"
           >
             <Icons.Paperclip className="w-4 h-4" />
@@ -71,7 +71,7 @@ export function Composer({
             <button
               type="submit"
               disabled={disabled}
-              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition transform active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="nes-btn is-primary m-0! flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               title="发送"
             >
               <Icons.ArrowUp className="w-4 h-4" />

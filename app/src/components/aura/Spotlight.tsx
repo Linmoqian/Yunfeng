@@ -48,8 +48,8 @@ export function Spotlight({
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[560px] max-w-[90vw] bg-white/95 apple-glass rounded-2xl border border-slate-200/80 shadow-2xl overflow-hidden">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[560px] max-w-[90vw] bg-slate-100 apple-glass rounded-2xl border border-slate-400 shadow-xl overflow-hidden">
         <div className="flex items-center px-4 border-b border-slate-200/60">
           <Icons.Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
@@ -57,12 +57,12 @@ export function Spotlight({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索会话或模型..."
-            className="w-full bg-transparent px-3 py-3.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
+            className="w-full bg-transparent px-3 py-3.5 text-sm text-slate-800 placeholder-slate-500 focus:outline-none"
             onKeyDown={(e) => {
               if (e.key === "Escape") onClose();
             }}
           />
-          <kbd className="px-1.5 py-0.5 text-[10px] bg-slate-100 rounded border border-slate-200 font-mono text-slate-500 shrink-0">
+          <kbd className="px-1.5 py-0.5 text-[10px] bg-slate-300 rounded border border-slate-400 font-pixel text-slate-600 shrink-0">
             ESC
           </kbd>
         </div>
@@ -70,7 +70,7 @@ export function Spotlight({
         <div className="max-h-[50vh] overflow-y-auto p-2 space-y-2 text-xs">
           {matchedSessions.length > 0 && (
             <div>
-              <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-pixel">
                 会话
               </div>
               {matchedSessions.map((s) => (
@@ -83,7 +83,7 @@ export function Spotlight({
                   className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-indigo-50 text-slate-700 transition text-left"
                 >
                   <span className="truncate">{s.name || s.firstMessage || "(无消息)"}</span>
-                  <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                  <span className="text-[10px] text-slate-500 shrink-0 ml-2">
                     {s.cwd?.split(/[\\/]/).filter(Boolean).pop() ?? "?"}
                   </span>
                 </button>
@@ -93,7 +93,7 @@ export function Spotlight({
 
           {matchedModels.length > 0 && (
             <div>
-              <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-pixel">
                 模型
               </div>
               {matchedModels.map((m) => {
@@ -110,7 +110,7 @@ export function Spotlight({
                     }`}
                   >
                     <span className="truncate">{m.name}</span>
-                    <span className="text-[10px] text-slate-400 shrink-0 ml-2">{m.providerName}</span>
+                    <span className="text-[10px] text-slate-500 shrink-0 ml-2">{m.providerName}</span>
                   </button>
                 );
               })}
@@ -118,7 +118,7 @@ export function Spotlight({
           )}
 
           {matchedSessions.length === 0 && matchedModels.length === 0 && (
-            <div className="px-3 py-6 text-center text-slate-400">没有匹配结果</div>
+            <div className="px-3 py-6 text-center text-slate-500">没有匹配结果</div>
           )}
 
           <button
@@ -126,7 +126,7 @@ export function Spotlight({
               onClose();
               onNewSession();
             }}
-            className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-xl hover:bg-indigo-50 text-indigo-600 font-medium transition"
+            className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-xl hover:bg-indigo-50 text-indigo-600 font-medium transition pixel-press"
           >
             <Icons.Plus className="w-3.5 h-3.5" />
             <span>新建会话</span>

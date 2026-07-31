@@ -14,7 +14,7 @@ export function MessageBubble({ message, streaming }: MessageBubbleProps) {
     const text = typeof message.content === "string" ? message.content : "";
     return (
       <div className="flex items-start justify-end space-x-3">
-        <div className="bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-none text-sm max-w-[80%] shadow-sm whitespace-pre-wrap break-words">
+        <div className="bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-none text-sm max-w-[80%] shadow-md whitespace-pre-wrap break-words">
           {text}
         </div>
       </div>
@@ -29,7 +29,7 @@ export function MessageBubble({ message, streaming }: MessageBubbleProps) {
       <div className="space-y-3 max-w-[85%]">
         {/* 设计稿：推理思考折叠在回答卡片之外 */}
         <ThinkingBlocks content={message.content} />
-        <div className="bg-white/90 apple-glass-subtle border border-slate-200/80 p-4 rounded-2xl rounded-tl-none text-sm leading-relaxed space-y-2 shadow-sm text-slate-700">
+        <div className="bg-slate-100 apple-glass-subtle border border-slate-200/80 p-4 rounded-2xl rounded-tl-none text-sm leading-relaxed space-y-2 shadow-md text-slate-700">
           <MessageBody message={message} />
           {streaming && <span className="cursor-blink" />}
         </div>

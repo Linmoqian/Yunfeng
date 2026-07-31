@@ -111,13 +111,13 @@ function App() {
     <div className="bg-slate-100/80 text-slate-800 font-sans antialiased h-screen w-screen overflow-hidden select-none transition-colors duration-300">
       {/* 背景渐变光斑 */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-[10%] -left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-indigo-200/40 via-purple-200/30 to-pink-100/40 blur-[100px]" />
-        <div className="absolute -bottom-[10%] -right-[5%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-br from-blue-200/40 via-cyan-100/30 to-teal-100/40 blur-[120px]" />
+        <div className="absolute -top-[10%] -left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-indigo-500/20 via-cyan-500/10 to-transparent blur-[100px]" />
+        <div className="absolute -bottom-[10%] -right-[5%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-br from-blue-500/15 via-purple-500/10 to-transparent blur-[120px]" />
       </div>
 
       {/* 主画布容器 */}
       <div className="relative z-10 w-full h-full p-3 md:p-6 flex flex-col justify-between">
-        <div className="w-full h-full max-w-[1400px] mx-auto bg-white/80 apple-glass border border-white/80 rounded-3xl shadow-apple-float flex flex-col overflow-hidden transition-all duration-300">
+        <div className="w-full h-full max-w-[1400px] mx-auto bg-slate-100 apple-glass border border-slate-400 rounded-3xl shadow-apple-float flex flex-col overflow-hidden transition-all duration-300">
           <TitleBar modelCount={models.models?.available.length ?? 0} onOpenSpotlight={() => setSpotlightOpen(true)} />
 
           <div className="flex-1 flex overflow-hidden">

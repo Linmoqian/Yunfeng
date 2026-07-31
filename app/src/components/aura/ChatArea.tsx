@@ -33,7 +33,7 @@ export function ChatArea({ session, models, bannerError, onDismissBanner, onPick
     : session.messages;
 
   return (
-    <div className="flex-1 flex flex-col justify-between relative bg-white/20 overflow-hidden">
+    <div className="flex-1 flex flex-col justify-between relative bg-slate-50 overflow-hidden">
       {/* 错误横幅 */}
       {bannerError && (
         <div className="px-6 py-2 bg-red-50 border-b border-red-200/60 text-red-600 text-xs flex items-center justify-between z-10">
@@ -45,13 +45,13 @@ export function ChatArea({ session, models, bannerError, onDismissBanner, onPick
       )}
 
       {/* 上下文横幅：会话名 + 就绪徽章 + 模型切换 */}
-      <div className="px-6 py-3 border-b border-slate-200/60 flex items-center justify-between bg-white/60 apple-glass-subtle z-10">
+      <div className="px-6 py-3 border-b border-slate-200/60 flex items-center justify-between bg-slate-100 apple-glass-subtle z-10">
         <div className="flex items-center space-x-3 min-w-0">
           <h2 className="text-base font-semibold text-slate-800 truncate">
             {session.session?.name || (session.rpcSessionId ? "当前会话" : "未选择会话")}
           </h2>
           {session.rpcSessionId && (
-            <span className="px-2 py-0.5 text-[10px] rounded-full bg-indigo-50 text-indigo-600 font-medium border border-indigo-100 shrink-0">
+            <span className="px-2 py-0.5 text-[10px] rounded-full bg-indigo-50 text-indigo-600 font-pixel border border-indigo-100 shrink-0">
               就绪
             </span>
           )}
@@ -74,7 +74,7 @@ export function ChatArea({ session, models, bannerError, onDismissBanner, onPick
         {allMessages.length === 0 ? (
           <div className="max-w-md mx-auto my-12 text-center space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-0.5 mx-auto shadow-apple-glow animate-subtle-pulse">
-              <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-indigo-600">
+              <div className="w-full h-full bg-slate-100 rounded-[14px] flex items-center justify-center text-indigo-600">
                 <Icons.Sparkles className="w-7 h-7" />
               </div>
             </div>
@@ -90,7 +90,7 @@ export function ChatArea({ session, models, bannerError, onDismissBanner, onPick
                   key={p.text}
                   onClick={() => void session.sendPrompt(p.text)}
                   disabled={!session.rpcSessionId}
-                  className="px-3 py-1.5 rounded-full bg-white/80 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200/80 text-xs text-slate-600 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-full bg-slate-200 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200/80 text-xs text-slate-600 transition shadow-sm pixel-press disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {p.label}
                 </button>

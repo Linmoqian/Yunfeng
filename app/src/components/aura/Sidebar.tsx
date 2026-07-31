@@ -36,7 +36,7 @@ export function Sidebar({
         {/* 新建会话 */}
         <button
           onClick={onNewSession}
-          className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-sm transition active:scale-[0.98]"
+          className="nes-btn is-primary flex! w-full items-center justify-center space-x-2 px-3! py-2! mx-0! mb-4! text-xs"
         >
           <Icons.Plus className="w-4 h-4" />
           <span>新建会话</span>
