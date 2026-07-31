@@ -9,9 +9,9 @@
 - [x] 按 prototype skill 重构为三变体 UI（A 命令面板 / B 工程工作台 / C 沉浸对话）
 - [x] 工程师选定 UI 变体（已废弃：git 78b8aed 清空重写为液态玻璃单 UI）
 - [x] 借鉴 yolo-block 工程经验：新增 RULES.md 项目规则与 MEMORY.md 长期记忆
-- [ ] sidecar 拆分 registry.ts（499 行，超过 400 行阈值）
-- [ ] 引入 vitest 前端单测（api.ts SSE 解析 / sessionActions / types 契约），需工程师确认新依赖
-- [ ] sidecar 用 bun test 补充纯逻辑单测（sessions JSONL / registry 分发 / fs 路径校验）
+- [x] sidecar 拆分 registry.ts（→ wrapper/commands/registry 三模块）
+- [x] 引入 vitest 前端单测（api.ts SSE 解析 / sessionActions / 契约镜像测试）
+- [x] sidecar 用 bun test 补充纯逻辑单测（命令分发 / JSONL 映射 / fs 路径校验）
 - [ ] 锁定 UI 主题并沉淀设计规范文档
 - [ ] 前端调试信息总线（AGENTS.md 要求）
 - [ ] sidecar 打包单文件二进制（bun compile）并验证
