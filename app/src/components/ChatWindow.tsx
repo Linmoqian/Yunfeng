@@ -84,7 +84,7 @@ export function ChatWindow({
             <div key={i} className={`message message-${m.role}`}>
               <div className="message-role">{roleLabel(m.role)}</div>
               <MessageBody message={m} />
-              {isStreamingMsg && <span className="cursor-blink" />}
+              {isStreamingMsg && m.role === "assistant" && <span className="cursor-blink" />}
             </div>
           );
         })}
