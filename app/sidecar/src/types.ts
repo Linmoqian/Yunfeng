@@ -23,6 +23,7 @@ export interface SessionInfo {
 export interface SessionMessage {
   role: string;
   content: unknown;
+  timestamp?: string;
   [key: string]: unknown;
 }
 

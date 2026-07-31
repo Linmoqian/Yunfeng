@@ -133,7 +133,7 @@ export async function readSessionContext(
   };
 }
 
-function entryToUiMessage(entry: {
+export function entryToUiMessage(entry: {
   type: string;
   message?: unknown;
   summary?: string;
