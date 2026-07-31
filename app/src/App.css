@@ -125,7 +125,7 @@ body {
   background: var(--code-bg);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 4px;
   white-space: pre-wrap;
 }

@@ -38,12 +38,12 @@ export function ModelMenu({ grouped, currentModel, disabled, onSelect }: ModelMe
 
       {open && (
         <div className="absolute right-0 mt-2 w-56 bg-slate-100 rounded-2xl border border-slate-200/80 shadow-2xl z-50 p-1.5 space-y-1 text-xs">
-          <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-pixel">
+          <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider font-pixel">
             选择基座 AI 模型
           </div>
           {grouped.map((g) => (
             <div key={g.providerId}>
-              <div className="px-3 py-1 text-[10px] font-medium text-slate-400 font-pixel">
+              <div className="px-3 py-1 text-[11px] font-medium text-slate-400 font-pixel">
                 {g.providerName}
                 {!g.configured && "（未配置）"}
               </div>

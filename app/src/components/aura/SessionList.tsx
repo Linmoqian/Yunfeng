@@ -27,20 +27,20 @@ function formatDay(iso: string): string {
 export function SessionList({ sessions, loading, activeId, onPick }: SessionListProps) {
   return (
     <div className="space-y-1">
-      <div className="px-2 py-1 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+      <div className="px-2 py-1 flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
         <span className="flex items-center space-x-1.5 font-pixel">
           <Icons.MessageSquare className="w-3.5 h-3.5" />
           <span>历史会话</span>
         </span>
-        <span className="text-[10px] bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded-full font-pixel">
+        <span className="text-xs bg-slate-200/60 text-slate-500 px-1.5 py-0.5 rounded-md font-pixel">
           {sessions.length}
         </span>
       </div>
 
       <div className="space-y-0.5">
-        {loading && <div className="px-3 py-2 text-[11px] text-slate-500">加载中…</div>}
+        {loading && <div className="px-3 py-2 text-xs text-slate-500">加载中…</div>}
         {!loading && sessions.length === 0 && (
-          <div className="px-3 py-2 text-[11px] text-slate-500">暂无会话</div>
+          <div className="px-3 py-2 text-xs text-slate-500">暂无会话</div>
         )}
         {sessions.map((s) => {
           const active = activeId === s.id;
@@ -63,7 +63,7 @@ export function SessionList({ sessions, loading, activeId, onPick }: SessionList
                 )}
                 <span className="truncate">{s.name || s.firstMessage || "(无消息)"}</span>
               </div>
-              <span className="text-[10px] shrink-0 group-hover:hidden font-pixel text-slate-500">
+              <span className="text-[11px] shrink-0 group-hover:hidden font-pixel text-slate-500">
                 {formatDay(s.modified)}
               </span>
               <Icons.MoreHorizontal className="w-3.5 h-3.5 text-slate-500 hidden group-hover:inline-block shrink-0 hover:text-slate-600" />

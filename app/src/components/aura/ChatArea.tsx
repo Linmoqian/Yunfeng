@@ -51,12 +51,12 @@ export function ChatArea({ session, models, bannerError, onDismissBanner, onPick
             {session.session?.name || (session.rpcSessionId ? "当前会话" : "未选择会话")}
           </h2>
           {session.rpcSessionId && (
-            <span className="px-2 py-0.5 text-[10px] rounded-full bg-indigo-50 text-indigo-600 font-pixel border border-indigo-100 shrink-0">
+            <span className="px-2 py-0.5 text-xs rounded-md bg-indigo-50 text-indigo-600 font-pixel border border-indigo-100 shrink-0">
               就绪
             </span>
           )}
           {(session.isStreaming || session.runningTools.length > 0) && (
-            <span className="text-[11px] text-slate-400 truncate">
+            <span className="text-xs text-slate-400 truncate">
               {session.runningTools.map((t) => t.name).join(", ") || "思考中…"}
             </span>
           )}
@@ -81,7 +81,7 @@ export function ChatArea({ session, models, bannerError, onDismissBanner, onPick
             <h1 className="text-xl font-semibold text-slate-800 tracking-tight">
               极简主义 AI Agent 桌面
             </h1>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-sm text-slate-500 leading-relaxed">
               清爽轻盈的交互界面，随意切换基座模型与多 Agent 协同。
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">

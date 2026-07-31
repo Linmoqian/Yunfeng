@@ -38,7 +38,7 @@ export function Composer({
           <button
             type="button"
             onClick={onAttach}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0 pixel-press"
+            className="h-9 w-9 p-0 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0 pixel-press"
             title="附加上下文（选择项目目录）"
           >
             <Icons.Paperclip className="w-4 h-4" />
@@ -49,7 +49,7 @@ export function Composer({
             rows={1}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-500 focus:outline-none resize-none py-1.5 leading-relaxed"
+            className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-500 focus:outline-none resize-none py-2 leading-relaxed"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -62,7 +62,7 @@ export function Composer({
             <button
               type="button"
               onClick={() => void onAbort()}
-              className="nes-btn is-error flex items-center justify-center shadow-md"
+              className="nes-btn is-error h-9 w-9 px-0 py-0 flex items-center justify-center shadow-md"
               title="停止生成"
             >
               <Icons.Square className="w-4 h-4 fill-current" />
@@ -71,7 +71,7 @@ export function Composer({
             <button
               type="submit"
               disabled={disabled}
-              className="nes-btn is-primary m-0 flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="nes-btn is-primary m-0 h-9 w-9 px-0 py-0 flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               title="发送"
             >
               <Icons.ArrowUp className="w-4 h-4" />

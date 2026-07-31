@@ -10,7 +10,7 @@ export function StatusCard() {
             <Icons.HardDrive className="w-3 h-3" />
             <span>已用空间</span>
           </span>
-          <span className="text-indigo-600 font-mono text-[11px]">2.4 MB / 10 GB</span>
+          <span className="text-indigo-600 font-mono text-xs">2.4 MB / 10 GB</span>
         </div>
         <div className="nes-progress is-success h-2.5 m-0">
           <span className="block h-full" style={{ width: "18%" }} />

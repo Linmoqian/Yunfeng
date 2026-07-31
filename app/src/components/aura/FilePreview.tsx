@@ -22,7 +22,7 @@ export function FilePreview({ file, content, loading, onClose }: FilePreviewProp
           <Icons.X className="w-4 h-4" />
         </button>
       </div>
-      <pre className="flex-1 overflow-auto p-4 text-[11px] font-mono text-slate-700 whitespace-pre-wrap">
+      <pre className="flex-1 overflow-auto p-4 text-xs font-mono text-slate-700 whitespace-pre-wrap">
         {loading ? "加载中…" : content}
       </pre>
     </div>

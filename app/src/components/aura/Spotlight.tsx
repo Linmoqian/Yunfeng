@@ -62,7 +62,7 @@ export function Spotlight({
               if (e.key === "Escape") onClose();
             }}
           />
-          <kbd className="px-1.5 py-0.5 text-[10px] bg-slate-300 rounded border border-slate-400 font-pixel text-slate-600 shrink-0">
+          <kbd className="px-1.5 py-0.5 text-[11px] bg-slate-300 rounded border border-slate-400 font-pixel text-slate-600 shrink-0">
             ESC
           </kbd>
         </div>
@@ -70,7 +70,7 @@ export function Spotlight({
         <div className="max-h-[50vh] overflow-y-auto p-2 space-y-2 text-xs">
           {matchedSessions.length > 0 && (
             <div>
-              <div className="px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-pixel">
+              <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider font-pixel">
                 会话
               </div>
               {matchedSessions.map((s) => (
@@ -83,7 +83,7 @@ export function Spotlight({
                   className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-indigo-50 text-slate-700 transition text-left"
                 >
                   <span className="truncate">{s.name || s.firstMessage || "(无消息)"}</span>
-                  <span className="text-[10px] text-slate-500 shrink-0 ml-2">
+                  <span className="text-[11px] text-slate-500 shrink-0 ml-2">
                     {s.cwd?.split(/[\\/]/).filter(Boolean).pop() ?? "?"}
                   </span>
                 </button>
@@ -93,7 +93,7 @@ export function Spotlight({
 
           {matchedModels.length > 0 && (
             <div>
-              <div className="px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-pixel">
+              <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider font-pixel">
                 模型
               </div>
               {matchedModels.map((m) => {
@@ -110,7 +110,7 @@ export function Spotlight({
                     }`}
                   >
                     <span className="truncate">{m.name}</span>
-                    <span className="text-[10px] text-slate-500 shrink-0 ml-2">{m.providerName}</span>
+                    <span className="text-[11px] text-slate-500 shrink-0 ml-2">{m.providerName}</span>
                   </button>
                 );
               })}

@@ -26,13 +26,13 @@ export function TitleBar({ modelCount, onOpenSpotlight }: TitleBarProps) {
       >
         <Icons.Search className="w-3.5 h-3.5" />
         <span>呼叫或搜索智能体...</span>
-        <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-slate-300 rounded border border-slate-400 font-pixel text-slate-600">
+        <kbd className="ml-2 px-1.5 py-0.5 text-[11px] bg-slate-300 rounded border border-slate-400 font-pixel text-slate-600">
           ⌘K
         </kbd>
       </button>
 
       {/* 就绪徽章 */}
-      <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-medium font-pixel">
+      <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-medium font-pixel">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
         <span>{modelCount} 智能体就绪</span>
       </div>

@@ -43,7 +43,7 @@ export function FolderTree({
 }: FolderTreeProps) {
   return (
     <div className="pt-2 space-y-1 border-t border-slate-200/60">
-      <div className="px-2 py-1 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+      <div className="px-2 py-1 flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
         <span className="flex items-center space-x-1.5 font-pixel">
           <Icons.Folder className="w-3.5 h-3.5" />
           <span>工作区文件夹</span>
@@ -65,7 +65,7 @@ export function FolderTree({
         </button>
       ) : (
         <div className="space-y-1 text-xs">
-          {loading && <div className="px-2.5 py-1 text-[11px] text-slate-500">加载中…</div>}
+          {loading && <div className="px-2.5 py-1 text-xs text-slate-500">加载中…</div>}
           {tree.map((n) => (
             <FolderNode
               key={n.path}
@@ -76,7 +76,7 @@ export function FolderTree({
             />
           ))}
           {!loading && tree.length === 0 && (
-            <div className="px-2.5 py-1 text-[11px] text-slate-500">目录为空</div>
+            <div className="px-2.5 py-1 text-xs text-slate-500">目录为空</div>
           )}
         </div>
       )}
@@ -115,7 +115,7 @@ function FolderNode({
             <Icons.FolderClosed className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           )}
           <span className="truncate">{node.name}</span>
-          <span className="text-[10px] text-slate-500 font-pixel ml-auto shrink-0">
+          <span className="text-[11px] text-slate-500 font-pixel ml-auto shrink-0">
             {node.children?.length ?? 0}
           </span>
         </button>
@@ -137,7 +137,7 @@ function FolderNode({
   return (
     <button
       onClick={() => onOpenFile(node)}
-      className="w-full flex items-center space-x-2 px-2.5 py-1 rounded-md hover:bg-slate-200/50 text-slate-600 text-[11px] transition text-left truncate pixel-press"
+      className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-md hover:bg-slate-200/50 text-slate-600 text-xs transition text-left truncate pixel-press"
       style={pad}
     >
       <Icon name={icon.icon} size={12} className={`${icon.color} shrink-0`} />
