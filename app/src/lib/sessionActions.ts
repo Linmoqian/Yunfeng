@@ -1,5 +1,5 @@
-// 跨变体复用的会话操作：三个 UI 变体的 pickSession 逻辑相同，
-// 统一在此实现，避免各变体重复维护。
+// 跨组件复用的会话操作：打开会话并同步文件树的逻辑统一在此实现，
+// 避免组件重复维护。
 
 import type { UseFileTreeResult } from "../hooks/useFileTree";
 import type { UseSessionsResult } from "../hooks/useSessions";
