@@ -1,12 +1,14 @@
-import { Plus, Settings } from "lucide-react";
+import { FolderPlus, Plus } from "lucide-react";
 import type { SessionInfo } from "@/lib/types";
 import type { FileTreeNode, UseFileTreeResult } from "@/hooks/useFileTree";
 import type { UseSessionsResult } from "@/hooks/useSessions";
 import type { UseSessionResult } from "@/hooks/useSession";
+import type { SidebarView } from "./ActivityBar";
 import { SessionList } from "./SessionList";
 import { FolderTree } from "./FolderTree";
 
 interface SidebarProps {
+  activeView: SidebarView;
   sessions: UseSessionsResult;
   session: UseSessionResult;
   fileTree: UseFileTreeResult;
@@ -14,11 +16,11 @@ interface SidebarProps {
   onNewSession: () => void;
   onOpenFile: (n: FileTreeNode) => void;
   onPickDirectory: () => void;
-  onOpenSettings: () => void;
 }
 
-/** 侧栏：新建会话 + 会话列表 + 工作区文件树 + 底部目录与设置。 */
+/** 侧栏：品牌头 + 按活动栏选中切换 会话面板 / 文件面板。 */
 export function Sidebar({
+  activeView,
   sessions,
   session,
   fileTree,
@@ -26,40 +28,45 @@ export function Sidebar({
   onNewSession,
   onOpenFile,
   onPickDirectory,
-  onOpenSettings,
 }: SidebarProps) {
-  const rootLabel = sessions.projectRoot
-    ? sessions.projectRoot.split(/[\\/]/).filter(Boolean).pop() ?? sessions.projectRoot
-    : "未选择目录";
-
   return (
-    <>
+    <div className="sidebar-pane">
+      <div className="sidebar-header" data-tauri-drag-region>
+        <strong>Yunfeng</strong>
+        {activeView === "sessions" ? (
+          <button type="button" className="icon-button" title="新建会话" onClick={onNewSession}>
+            <Plus size={16} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="icon-button"
+            title="选择项目目录"
+            onClick={onPickDirectory}
+          >
+            <FolderPlus size={16} />
+          </button>
+        )}
+      </div>
       <div className="sidebar-scroll">
-        <button type="button" className="primary-action" onClick={onNewSession}>
-          <Plus size={15} />
-          新建会话
-        </button>
-        <SessionList
-          sessions={sessions.sessions}
-          loading={sessions.loading}
-          activeId={session.session?.id ?? null}
-          onPick={onPickSession}
-        />
-        <FolderTree
-          tree={fileTree.tree}
-          loading={fileTree.loading}
-          hasRoot={Boolean(sessions.projectRoot)}
-          onToggleDir={fileTree.toggleDir}
-          onOpenFile={onOpenFile}
-          onPickDirectory={onPickDirectory}
-        />
+        {activeView === "sessions" ? (
+          <SessionList
+            sessions={sessions.sessions}
+            loading={sessions.loading}
+            activeId={session.session?.id ?? null}
+            onPick={onPickSession}
+          />
+        ) : (
+          <FolderTree
+            tree={fileTree.tree}
+            loading={fileTree.loading}
+            hasRoot={Boolean(sessions.projectRoot)}
+            onToggleDir={fileTree.toggleDir}
+            onOpenFile={onOpenFile}
+            onPickDirectory={onPickDirectory}
+          />
+        )}
       </div>
-      <div className="sidebar-footer">
-        <span title={sessions.projectRoot ?? ""}>{rootLabel}</span>
-        <button type="button" className="icon-button" title="设置" onClick={onOpenSettings}>
-          <Settings size={16} />
-        </button>
-      </div>
-    </>
+    </div>
   );
 }

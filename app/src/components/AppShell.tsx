@@ -1,26 +1,30 @@
 import type { ReactNode } from "react";
-import { Bot } from "lucide-react";
-import { WindowControls } from "./WindowControls";
+import { ActivityBar, type SidebarView } from "./ActivityBar";
 
 interface AppShellProps {
+  activeView: SidebarView;
+  onActiveViewChange: (v: SidebarView) => void;
+  onOpenSettings: () => void;
   sidebar: ReactNode;
   children: ReactNode;
 }
 
-/** 应用骨架：侧栏槽 + 主区槽。窗口控制与品牌区在侧栏顶部，可拖窗。 */
-export function AppShell({ sidebar, children }: AppShellProps) {
+/** 应用骨架：活动栏 + 侧栏槽 + 主区槽。 */
+export function AppShell({
+  activeView,
+  onActiveViewChange,
+  onOpenSettings,
+  sidebar,
+  children,
+}: AppShellProps) {
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <WindowControls />
-        <div className="brand-mark" data-tauri-drag-region>
-          <span>
-            <Bot size={18} strokeWidth={2.3} />
-          </span>
-          <strong>Pi Desktop</strong>
-        </div>
-        {sidebar}
-      </aside>
+      <ActivityBar
+        active={activeView}
+        onChange={onActiveViewChange}
+        onOpenSettings={onOpenSettings}
+      />
+      <aside className="sidebar">{sidebar}</aside>
       <main className="main-content">{children}</main>
     </div>
   );

@@ -9,6 +9,7 @@ import { openSessionAndSyncTree } from "@/lib/sessionActions";
 import type { SessionInfo } from "@/lib/types";
 import type { FileTreeNode } from "@/hooks/useFileTree";
 import { AppShell } from "@/components/AppShell";
+import type { SidebarView } from "@/components/ActivityBar";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Spotlight } from "@/components/Spotlight";
@@ -28,6 +29,7 @@ function App() {
   const [spotlightOpen, setSpotlightOpen] = useState(false);
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeView, setActiveView] = useState<SidebarView>("sessions");
   const toastTimer = useRef<number | undefined>(undefined);
 
   const showToast = useCallback((msg: string) => {
@@ -111,8 +113,12 @@ function App() {
   return (
     <>
       <AppShell
+        activeView={activeView}
+        onActiveViewChange={setActiveView}
+        onOpenSettings={() => setSettingsOpen(true)}
         sidebar={
           <Sidebar
+            activeView={activeView}
             sessions={sessions}
             session={session}
             fileTree={fileTree}
@@ -120,7 +126,6 @@ function App() {
             onNewSession={newSession}
             onOpenFile={openFile}
             onPickDirectory={pickDirectory}
-            onOpenSettings={() => setSettingsOpen(true)}
           />
         }
       >

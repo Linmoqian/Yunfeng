@@ -36,7 +36,7 @@ export function ChatPanel({ session, models, onPickDirectory }: ChatPanelProps) 
     <>
       <div className="chat-header" data-tauri-drag-region>
         <div className="chat-title">
-          <strong>{session.session?.name || (hasSession ? "当前会话" : "Pi Desktop")}</strong>
+          <strong>{session.session?.name || (hasSession ? "当前会话" : "Yunfeng")}</strong>
           <span>
             {hasSession && <span className="chat-status-dot" />}
             {isBusy
@@ -60,7 +60,7 @@ export function ChatPanel({ session, models, onPickDirectory }: ChatPanelProps) 
             <div className="empty-icon">
               <Sparkles size={22} />
             </div>
-            <h2>Pi 编码助手</h2>
+            <h2>Yunfeng 编码助手</h2>
             <p>选择左侧会话或新建会话开始对话，可随时切换基座模型。</p>
             <div className="quick-prompts">
               {QUICK_PROMPTS.map((p) => (

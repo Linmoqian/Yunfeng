@@ -145,19 +145,38 @@ a:focus-visible {
   display: grid;
   width: 100%;
   height: 100%;
-  grid-template-columns: clamp(252px, 22vw, 300px) minmax(0, 1fr);
+  grid-template-columns: 52px clamp(228px, 20vw, 264px) minmax(0, 1fr);
 }
 
 .sidebar {
   display: flex;
   height: 100%;
   flex-direction: column;
-  gap: 18px;
   border-right: 1px solid var(--border);
-  padding: 16px 14px 14px;
   background: color-mix(in srgb, var(--background) 72%, transparent);
   backdrop-filter: blur(28px) saturate(150%);
   overflow: hidden;
+}
+
+.sidebar-pane {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 14px 8px;
+}
+
+.sidebar-header strong {
+  font-size: 15px;
+  font-weight: 680;
+  letter-spacing: -0.02em;
 }
 
 /* ---------- 窗口控制 ---------- */
@@ -199,29 +218,62 @@ a:focus-visible {
   background: #28c840;
 }
 
-/* ---------- 品牌 ---------- */
-.brand-mark {
+/* ---------- 活动栏（VS Code 风） ---------- */
+.activity-bar {
   display: flex;
+  height: 100%;
+  flex-direction: column;
   align-items: center;
-  gap: 11px;
-  padding: 4px 8px;
-  letter-spacing: -0.02em;
+  gap: 6px;
+  border-right: 1px solid var(--border);
+  padding: 8px 0 10px;
+  background: color-mix(in srgb, var(--background) 60%, transparent);
+  backdrop-filter: blur(28px) saturate(150%);
 }
 
-.brand-mark > span {
+.activity-bar .window-controls {
+  margin-bottom: 8px;
+}
+
+.activity-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-spacer {
+  flex: 1;
+}
+
+.activity-icon {
+  position: relative;
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  border-radius: 11px;
-  color: var(--accent-foreground);
-  background: linear-gradient(145deg, #ffd866, var(--accent));
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 10px;
+  color: var(--muted-foreground);
+  transition: 150ms ease;
 }
 
-.brand-mark strong {
-  font-size: 16px;
-  font-weight: 650;
+.activity-icon:hover {
+  color: var(--foreground);
+  background: var(--surface-muted);
+}
+
+.activity-icon.is-active {
+  color: var(--foreground);
+}
+
+.activity-icon.is-active::before {
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: -6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+  content: "";
 }
 
 /* ---------- 侧栏滚动区 ---------- */
@@ -230,8 +282,8 @@ a:focus-visible {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  gap: 18px;
-  padding: 4px 4px 8px;
+  gap: 12px;
+  padding: 6px 8px 12px;
   overflow-y: auto;
   scrollbar-width: thin;
 }
@@ -411,21 +463,6 @@ a:focus-visible {
 .tree-anchor:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
   color: var(--foreground);
-}
-
-/* ---------- 侧栏底部 ---------- */
-.sidebar-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-top: 1px solid var(--border);
-  padding: 12px 8px 2px;
-}
-
-.sidebar-footer span {
-  color: var(--faint);
-  font-size: 11px;
 }
 
 .icon-button {

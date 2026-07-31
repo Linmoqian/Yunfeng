@@ -50,8 +50,7 @@ export function Composer({ disabled, isStreaming, onSend, onAbort, onAttach }: C
         <textarea
           ref={ref}
           rows={1}
-          placeholder="向 Pi 发送指令…"
-          disabled={disabled}
+          placeholder="向 Yunfeng 发送指令…"
           onKeyDown={onKeyDown}
           onInput={(e) => autoSize(e.currentTarget)}
         />
