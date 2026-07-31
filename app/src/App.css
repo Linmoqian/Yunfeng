@@ -1,11 +1,10 @@
 /* ============================================================
-   Pi Desktop — Apple / macOS 风格设计系统
-   跟随系统亮暗主题，毛玻璃面板，大圆角，SF 风格字体
+   Pi Desktop — 通用样式（设计系统 / Markdown 渲染 / 基础组件）
+   各 UI 变体的布局样式见 variants.css
    ============================================================ */
 
-/* ---------- 色彩系统 ---------- */
+/* ---------- 色彩系统（苹果风格，跟随系统亮暗） ---------- */
 :root {
-  /* 亮色主题 */
   --bg: #f5f5f7;
   --bg-gradient: radial-gradient(1200px 600px at 20% -10%, rgba(0, 122, 255, 0.08), transparent 60%),
     radial-gradient(1000px 500px at 90% 0%, rgba(175, 82, 222, 0.06), transparent 55%),
@@ -101,300 +100,21 @@ body {
   background: var(--accent-soft);
 }
 
-/* ---------- 整体布局 ---------- */
 .app {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
 }
 
-/* 顶部工具栏（macOS 风格毛玻璃） */
-.app-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: var(--panel);
-  backdrop-filter: saturate(180%) blur(var(--blur));
-  -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  user-select: none;
-}
-
-.app-brand {
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  margin-right: auto;
-}
-
-.app-body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-
-.app-banner {
-  padding: 9px 16px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-
-.app-banner-error {
-  background: rgba(255, 59, 48, 0.12);
-  color: var(--danger);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* ---------- 侧边栏（macOS 风格） ---------- */
-.sidebar {
-  width: 272px;
-  min-width: 272px;
-  background: var(--panel);
-  backdrop-filter: saturate(180%) blur(var(--blur));
-  -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sidebar-section {
-  padding: 14px 12px 0;
-}
-
-.sidebar-sessions {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.sidebar-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-  font-weight: 600;
-  padding: 0 4px;
-}
-
-.project-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.project-path {
-  flex: 1;
-  font-size: 13px;
-  padding: 5px 10px;
-  background: var(--panel-active);
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-list {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  padding: 0 8px 12px;
-}
-
-.session-item {
-  padding: 9px 12px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  margin-bottom: 2px;
-  transition: background 0.12s ease;
-}
-
-.session-item:hover {
-  background: var(--panel-hover);
-}
-
-.session-item-active {
-  background: var(--panel-active);
-}
-
-.session-item-name {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 3px;
-  letter-spacing: -0.01em;
-}
-
-.session-item-meta {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.sidebar-hint {
-  color: var(--text-secondary);
-  font-size: 12px;
-  padding: 8px 0;
-  text-align: center;
-}
-
-/* ---------- 聊天区 ---------- */
-.chat-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: transparent;
-}
-
-.chat-window {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.chat-header {
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.chat-title {
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.chat-status {
-  font-size: 12px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.chat-status::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.chat-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px;
-  min-height: 0;
-}
-
-.chat-empty {
-  color: var(--text-secondary);
-  text-align: center;
-  margin-top: 100px;
-  font-size: 14px;
-  line-height: 1.8;
-}
-
-/* 消息（iMessage 风格） */
-.message {
-  margin-bottom: 14px;
-  display: flex;
-  flex-direction: column;
-  animation: message-in 0.18s ease-out;
-}
-
-@keyframes message-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message-user {
-  align-items: flex-end;
-}
-
-.message-user .message-role {
-  display: none;
-}
-
-.message-user .message-body {
-  background: var(--bubble-user-bg);
-  color: var(--bubble-user-text);
-  border-radius: 18px;
-  border-bottom-right-radius: 6px;
-  padding: 9px 14px;
-  max-width: 75%;
-  box-shadow: var(--shadow-sm);
-}
-
-.message-user .message-body .markdown-body p {
-  white-space: pre-wrap;
-}
-
-.message-user .message-body .markdown-body {
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.message-user .message-body .markdown-body code {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.message-assistant {
-  align-items: flex-start;
-}
-
-.message-assistant .message-role {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.message-assistant .message-body {
-  max-width: 92%;
-}
-
-.message-assistant .markdown-body {
+/* ---------- Markdown 渲染（MessageBody 使用） ---------- */
+.markdown-body {
   line-height: 1.6;
   font-size: 14px;
+  word-break: break-word;
 }
 
-.message-assistant .markdown-body pre {
+.markdown-body pre {
   background: var(--code-bg);
   border-radius: var(--radius-md);
   padding: 12px 14px;
@@ -403,43 +123,42 @@ body {
   font-size: 13px;
 }
 
-.message-assistant .markdown-body code {
+.markdown-body code {
   background: var(--code-bg);
   padding: 2px 5px;
   border-radius: 4px;
   font-size: 13px;
 }
 
-.message-assistant .markdown-body pre code {
+.markdown-body pre code {
   background: none;
   padding: 0;
 }
 
-.message-assistant .markdown-body table {
+.markdown-body table {
   border-collapse: collapse;
   margin: 8px 0;
 }
 
-.message-assistant .markdown-body th,
-.message-assistant .markdown-body td {
+.markdown-body th,
+.markdown-body td {
   border: 1px solid var(--border-strong);
   padding: 6px 10px;
 }
 
-.message-assistant .markdown-body ul,
-.message-assistant .markdown-body ol {
+.markdown-body ul,
+.markdown-body ol {
   padding-left: 24px;
   margin: 6px 0;
 }
 
-.message-assistant .markdown-body blockquote {
+.markdown-body blockquote {
   border-left: 3px solid var(--accent);
   padding-left: 10px;
   color: var(--text-secondary);
   margin: 6px 0;
 }
 
-/* 思考块 */
 .thinking-block {
   margin: 6px 0;
 }
@@ -473,7 +192,6 @@ body {
   line-height: 1.6;
 }
 
-/* 工具调用 / 结果 */
 .tool-call-block {
   margin: 6px 0;
   font-size: 12px;
@@ -543,339 +261,55 @@ body {
   }
 }
 
-/* ---------- 输入区（macOS 搜索框风格） ---------- */
-.chat-input {
-  display: flex;
-  gap: 10px;
-  padding: 12px 20px 16px;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-
-.chat-input textarea {
-  flex: 1;
-  background: var(--panel-solid);
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  color: var(--text);
-  padding: 11px 18px;
-  font-size: 14px;
-  font-family: inherit;
-  resize: none;
-  min-height: 44px;
-  max-height: 160px;
-  outline: none;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.chat-input textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-sm);
-}
-
-.chat-input textarea::placeholder {
-  color: var(--text-tertiary);
-}
-
-.chat-actions {
-  display: flex;
-  gap: 8px;
-}
-
-/* ---------- 按钮（macOS 风格） ---------- */
-.btn {
-  background: var(--panel-solid);
-  border: 1px solid var(--border-strong);
-  color: var(--text);
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-  font-weight: 500;
-  transition: background 0.12s ease, transform 0.05s ease;
-}
-
-.btn:hover:not(:disabled) {
-  background: var(--panel-hover);
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-
-.btn-danger {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #fff;
-}
-
-.btn-danger:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-
-.btn-small {
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: var(--radius-sm);
-}
-
-.btn-block {
-  width: 100%;
-}
-
-.btn-active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-/* ---------- 模型选择（macOS 菜单风格） ---------- */
-.model-picker {
-  position: relative;
-}
-
-.btn-model {
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-radius: var(--radius-md);
-}
-
-.model-picker-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-}
-
-.model-picker-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 330px;
-  max-height: 70vh;
-  overflow-y: auto;
-  background: var(--panel);
-  backdrop-filter: saturate(180%) blur(var(--blur));
-  -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  z-index: 11;
-  padding: 6px;
-  box-shadow: var(--shadow-lg);
-  animation: menu-in 0.12s ease-out;
-}
-
-@keyframes menu-in {
+@keyframes message-in {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.98);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-.model-group-title {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 8px 10px 4px;
-  font-weight: 600;
+/* ---------- 浮动变体切换器（仅开发模式） ---------- */
+.proto-switcher {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 6px 10px;
+  box-shadow: var(--shadow-lg);
+  z-index: 999;
+  font-size: 13px;
+  user-select: none;
 }
 
-.model-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  text-align: left;
+.proto-switcher-btn {
   background: none;
   border: none;
-  color: var(--text);
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-  transition: background 0.1s ease;
-}
-
-.model-item:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
-.model-item:hover .model-thinking-badge {
-  color: rgba(255, 255, 255, 0.85);
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.model-item-active {
-  background: var(--accent-soft);
   color: var(--accent);
-  font-weight: 500;
-}
-
-.model-thinking-badge {
-  font-size: 10px;
-  background: var(--panel-active);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1px 5px;
-  color: var(--text-secondary);
-}
-
-.model-picker-hint {
-  padding: 10px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.model-picker-error {
-  color: var(--danger);
-}
-
-/* ---------- 文件工作区（Finder 风格） ---------- */
-.file-area {
-  width: 360px;
-  min-width: 300px;
-  max-width: 480px;
-  background: var(--panel);
-  backdrop-filter: saturate(180%) blur(var(--blur));
-  -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-}
-
-.file-explorer {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.file-explorer-header {
-  padding: 12px 16px;
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  flex-shrink: 0;
-}
-
-.file-explorer-hint {
-  padding: 24px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  text-align: center;
-}
-
-.file-explorer-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.file-tree {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 8px;
-  min-height: 0;
-}
-
-.file-node {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 8px;
+  font-size: 15px;
   cursor: pointer;
-  white-space: nowrap;
-  font-size: 13px;
-  border-radius: var(--radius-sm);
-  transition: background 0.1s ease;
+  padding: 2px 6px;
+  border-radius: 999px;
 }
 
-.file-node:hover {
+.proto-switcher-btn:hover {
   background: var(--panel-hover);
 }
 
-.file-node-selected {
-  background: var(--accent-soft);
-  color: var(--accent);
+.proto-switcher-label {
+  color: var(--text-secondary);
   font-weight: 500;
-}
-
-.file-node-icon {
-  font-size: 13px;
-  opacity: 0.85;
-}
-
-.file-node-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-
-.file-node-size {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-
-.file-preview {
-  flex: 1;
-  min-height: 0;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-}
-
-.file-preview-header {
-  padding: 10px 16px;
-  font-weight: 600;
-  font-size: 12px;
-  flex-shrink: 0;
-  letter-spacing: -0.01em;
-}
-
-.file-preview-content {
-  flex: 1;
-  overflow: auto;
-  padding: 14px 16px;
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre;
-  font-family: "SF Mono", "Cascadia Code", Consolas, "Courier New", monospace;
-  color: var(--text);
-}
-
-.file-preview-truncated {
-  padding: 6px 16px;
-  font-size: 11px;
-  color: var(--warning);
+  min-width: 130px;
+  text-align: center;
 }
 
 /* ---------- 滚动条 ---------- */
@@ -892,10 +326,5 @@ body {
   background: var(--scrollbar);
   border-radius: 5px;
   border: 2px solid transparent;
-  background-clip: content-box;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar);
   background-clip: content-box;
 }

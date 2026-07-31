@@ -24,6 +24,8 @@ interface UseFileTreeResult {
   selectFile: (node: FileTreeNode) => Promise<void>;
 }
 
+export { type UseFileTreeResult };
+
 export function useFileTree(client: SidecarClient | null): UseFileTreeResult {
   const [root, setRootState] = useState<string | null>(null);
   const [tree, setTree] = useState<FileTreeNode[]>([]);

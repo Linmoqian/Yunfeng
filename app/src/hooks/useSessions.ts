@@ -14,6 +14,8 @@ interface UseSessionsResult {
   clearProject: () => void;
 }
 
+export { type UseSessionsResult };
+
 export function useSessions(client: SidecarClient | null): UseSessionsResult {
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(false);

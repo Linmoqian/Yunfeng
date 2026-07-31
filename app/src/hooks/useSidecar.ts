@@ -13,6 +13,8 @@ interface UseSidecarResult {
   stop: () => Promise<void>;
 }
 
+export { type UseSidecarResult };
+
 export function useSidecar(): UseSidecarResult {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
