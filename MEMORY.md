@@ -1,0 +1,9 @@
+# MEMORY
+
+- 三层架构：React 前端 (app/src) ─HTTP/SSE→ Bun sidecar (app/sidecar，进程内嵌入 pi SDK) ←Tauri (app/src-tauri) 只管理 sidecar 生命周期。
+- 会话数据与 pi CLI 共享 `~/.pi/agent/sessions/` JSONL，sidecar 启动 agent 会读写这些文件，勿随意删改。
+- sidecar HTTP 只监听 `127.0.0.1`，`X-Pi-Token` 认证；dev 用 `bun run`，release 用 `npm run bundle` 产物 `src-tauri/binaries/pi-sidecar`，可用 `BUN_PATH` 指定 bun。
+- 类型契约：前端 `app/src/lib/types.ts` 与 sidecar `app/sidecar/src/types.ts` 是同一协议镜像，必须保持同步。
+- 三变体 UI 原型已废弃（git 78b8aed 清空重写）；当前是单一 Apple 液态玻璃设计系统（Tailwind v4 @theme + [data-theme] CSS 变量 + shadcn），主题仍处收敛期，未锁定。
+- 前端无测试框架；sidecar 验证手段是 `smoke.mjs` 集成脚本（Windows 下硬编码 bun 绝对路径）。
+- 项目规则维护在 `RULES.md`（简约、模块化、行数阈值、契约同步）。
