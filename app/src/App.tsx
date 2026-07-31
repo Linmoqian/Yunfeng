@@ -1,6 +1,8 @@
-// 宿主页面：数据层 hooks 在此统一管理，
-// 渲染由 ?variant= 参数选择（prototype skill: UI.md 子形态 A）。
+// 宿主页面：数据层 hooks 在此统一管理（三变体共享），
+// 路由 /a /b /c 决定渲染哪个变体，切换带 motion 过渡动画。
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { VariantA } from "./components/variants/VariantA";
 import { VariantB } from "./components/variants/VariantB";
 import { VariantC } from "./components/variants/VariantC";
@@ -10,15 +12,11 @@ import { useSessions } from "./hooks/useSessions";
 import { useSession } from "./hooks/useSession";
 import { useFileTree } from "./hooks/useFileTree";
 import { useModels } from "./hooks/useModels";
+import type { VariantProps } from "./components/variants/variantTypes";
 import "./App.css";
 import "./variants.css";
 
-const VARIANTS = ["A", "B", "C"];
-
-function readVariant(): string {
-  const v = new URLSearchParams(window.location.search).get("variant");
-  return v && VARIANTS.includes(v) ? v : "A";
-}
+const VARIANTS = ["a", "b", "c"] as const;
 
 function App() {
   const sidecar = useSidecar();
@@ -26,8 +24,9 @@ function App() {
   const session = useSession(sidecar.client);
   const fileTree = useFileTree(sidecar.client);
   const models = useModels(sidecar.client);
-  const [variant, setVariant] = useState(readVariant);
   const [bannerError, setBannerError] = useState<string | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // 启动 sidecar
   useEffect(() => {
@@ -50,15 +49,13 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sidecar.status]);
 
-  // 变体切换写入 URL，保证可分享、刷新稳定
-  const changeVariant = useCallback((v: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("variant", v);
-    window.history.replaceState(null, "", url);
-    setVariant(v);
-  }, []);
+  // 路由切换（PrototypeSwitcher 复用）
+  const changeVariant = useCallback(
+    (v: string) => navigate(`/${v}`),
+    [navigate],
+  );
 
-  const commonProps = {
+  const commonProps: VariantProps = {
     sidecar,
     sessions,
     session,
@@ -70,10 +67,24 @@ function App() {
 
   return (
     <div className="app">
-      {variant === "A" && <VariantA {...commonProps} />}
-      {variant === "B" && <VariantB {...commonProps} />}
-      {variant === "C" && <VariantC {...commonProps} />}
-      <PrototypeSwitcher variants={VARIANTS} current={variant} onChange={changeVariant} />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={location.pathname}
+          className="app-variant-host"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+        >
+          <Routes location={location}>
+            <Route path="/a" element={<VariantA {...commonProps} />} />
+            <Route path="/b" element={<VariantB {...commonProps} />} />
+            <Route path="/c" element={<VariantC {...commonProps} />} />
+            <Route path="*" element={<Navigate to="/a" replace />} />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+      <PrototypeSwitcher variants={[...VARIANTS]} current={location.pathname.slice(1)} onChange={changeVariant} />
     </div>
   );
 }

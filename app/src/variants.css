@@ -259,17 +259,8 @@
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(4px);
   z-index: 100;
-  animation: fade-in 0.15s ease-out;
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 
 .va-panel {
   position: fixed;
@@ -286,19 +277,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: panel-in 0.16s ease-out;
 }
 
-@keyframes panel-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-}
 
 .va-panel-tabs {
   display: flex;
@@ -1141,7 +1121,6 @@
   background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(3px);
   z-index: 200;
-  animation: fade-in 0.15s ease-out;
 }
 
 .vc-drawer {
@@ -1157,17 +1136,8 @@
   z-index: 201;
   display: flex;
   flex-direction: column;
-  animation: drawer-in 0.22s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@keyframes drawer-in {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
 
 .vc-drawer-header {
   display: flex;
@@ -1268,17 +1238,8 @@
   z-index: 201;
   display: flex;
   flex-direction: column;
-  animation: sheet-in 0.22s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@keyframes sheet-in {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
 
 .vc-sheet-wide {
   width: 640px;

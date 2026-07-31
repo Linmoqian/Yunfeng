@@ -16,7 +16,7 @@ export interface VariantProps {
 }
 
 export const VARIANT_NAMES: Record<string, string> = {
-  A: "命令面板 · 极简",
-  B: "工程工作台 · dock",
-  C: "沉浸对话 · 抽屉",
+  a: "命令面板 · 极简",
+  b: "工程工作台 · dock",
+  c: "沉浸对话 · 抽屉",
 };

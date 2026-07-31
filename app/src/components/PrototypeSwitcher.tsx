@@ -1,8 +1,9 @@
 // 浮动变体切换器（prototype skill: UI.md）
 // 固定在屏幕底部中央，左右箭头循环切换，键盘 ←/→ 切换（输入聚焦时不拦截）。
-// 仅在开发模式显示，避免原型条泄漏到生产构建。
+// 切换通过路由完成（/a /b /c）。仅在开发模式显示。
 
 import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { VARIANT_NAMES } from "./variants/variantTypes";
 import { Icons } from "./Icons";
 
@@ -13,6 +14,8 @@ interface PrototypeSwitcherProps {
 }
 
 export function PrototypeSwitcher({ variants, current, onChange }: PrototypeSwitcherProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const index = variants.indexOf(current);
   const label = VARIANT_NAMES[current] ?? current;
 
@@ -42,7 +45,7 @@ export function PrototypeSwitcher({ variants, current, onChange }: PrototypeSwit
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, variants, current]);
+  }, [index, variants, current, navigate, location.pathname]);
 
   if (!import.meta.env.DEV) return null;
 
@@ -52,7 +55,7 @@ export function PrototypeSwitcher({ variants, current, onChange }: PrototypeSwit
         <Icons.ArrowLeft size={14} />
       </button>
       <span className="proto-switcher-label">
-        {current} — {label}
+        {current.toUpperCase()} — {label}
       </span>
       <button className="proto-switcher-btn" onClick={() => cycle(1)} title="下一个变体 (→)">
         <Icons.ArrowRight size={14} />

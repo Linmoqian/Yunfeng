@@ -1,6 +1,7 @@
 // 变体 C：沉浸式对话。全屏消息流，会话走左侧滑出抽屉，
 // 文件与模型走浮层。强调专注与对话连续性。
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { MessageBody } from "../Markdown";
 import { Icons } from "../Icons";
 import type { SessionInfo } from "../../lib/types";
@@ -127,10 +128,24 @@ export function VariantC({
       </form>
 
       {/* 会话抽屉 */}
-      {drawerOpen && (
-        <>
-          <div className="vc-overlay" onClick={() => setDrawerOpen(false)} />
-          <div className="vc-drawer">
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            <motion.div
+              className="vc-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setDrawerOpen(false)}
+            />
+            <motion.div
+              className="vc-drawer"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+            >
             <div className="vc-drawer-header">
               <span>会话</span>
               <button
@@ -167,15 +182,30 @@ export function VariantC({
               ))}
               {sessions.sessions.length === 0 && <div className="vc-drawer-empty">暂无会话</div>}
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
 
       {/* 模型浮层 */}
-      {modelPanel && (
-        <>
-          <div className="vc-overlay" onClick={() => setModelPanel(false)} />
-          <div className="vc-sheet">
+      <AnimatePresence>
+        {modelPanel && (
+          <>
+            <motion.div
+              className="vc-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setModelPanel(false)}
+            />
+            <motion.div
+              className="vc-sheet"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+            >
             <div className="vc-sheet-header">
               <span>切换模型</span>
               <button className="vc-iconbtn" onClick={() => setModelPanel(false)}>
@@ -201,15 +231,30 @@ export function VariantC({
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
 
       {/* 文件浮层 */}
-      {filePanel && (
-        <>
-          <div className="vc-overlay" onClick={() => setFilePanel(false)} />
-          <div className="vc-sheet vc-sheet-wide">
+      <AnimatePresence>
+        {filePanel && (
+          <>
+            <motion.div
+              className="vc-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => setFilePanel(false)}
+            />
+            <motion.div
+              className="vc-sheet vc-sheet-wide"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
+            >
             <div className="vc-sheet-header">
               <span>文件</span>
               <button className="vc-iconbtn" onClick={() => setFilePanel(false)}>
@@ -248,9 +293,10 @@ export function VariantC({
                 </>
               )}
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
     </div>
   );
 }

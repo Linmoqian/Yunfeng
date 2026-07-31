@@ -107,6 +107,14 @@ body {
   position: relative;
 }
 
+/* 路由变体宿主容器 */
+.app-variant-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ---------- Markdown 渲染（MessageBody 使用） ---------- */
 .markdown-body {
   line-height: 1.6;

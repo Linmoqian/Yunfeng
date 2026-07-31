@@ -1,6 +1,7 @@
 // 变体 A：命令面板主导。无侧边栏，单栏对话画布，
 // 会话/文件/模型统一收进 ⌘K 风格命令面板。
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { MessageBody } from "../Markdown";
 import { Icons } from "../Icons";
 import type { SessionInfo } from "../../lib/types";
@@ -143,10 +144,24 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
         )}
       </form>
 
-      {panelOpen && (
-        <>
-          <div className="va-panel-backdrop" onClick={() => setPanelOpen(false)} />
-          <div className="va-panel">
+      <AnimatePresence>
+        {panelOpen && (
+          <>
+            <motion.div
+              className="va-panel-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setPanelOpen(false)}
+            />
+            <motion.div
+              className="va-panel"
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
             <div className="va-panel-tabs">
               {(["sessions", "files", "models"] as PanelTab[]).map((t) => (
                 <button
@@ -257,9 +272,10 @@ export function VariantA({ sessions, session, fileTree, models, bannerError, dis
                   </button>
                 ))}
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
     </div>
   );
 }

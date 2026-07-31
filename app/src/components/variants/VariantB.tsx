@@ -1,6 +1,7 @@
 // 变体 B：工程工作台。IDE 式 dock 布局：
 // 左侧工具 dock（会话/项目 tab 切换）+ 中部对话 + 右侧文件树 dock + 底部活动条。
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { MessageBody } from "../Markdown";
 import { Icons } from "../Icons";
 import type { SessionInfo } from "../../lib/types";
@@ -68,10 +69,17 @@ export function VariantB({
           <button className="vb-model" onClick={() => setModelMenuOpen((o) => !o)}>
             {currentModel ? currentModel.name : "选择模型"}
           </button>
-          {modelMenuOpen && (
-            <>
-              <div className="vb-backdrop" onClick={() => setModelMenuOpen(false)} />
-              <div className="vb-model-menu">
+          <AnimatePresence>
+            {modelMenuOpen && (
+              <>
+                <div className="vb-backdrop" onClick={() => setModelMenuOpen(false)} />
+                <motion.div
+                  className="vb-model-menu"
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.13, ease: "easeOut" }}
+                >
                 {models.grouped.map((g) => (
                   <div key={g.providerId}>
                     <div className="vb-model-group">{g.providerName}</div>
@@ -89,9 +97,10 @@ export function VariantB({
                     ))}
                   </div>
                 ))}
-              </div>
-            </>
-          )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
