@@ -1,0 +1,76 @@
+/* Aura — 正式 UI 样式入口（Tailwind v4） */
+
+@import "tailwindcss";
+
+/* 设计令牌（对应设计稿 tailwind.config 扩展） */
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-apple-blue: #007aff;
+  --color-apple-gray: #8e8e93;
+  --color-apple-accent: #6366f1;
+  --shadow-apple-glow: 0 0 35px -5px rgba(99, 102, 241, 0.15);
+  --shadow-apple-float: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+}
+
+/* Apple Glassmorphism */
+.apple-glass {
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+}
+
+.apple-glass-subtle {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* 极简滚动条 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+/* 智能体脉冲动画 */
+@keyframes subtlePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(0.98);
+  }
+}
+.animate-subtle-pulse {
+  animation: subtlePulse 3s infinite ease-in-out;
+}
+
+/* 流式光标 */
+@keyframes cursorBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+.cursor-blink {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--color-apple-accent);
+  animation: cursorBlink 1s infinite;
+}

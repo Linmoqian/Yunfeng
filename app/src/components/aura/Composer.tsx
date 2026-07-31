@@ -1,0 +1,84 @@
+// Aura 浮动输入条：附件 + 输入框 + 发送/停止。
+import { Icons } from "../Icons";
+
+interface ComposerProps {
+  disabled: boolean;
+  isStreaming: boolean;
+  placeholder?: string;
+  onSend: (text: string) => Promise<void>;
+  onAbort: () => Promise<void>;
+  onAttach: () => void;
+}
+
+export function Composer({
+  disabled,
+  isStreaming,
+  placeholder = "向 Aura 发送指令...",
+  onSend,
+  onAbort,
+  onAttach,
+}: ComposerProps) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const el = e.currentTarget.elements.namedItem("msg") as HTMLTextAreaElement | null;
+    if (!el) return;
+    const text = el.value.trim();
+    if (!text || disabled) return;
+    el.value = "";
+    void onSend(text);
+  };
+
+  return (
+    <div className="p-4 z-20">
+      <form
+        onSubmit={handleSubmit}
+        className="max-w-3xl mx-auto bg-white/90 apple-glass border border-slate-200/80 rounded-2xl shadow-xl p-2 transition-all duration-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/10"
+      >
+        <div className="flex items-end space-x-2">
+          <button
+            type="button"
+            onClick={onAttach}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0"
+            title="附加上下文（选择项目目录）"
+          >
+            <Icons.Paperclip className="w-4 h-4" />
+          </button>
+
+          <textarea
+            name="msg"
+            rows={1}
+            placeholder={placeholder}
+            disabled={disabled}
+            className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none resize-none py-1.5 leading-relaxed"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
+          />
+
+          {isStreaming ? (
+            <button
+              type="button"
+              onClick={() => void onAbort()}
+              className="p-2 rounded-xl bg-slate-600 hover:bg-slate-500 text-white shadow-md transition active:scale-95 flex items-center justify-center"
+              title="停止生成"
+            >
+              <Icons.Square className="w-4 h-4 fill-current" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={disabled}
+              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition transform active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              title="发送"
+            >
+              <Icons.ArrowUp className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}

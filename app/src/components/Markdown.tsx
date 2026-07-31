@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { SessionMessage } from "../lib/types";
+import { Icons } from "./Icons";
 
 interface ContentBlock {
   type: string;
@@ -25,15 +26,33 @@ function renderContent(content: unknown): { text: string; blocks: ContentBlock[]
   return { text: "", blocks: [] };
 }
 
-function ThinkingBlock({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
+/** 设计稿「推理思考过程」折叠块：解析消息中的 thinking 块，合并渲染为一个 details。 */
+export function ThinkingBlocks({ content }: { content: unknown }) {
+  const [open, setOpen] = useState(true);
+  if (!Array.isArray(content)) return null;
+  const parts = (content as ContentBlock[])
+    .filter((b) => b.type === "thinking" && typeof b.thinking === "string" && b.thinking.trim() !== "")
+    .map((b) => (b.thinking as string).trim());
+  if (parts.length === 0) return null;
   return (
-    <div className="thinking-block">
-      <button className="thinking-toggle" onClick={() => setOpen((o) => !o)}>
-        {open ? "▾" : "▸"} 思考过程
-      </button>
-      {open && <pre className="thinking-text">{text}</pre>}
-    </div>
+    <details
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      className="group bg-slate-100/60 rounded-xl border border-slate-200/60 overflow-hidden text-xs"
+    >
+      <summary className="flex items-center justify-between px-3.5 py-2 cursor-pointer select-none text-slate-500 hover:text-slate-700 list-none [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center space-x-2 font-mono">
+          <Icons.BrainCircuit className="w-3.5 h-3.5 text-indigo-500" />
+          <span>推理思考过程</span>
+        </span>
+        <Icons.ChevronDown
+          className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </summary>
+      <div className="px-3.5 py-2.5 border-t border-slate-200/60 text-slate-600 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words max-h-64 overflow-y-auto">
+        {parts.join("\n\n")}
+      </div>
+    </details>
   );
 }
 
@@ -69,9 +88,8 @@ export const MessageBody = memo(function MessageBody({ message }: { message: Ses
   return (
     <div className="message-body">
       {blocks.map((b, i) => {
-        if (b.type === "thinking" && typeof b.thinking === "string" && b.thinking.trim() !== "") {
-          return <ThinkingBlock key={i} text={b.thinking} />;
-        }
+        // thinking 由 ThinkingBlocks 在回答卡片外渲染，这里跳过
+        if (b.type === "thinking") return null;
         if (b.type === "toolCall") {
           return <ToolCallBlock key={i} name={(b.name as string) ?? ""} args={b.arguments} />;
         }

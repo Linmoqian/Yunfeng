@@ -1,6 +1,6 @@
 /* ============================================================
-   Pi Desktop — 通用样式（设计系统 / Markdown 渲染 / 基础组件）
-   各 UI 变体的布局样式见 variants.css
+   Aura — 通用样式（设计系统变量 / Markdown 渲染）
+   Tailwind 入口与 Aura 布局样式见 index.css
    ============================================================ */
 
 /* ---------- 色彩系统（苹果风格，跟随系统亮暗） ---------- */
@@ -100,21 +100,6 @@ body {
   background: var(--accent-soft);
 }
 
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  position: relative;
-}
-
-/* 路由变体宿主容器 */
-.app-variant-host {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 /* ---------- Markdown 渲染（MessageBody 使用） ---------- */
 .markdown-body {
   line-height: 1.6;
@@ -165,39 +150,6 @@ body {
   padding-left: 10px;
   color: var(--text-secondary);
   margin: 6px 0;
-}
-
-.thinking-block {
-  margin: 6px 0;
-}
-
-.thinking-toggle {
-  background: var(--bubble-assistant-bg);
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  transition: background 0.12s ease;
-}
-
-.thinking-toggle:hover {
-  background: var(--panel-hover);
-  color: var(--text);
-}
-
-.thinking-text {
-  background: var(--bubble-assistant-bg);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  margin: 6px 0;
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-  max-height: 320px;
-  overflow-y: auto;
-  line-height: 1.6;
 }
 
 .tool-call-block {
@@ -252,23 +204,6 @@ body {
   margin: 4px 0;
 }
 
-.cursor-blink {
-  display: inline-block;
-  width: 7px;
-  height: 15px;
-  background: var(--accent);
-  animation: blink 1s step-start infinite;
-  vertical-align: text-bottom;
-  margin-left: 2px;
-  border-radius: 2px;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
 @keyframes message-in {
   from {
     opacity: 0;
@@ -278,61 +213,4 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* ---------- 浮动变体切换器（仅开发模式） ---------- */
-.proto-switcher {
-  position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--panel-solid);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  padding: 6px 10px;
-  box-shadow: var(--shadow-lg);
-  z-index: 999;
-  font-size: 13px;
-  user-select: none;
-}
-
-.proto-switcher-btn {
-  background: none;
-  border: none;
-  color: var(--accent);
-  font-size: 15px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 999px;
-}
-
-.proto-switcher-btn:hover {
-  background: var(--panel-hover);
-}
-
-.proto-switcher-label {
-  color: var(--text-secondary);
-  font-weight: 500;
-  min-width: 130px;
-  text-align: center;
-}
-
-/* ---------- 滚动条 ---------- */
-::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar);
-  border-radius: 5px;
-  border: 2px solid transparent;
-  background-clip: content-box;
 }
