@@ -1,0 +1,11 @@
+# 本地参考仓库（不纳入本项目版本控制）
+pi/
+pi-web/
+matt-skills-ref/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env

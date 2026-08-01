@@ -1,7 +1,12 @@
-# Tauri + React + Typescript
+# Yunfeng Web 前端
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Vite + React (TypeScript)。开发服务器将 `/api` 代理到 FastAPI 后端（http://127.0.0.1:8000）。
 
-## Recommended IDE Setup
+```bash
+npm install
+npm run dev     # 开发（端口 5173）
+npm run build   # 构建
+npm run preview # 预览构建产物
+```
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+项目整体说明见仓库根目录 `README.md`。
