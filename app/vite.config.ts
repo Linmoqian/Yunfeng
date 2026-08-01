@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // 开发环境下将 /api 代理到 FastAPI 后端
+      // 开发环境下将 /api 代理到 Node 后端（server/）
       "/api": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,

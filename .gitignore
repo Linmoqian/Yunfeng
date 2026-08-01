@@ -3,6 +3,11 @@ pi/
 pi-web/
 matt-skills-ref/
 
+# Node
+node_modules
+dist
+*.log
+
 # Python
 __pycache__/
 *.py[cod]
