@@ -12,9 +12,9 @@ import {
 } from "../../services/taskService";
 import { MapleStatusMark } from "./MapleStatusMark";
 import { NewTaskDialog } from "./NewTaskDialog";
+import { SessionSidebar } from "./SessionSidebar";
 import { SettingsDialog, type ThemeMode } from "./SettingsDialog";
 import { TaskFocusPanel } from "./TaskFocusPanel";
-import { TaskSection } from "./TaskSection";
 import {
   buildTaskSections,
   createTaskSummaries,
@@ -170,39 +170,30 @@ export function WorkbenchPage() {
 
   return (
     <div className="app-shell">
-      <header className="workbench-header">
-        <a className="wordmark" href="/" aria-label="Yunfeng 工作台">
-          <MapleStatusMark />
-          <span>Yunfeng</span>
-        </a>
-        <div className="workbench-header__actions">
-          <span className={`connection-state connection-state--${connectionState}`}>
-            <span className="connection-state__dot" aria-hidden="true" />
-            {connectionState === "connected" ? "已同步" : connectionState === "connecting" ? "正在连接" : "状态可能已过期"}
-          </span>
-          <button className="text-button" type="button" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
-            设置
-          </button>
-          <button className="button button--primary" type="button" onClick={() => setNewTaskOpen(true)}>
-            新建任务
-          </button>
-        </div>
-      </header>
+      <SessionSidebar
+        sections={sections}
+        taskCount={tasks.length}
+        activeTaskId={selectedTask?.id}
+        onOpenTask={setSelectedTask}
+        onNewTask={() => setNewTaskOpen(true)}
+      />
 
-      <main className="workbench-main">
-        <section className="workbench-intro" aria-labelledby="workbench-title">
-          <div>
+      <main className="session-main">
+        <header className="workbench-header">
+          <div className="session-main__context">
             <p className="eyebrow">个人任务工作台</p>
-            <h1 id="workbench-title">让需要你的事先浮现。</h1>
-            <p className="workbench-intro__description">
-              全部任务保持在同一片视野里，Agent 安静地推进，只有真正需要决定的事会靠近你。
-            </p>
+            <span>{selectedTask ? "当前会话" : "全部会话"}</span>
           </div>
-          <p className="workbench-intro__summary">
-            <strong>{activeTaskCount}</strong>
-            <span>个未完成任务</span>
-          </p>
-        </section>
+          <div className="workbench-header__actions">
+            <span className={`connection-state connection-state--${connectionState}`}>
+              <span className="connection-state__dot" aria-hidden="true" />
+              {connectionState === "connected" ? "已同步" : connectionState === "connecting" ? "正在连接" : "状态可能已过期"}
+            </span>
+            <button className="text-button" type="button" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
+              设置
+            </button>
+          </div>
+        </header>
 
         {connectionState === "offline" && loadError ? (
           <div className="connection-notice" role="status">
@@ -211,34 +202,55 @@ export function WorkbenchPage() {
           </div>
         ) : null}
 
-        {sections.length > 0 ? (
-          <div className="task-sections">
-            {sections.map((section) => (
-              <TaskSection key={section.id} section={section} onOpenTask={setSelectedTask} />
-            ))}
-          </div>
+        {selectedTask ? (
+          <TaskFocusPanel
+            task={selectedTask}
+            onClose={() => setSelectedTask(null)}
+            onSend={handleSendTask}
+            model={activeTaskModel}
+            modelOptions={modelCatalog.models}
+            modelLoading={modelLoading || activeTaskModelLoading}
+            modelError={modelError}
+            onModelChange={handleActiveTaskModelChange}
+          />
         ) : (
-          <section className="empty-state" aria-live="polite">
-            <MapleStatusMark />
-            <h2>工作台暂时安静。</h2>
-            <p>还没有任务在这里等待。可以从一个清晰的目标开始。</p>
-            <button className="button button--primary" type="button" onClick={() => setNewTaskOpen(true)}>
-              新建任务
-            </button>
+          <section className="session-overview" aria-labelledby="workbench-title">
+            <div className="session-overview__intro">
+              <p className="eyebrow">会话工作台</p>
+              <h1 id="workbench-title">从一段会话开始。</h1>
+              <p>
+                左侧保留全部任务的脉络，右侧只展开你正在关注的那一段。Agent 安静地推进，只有真正需要决定的事会靠近你。
+              </p>
+            </div>
+            <div className="session-overview__summary">
+              <div>
+                <strong>{activeTaskCount}</strong>
+                <span>个未完成任务</span>
+              </div>
+              <div>
+                <strong>{tasks.length}</strong>
+                <span>段已保存会话</span>
+              </div>
+            </div>
+            {tasks.length === 0 ? (
+              <section className="empty-state" aria-live="polite">
+                <MapleStatusMark />
+                <h2>工作台暂时安静。</h2>
+                <p>还没有任务在这里等待。可以从一个清晰的目标开始。</p>
+                <button className="button button--primary" type="button" onClick={() => setNewTaskOpen(true)}>
+                  新建任务
+                </button>
+              </section>
+            ) : (
+              <div className="session-overview__hint">
+                <MapleStatusMark />
+                <p>从左侧选择一个会话，查看它的状态、模型和下一步。</p>
+              </div>
+            )}
           </section>
         )}
       </main>
 
-      <TaskFocusPanel
-        task={selectedTask}
-        onClose={() => setSelectedTask(null)}
-        onSend={handleSendTask}
-        model={activeTaskModel}
-        modelOptions={modelCatalog.models}
-        modelLoading={modelLoading || activeTaskModelLoading}
-        modelError={modelError}
-        onModelChange={handleActiveTaskModelChange}
-      />
       <NewTaskDialog
         open={newTaskOpen}
         onClose={() => setNewTaskOpen(false)}

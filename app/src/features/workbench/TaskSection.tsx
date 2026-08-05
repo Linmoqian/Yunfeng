@@ -3,10 +3,11 @@ import type { TaskSectionGroup, TaskSummary } from "./taskPresentation";
 
 interface TaskSectionProps {
   section: TaskSectionGroup;
+  activeTaskId?: string;
   onOpenTask: (task: TaskSummary) => void;
 }
 
-export function TaskSection({ section, onOpenTask }: TaskSectionProps) {
+export function TaskSection({ section, activeTaskId, onOpenTask }: TaskSectionProps) {
   if (section.id === "completed") {
     return (
       <details className="task-section task-section--completed">
@@ -15,7 +16,9 @@ export function TaskSection({ section, onOpenTask }: TaskSectionProps) {
           <span className="task-section__count">查看 {section.tasks.length} 个</span>
         </summary>
         <div className="task-section__list">
-          {section.tasks.map((task) => <TaskRow key={task.id} task={task} onOpen={onOpenTask} />)}
+          {section.tasks.map((task) => (
+            <TaskRow key={task.id} task={task} active={task.id === activeTaskId} onOpen={onOpenTask} />
+          ))}
         </div>
       </details>
     );
@@ -28,7 +31,9 @@ export function TaskSection({ section, onOpenTask }: TaskSectionProps) {
         <span className="task-section__count">{section.tasks.length} 个任务</span>
       </div>
       <div className="task-section__list">
-        {section.tasks.map((task) => <TaskRow key={task.id} task={task} onOpen={onOpenTask} />)}
+        {section.tasks.map((task) => (
+          <TaskRow key={task.id} task={task} active={task.id === activeTaskId} onOpen={onOpenTask} />
+        ))}
       </div>
     </section>
   );

@@ -130,19 +130,23 @@ def verify_populated_workbench(page: Page) -> None:
     page.route("**/api/**", route_api)
     page.goto(DEV_URL, wait_until="networkidle")
 
+    sidebar = page.get_by_role("complementary", name="会话列表")
+    expect(sidebar).to_be_visible()
+    expect(sidebar.get_by_role("heading", name="会话")).to_be_visible()
     expect(page.get_by_role("heading", name="需要你介入")).to_be_visible()
     expect(page.get_by_text("发布前检查")).to_be_visible()
     expect(page.get_by_role("heading", name="正在进行")).to_be_visible()
     expect(page.get_by_text("已完成", exact=True).first).to_be_visible()
 
     page.get_by_role("button", name="查看任务").first.click()
-    expect(page.get_by_role("dialog")).to_be_visible()
+    task_panel = page.get_by_role("region", name="当前会话")
+    expect(task_panel).to_be_visible()
     expect(page.get_by_role("heading", name="发布前检查")).to_be_visible()
-    expect(page.get_by_role("dialog").get_by_text("发现两种实现路径，需要你选择", exact=True)).to_be_visible()
-    page.get_by_role("dialog").get_by_label("当前任务模型").select_option("openai:gpt-5-mini")
+    expect(task_panel.get_by_text("发现两种实现路径，需要你选择", exact=True)).to_be_visible()
+    task_panel.get_by_label("当前任务模型").select_option("openai:gpt-5-mini")
     assert set_model_payloads[-1] == {"type": "set_model", "provider": "openai", "modelId": "gpt-5-mini"}
     page.get_by_role("button", name="关闭任务详情").click()
-    expect(page.get_by_role("dialog")).not_to_be_visible()
+    expect(task_panel).not_to_be_visible()
 
     settings_button = page.get_by_role("button", name="打开设置")
     settings_button.click()
