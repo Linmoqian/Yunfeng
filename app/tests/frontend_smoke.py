@@ -87,6 +87,11 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
                 "context": {
                     "messages": [
                         {"id": "user-1", "role": "user", "content": "检查发布风险"},
+                        {
+                            "id": "assistant-1",
+                            "role": "assistant",
+                            "content": "这是 **历史消息**。\n\n```ts\nconst ready = true;\n```",
+                        },
                     ],
                 },
             }),
@@ -179,6 +184,8 @@ def verify_populated_workbench(page: Page) -> None:
     conversation_log = task_panel.get_by_role("log", name="会话对话")
     expect(conversation_log).to_contain_text("检查发布风险")
     expect(conversation_log).to_contain_text("流式回复")
+    expect(conversation_log.locator("strong")).to_contain_text("历史消息")
+    expect(conversation_log.locator("code")).to_contain_text("const ready = true;")
     expect(task_panel.get_by_role("heading", name="任务轨迹")).not_to_be_visible()
     expect(task_panel.get_by_label("当前任务模型")).not_to_be_visible()
     expect(task_panel.get_by_text("查看过程", exact=True)).not_to_be_visible()

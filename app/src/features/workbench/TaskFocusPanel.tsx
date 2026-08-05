@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   loadTaskConversation,
   subscribeTaskEvents,
@@ -65,6 +67,23 @@ function getTextDelta(event: TaskStreamEvent): string | null {
   }
   const delta = event.assistantMessageEvent as { type?: string; delta?: unknown };
   return delta.type === "text_delta" && typeof delta.delta === "string" ? delta.delta : null;
+}
+
+function ConversationMarkdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a: ({ href, children }) => (
+          <a href={href} target="_blank" rel="noreferrer">
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
 }
 
 export function TaskFocusPanel({
@@ -202,7 +221,9 @@ export function TaskFocusPanel({
             {conversation.map((item) => (
               <article key={item.id} className={`conversation-message conversation-message--${item.role} ${item.streaming ? "conversation-message--streaming" : ""}`.trim()}>
                 <span className="conversation-message__role">{item.role === "user" ? "你" : item.role === "assistant" ? "Agent" : "工具"}</span>
-                <p>{item.text}</p>
+                <div className="conversation-message__content">
+                  <ConversationMarkdown text={item.text} />
+                </div>
               </article>
             ))}
             {toolActivity ? <p className="conversation-tool-status" role="status">{toolActivity}</p> : null}
