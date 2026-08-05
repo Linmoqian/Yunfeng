@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createTask,
+  loadModelCatalog,
+  loadTaskModel,
   loadTaskSnapshot,
   sendTaskPrompt,
+  setTaskModel as setTaskModelRequest,
   subscribeRunningSessions,
+  type ModelCatalog,
+  type ModelSelection,
 } from "../../services/taskService";
 import { MapleStatusMark } from "./MapleStatusMark";
 import { NewTaskDialog } from "./NewTaskDialog";
@@ -28,6 +33,22 @@ export function WorkbenchPage() {
   const [selectedTask, setSelectedTask] = useState<TaskSummary | null>(null);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({ models: [], defaultModel: null });
+  const [modelLoading, setModelLoading] = useState(false);
+  const [modelError, setModelError] = useState<string | null>(null);
+  const [modelReloadKey, setModelReloadKey] = useState(0);
+  const [modelSelection, setModelSelection] = useState<ModelSelection | null>(() => {
+    const storedModel = window.localStorage.getItem("yunfeng-model");
+    if (!storedModel) return null;
+    try {
+      const parsed = JSON.parse(storedModel) as Partial<ModelSelection>;
+      return parsed.provider && parsed.modelId ? { provider: parsed.provider, modelId: parsed.modelId } : null;
+    } catch {
+      return null;
+    }
+  });
+  const [activeTaskModel, setActiveTaskModel] = useState<ModelSelection | null>(null);
+  const [activeTaskModelLoading, setActiveTaskModelLoading] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const storedTheme = window.localStorage.getItem("yunfeng-theme");
     return storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
@@ -39,6 +60,9 @@ export function WorkbenchPage() {
   );
   const sections = useMemo(() => buildTaskSections(tasks), [tasks]);
   const activeTaskCount = tasks.filter((task) => task.section !== "completed").length;
+  const modelCwd = selectedTask
+    ? sessions.find((session) => session.id === selectedTask.id)?.cwd
+    : sessions.find((session) => session.cwd)?.cwd;
 
   const refreshTasks = useCallback(async () => {
     try {
@@ -77,14 +101,71 @@ export function WorkbenchPage() {
     }
   }, [selectedTask, tasks]);
 
+  useEffect(() => {
+    if (!settingsOpen && !selectedTask) return;
+    const controller = new AbortController();
+    setModelLoading(true);
+    setModelError(null);
+    void loadModelCatalog(modelCwd, controller.signal)
+      .then((catalog) => {
+        setModelCatalog(catalog);
+        setModelSelection((current) => {
+          if (current && catalog.models.some((model) => model.provider === current.provider && model.id === current.modelId)) {
+            return current;
+          }
+          return catalog.defaultModel;
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setModelError(error instanceof Error ? error.message : "模型列表暂时无法读取");
+      })
+      .finally(() => setModelLoading(false));
+
+    return () => controller.abort();
+  }, [modelCwd, modelReloadKey, selectedTask?.id, settingsOpen]);
+
+  useEffect(() => {
+    const taskId = selectedTask?.id;
+    if (!taskId) {
+      setActiveTaskModel(null);
+      setActiveTaskModelLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setActiveTaskModel(null);
+    setActiveTaskModelLoading(true);
+    void loadTaskModel(taskId, controller.signal)
+      .then(setActiveTaskModel)
+      .catch(() => setActiveTaskModel(null))
+      .finally(() => setActiveTaskModelLoading(false));
+
+    return () => controller.abort();
+  }, [selectedTask?.id]);
+
   async function handleCreateTask(cwd: string, message: string) {
-    await createTask(cwd, message);
+    await createTask(cwd, message, modelSelection);
     await refreshTasks();
   }
 
   async function handleSendTask(taskId: string, message: string) {
     await sendTaskPrompt(taskId, message);
     await refreshTasks();
+  }
+
+  function handleModelChange(nextModel: ModelSelection | null) {
+    setModelSelection(nextModel);
+    if (nextModel) {
+      window.localStorage.setItem("yunfeng-model", JSON.stringify(nextModel));
+    } else {
+      window.localStorage.removeItem("yunfeng-model");
+    }
+  }
+
+  async function handleActiveTaskModelChange(taskId: string, nextModel: ModelSelection) {
+    const appliedModel = await setTaskModelRequest(taskId, nextModel);
+    setActiveTaskModel(appliedModel);
   }
 
   return (
@@ -152,6 +233,11 @@ export function WorkbenchPage() {
         task={selectedTask}
         onClose={() => setSelectedTask(null)}
         onSend={handleSendTask}
+        model={activeTaskModel}
+        modelOptions={modelCatalog.models}
+        modelLoading={modelLoading || activeTaskModelLoading}
+        modelError={modelError}
+        onModelChange={handleActiveTaskModelChange}
       />
       <NewTaskDialog
         open={newTaskOpen}
@@ -163,6 +249,12 @@ export function WorkbenchPage() {
         onClose={() => setSettingsOpen(false)}
         themeMode={themeMode}
         onThemeChange={setThemeMode}
+        modelSelection={modelSelection}
+        modelOptions={modelCatalog.models}
+        modelLoading={modelLoading}
+        modelError={modelError}
+        onModelChange={handleModelChange}
+        onRetryModels={() => setModelReloadKey((value) => value + 1)}
         connectionState={connectionState}
       />
     </div>

@@ -13,6 +13,26 @@ interface AgentResponse {
   success?: boolean;
   sessionId?: string;
   error?: string;
+  data?: {
+    id?: string;
+    provider?: string;
+  };
+}
+
+export interface ModelOption {
+  id: string;
+  name: string;
+  provider: string;
+}
+
+export interface ModelSelection {
+  provider: string;
+  modelId: string;
+}
+
+export interface ModelCatalog {
+  models: ModelOption[];
+  defaultModel: ModelSelection | null;
 }
 
 export interface TaskSnapshot {
@@ -63,15 +83,67 @@ export async function sendTaskPrompt(sessionId: string, message: string): Promis
   await readJson<AgentResponse>(response);
 }
 
-export async function createTask(cwd: string, message: string): Promise<string> {
+export async function createTask(
+  cwd: string,
+  message: string,
+  model?: ModelSelection | null,
+): Promise<string> {
   const response = await fetch("/api/agent/new", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cwd, type: "prompt", message }),
+    body: JSON.stringify({
+      cwd,
+      type: "prompt",
+      message,
+      ...(model ? { provider: model.provider, modelId: model.modelId } : {}),
+    }),
   });
   const data = await readJson<AgentResponse>(response);
   if (!data.sessionId) throw new Error("服务器没有返回新任务 ID");
   return data.sessionId;
+}
+
+export async function loadModelCatalog(cwd?: string, signal?: AbortSignal): Promise<ModelCatalog> {
+  const query = cwd ? `?cwd=${encodeURIComponent(cwd)}` : "";
+  const response = await fetch(`/api/models${query}`, { signal });
+  const data = await readJson<{
+    modelList?: ModelOption[];
+    defaultModel?: ModelSelection | null;
+  }>(response);
+
+  return {
+    models: Array.isArray(data.modelList) ? data.modelList : [],
+    defaultModel: data.defaultModel ?? null,
+  };
+}
+
+export async function loadTaskModel(sessionId: string, signal?: AbortSignal): Promise<ModelSelection | null> {
+  const stateResponse = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/state`, { signal });
+  const state = await readJson<{
+    running?: boolean;
+    state?: { model?: { provider?: string; id?: string } };
+  }>(stateResponse);
+  const liveModel = state.state?.model;
+  if (state.running && liveModel?.provider && liveModel.id) {
+    return { provider: liveModel.provider, modelId: liveModel.id };
+  }
+
+  const contextResponse = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/context`, { signal });
+  const context = await readJson<{ context?: { model?: ModelSelection } }>(contextResponse);
+  return context.context?.model ?? null;
+}
+
+export async function setTaskModel(sessionId: string, model: ModelSelection): Promise<ModelSelection> {
+  const response = await fetch(`/api/agent/${encodeURIComponent(sessionId)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "set_model", provider: model.provider, modelId: model.modelId }),
+  });
+  const data = await readJson<AgentResponse>(response);
+  return {
+    provider: data.data?.provider ?? model.provider,
+    modelId: data.data?.id ?? model.modelId,
+  };
 }
 
 async function readJson<T>(response: Response): Promise<T> {

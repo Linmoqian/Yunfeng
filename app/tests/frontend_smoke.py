@@ -54,6 +54,31 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
     request = route.request
     url = request.url
 
+    if url.split("?", 1)[0].endswith("/api/models"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({
+                "modelList": [
+                    {"provider": "anthropic", "id": "claude-sonnet", "name": "Claude Sonnet"},
+                    {"provider": "openai", "id": "gpt-5-mini", "name": "GPT-5 mini"},
+                ],
+                "defaultModel": {"provider": "anthropic", "modelId": "claude-sonnet"},
+            }),
+        )
+        return
+
+    if url.endswith("/api/sessions/attention-session/state"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({
+                "running": True,
+                "state": {"model": {"provider": "anthropic", "id": "claude-sonnet"}},
+            }),
+        )
+        return
+
     if url.endswith("/api/sessions"):
         payload = {"sessions": [] if empty else SESSIONS, "runningSessionIds": [] if empty else ["running-session"]}
         route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
@@ -89,7 +114,20 @@ def assert_workbench_has_no_horizontal_overflow(page: Page) -> None:
 
 
 def verify_populated_workbench(page: Page) -> None:
-    page.route("**/api/**", lambda route: fulfill_api(route))
+    create_payloads: list[dict[str, object]] = []
+    set_model_payloads: list[dict[str, object]] = []
+
+    def route_api(route: Route) -> None:
+        request = route.request
+        if request.method == "POST" and request.post_data_json:
+            payload = request.post_data_json
+            if request.url.endswith("/api/agent/new"):
+                create_payloads.append(payload)
+            elif request.url.endswith("/api/agent/attention-session"):
+                set_model_payloads.append(payload)
+        fulfill_api(route)
+
+    page.route("**/api/**", route_api)
     page.goto(DEV_URL, wait_until="networkidle")
 
     expect(page.get_by_role("heading", name="需要你介入")).to_be_visible()
@@ -101,6 +139,8 @@ def verify_populated_workbench(page: Page) -> None:
     expect(page.get_by_role("dialog")).to_be_visible()
     expect(page.get_by_role("heading", name="发布前检查")).to_be_visible()
     expect(page.get_by_role("dialog").get_by_text("发现两种实现路径，需要你选择", exact=True)).to_be_visible()
+    page.get_by_role("dialog").get_by_label("当前任务模型").select_option("openai:gpt-5-mini")
+    assert set_model_payloads[-1] == {"type": "set_model", "provider": "openai", "modelId": "gpt-5-mini"}
     page.get_by_role("button", name="关闭任务详情").click()
     expect(page.get_by_role("dialog")).not_to_be_visible()
 
@@ -109,6 +149,7 @@ def verify_populated_workbench(page: Page) -> None:
     settings_dialog = page.get_by_role("dialog")
     expect(settings_dialog).to_be_visible()
     expect(settings_dialog.get_by_role("heading", name="设置")).to_be_visible()
+    settings_dialog.get_by_label("新任务默认模型").select_option("openai:gpt-5-mini")
     settings_dialog.get_by_role("button", name="浅色主题").click()
     assert page.locator("html").get_attribute("data-theme") == "light"
     settings_dialog.get_by_role("button", name="深色主题").click()
@@ -121,8 +162,15 @@ def verify_populated_workbench(page: Page) -> None:
     expect(new_task_dialog).to_be_visible()
     new_task_dialog.get_by_label("项目路径").fill("/Volumes/base/project/Yunfeng")
     new_task_dialog.get_by_label("你要完成什么？").fill("检查工作台的视觉状态")
-    new_task_dialog.get_by_role("button", name="取消").click()
+    new_task_dialog.get_by_role("button", name="开始任务").click()
     expect(new_task_dialog).not_to_be_visible()
+    assert create_payloads[-1] == {
+        "cwd": "/Volumes/base/project/Yunfeng",
+        "type": "prompt",
+        "message": "检查工作台的视觉状态",
+        "provider": "openai",
+        "modelId": "gpt-5-mini",
+    }
 
     page.set_viewport_size({"width": 720, "height": 900})
     assert_workbench_has_no_horizontal_overflow(page)

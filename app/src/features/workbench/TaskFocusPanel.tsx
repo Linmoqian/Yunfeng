@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ModelOption, ModelSelection } from "../../services/taskService";
 import { MapleStatusMark } from "./MapleStatusMark";
 import type { TaskSummary } from "./taskPresentation";
 
@@ -6,15 +7,31 @@ interface TaskFocusPanelProps {
   task: TaskSummary | null;
   onClose: () => void;
   onSend: (taskId: string, message: string) => Promise<void>;
+  model: ModelSelection | null;
+  modelOptions: ModelOption[];
+  modelLoading: boolean;
+  modelError: string | null;
+  onModelChange: (taskId: string, model: ModelSelection) => Promise<void>;
 }
 
 const STAGES = ["开始", "执行", "验证", "完成"];
 
-export function TaskFocusPanel({ task, onClose, onSend }: TaskFocusPanelProps) {
+export function TaskFocusPanel({
+  task,
+  onClose,
+  onSend,
+  model,
+  modelOptions,
+  modelLoading,
+  modelError,
+  onModelChange,
+}: TaskFocusPanelProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [modelChanging, setModelChanging] = useState(false);
+  const [modelFeedback, setModelFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -23,6 +40,7 @@ export function TaskFocusPanel({ task, onClose, onSend }: TaskFocusPanelProps) {
     if (task && !dialog.open) {
       setMessage("");
       setFeedback(null);
+      setModelFeedback(null);
       dialog.showModal();
     } else if (!task && dialog.open) {
       dialog.close();
@@ -43,6 +61,24 @@ export function TaskFocusPanel({ task, onClose, onSend }: TaskFocusPanelProps) {
       setFeedback(error instanceof Error ? error.message : "发送失败，请稍后重试。");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleModelChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    if (!task || !event.target.value || modelChanging) return;
+    const [provider, ...modelIdParts] = event.target.value.split(":");
+    const modelId = modelIdParts.join(":");
+    if (!provider || !modelId) return;
+
+    setModelChanging(true);
+    setModelFeedback(null);
+    try {
+      await onModelChange(task.id, { provider, modelId });
+      setModelFeedback("已切换，后续消息会使用这个模型。");
+    } catch (error) {
+      setModelFeedback(error instanceof Error ? error.message : "模型切换失败，请稍后重试。");
+    } finally {
+      setModelChanging(false);
     }
   }
 
@@ -88,6 +124,40 @@ export function TaskFocusPanel({ task, onClose, onSend }: TaskFocusPanelProps) {
                 </li>
               ))}
             </ol>
+          </section>
+
+          <section className="focus-panel__model" aria-labelledby="task-model-title">
+            <div className="focus-panel__section-heading">
+              <h3 id="task-model-title">模型</h3>
+              <span>后续消息使用</span>
+            </div>
+            {modelError ? (
+              <p className="focus-panel__model-status" role="alert">{modelError}</p>
+            ) : modelOptions.length > 0 ? (
+              <label className="focus-panel__model-field" htmlFor="task-model">
+                <span>当前任务模型</span>
+                <select
+                  id="task-model"
+                  value={model ? `${model.provider}:${model.modelId}` : ""}
+                  onChange={(event) => void handleModelChange(event)}
+                  disabled={modelLoading || modelChanging}
+                >
+                  <option value="">正在读取当前模型…</option>
+                  {modelOptions.map((option) => (
+                    <option key={`${option.provider}:${option.id}`} value={`${option.provider}:${option.id}`}>
+                      {option.provider} · {option.name || option.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <p className="focus-panel__model-status">当前没有可用模型。</p>
+            )}
+            {modelFeedback ? (
+              <p className={`focus-panel__model-feedback ${modelFeedback.includes("失败") ? "focus-panel__model-feedback--error" : ""}`} role={modelFeedback.includes("失败") ? "alert" : "status"}>
+                {modelFeedback}
+              </p>
+            ) : null}
           </section>
 
           <details className="focus-panel__process">
