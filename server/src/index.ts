@@ -118,7 +118,7 @@ const server = createServer(async (req, res) => {
     }
     const agentEventsMatch = route.match(/^\/agent\/([^/]+)\/events$/);
     if (agentEventsMatch && method === "GET") {
-      return sendResult(res, handleAgentEvents(decodeURIComponent(agentEventsMatch[1])));
+      return sendResult(res, await handleAgentEvents(decodeURIComponent(agentEventsMatch[1])));
     }
     if (method === "GET" && route === "/agent/running") {
       return sendResult(res, json({ runningSessionIds: (await import("./rpc-manager.js")).getRunningRpcSessionIds() }));

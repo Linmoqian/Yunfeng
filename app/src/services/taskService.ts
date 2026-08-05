@@ -35,6 +35,18 @@ export interface ModelCatalog {
   defaultModel: ModelSelection | null;
 }
 
+export interface TaskConversationMessage {
+  id?: string;
+  role: string;
+  content: unknown;
+  timestamp?: string | number;
+}
+
+export interface TaskStreamEvent {
+  type: string;
+  [key: string]: unknown;
+}
+
 export interface TaskSnapshot {
   sessions: SessionSnapshot[];
   runningSessionIds: string[];
@@ -131,6 +143,31 @@ export async function loadTaskModel(sessionId: string, signal?: AbortSignal): Pr
   const contextResponse = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/context`, { signal });
   const context = await readJson<{ context?: { model?: ModelSelection } }>(contextResponse);
   return context.context?.model ?? null;
+}
+
+export async function loadTaskConversation(sessionId: string, signal?: AbortSignal): Promise<TaskConversationMessage[]> {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/context?deferMedia&deferThinking`, { signal });
+  const data = await readJson<{ context?: { messages?: TaskConversationMessage[] } }>(response);
+  return Array.isArray(data.context?.messages) ? data.context.messages : [];
+}
+
+export function subscribeTaskEvents(
+  sessionId: string,
+  onEvent: (event: TaskStreamEvent) => void,
+  onConnectionChange?: (connected: boolean) => void,
+): () => void {
+  const source = new EventSource(`/api/agent/${encodeURIComponent(sessionId)}/events`);
+  source.onopen = () => onConnectionChange?.(true);
+  source.onmessage = (event) => {
+    try {
+      onEvent(JSON.parse(event.data) as TaskStreamEvent);
+    } catch {
+      onConnectionChange?.(false);
+    }
+  };
+  source.onerror = () => onConnectionChange?.(false);
+
+  return () => source.close();
 }
 
 export async function setTaskModel(sessionId: string, model: ModelSelection): Promise<ModelSelection> {

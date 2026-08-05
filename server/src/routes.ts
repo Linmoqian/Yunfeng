@@ -296,10 +296,13 @@ export async function handleAgentGet(id: string): Promise<RouteResult> {
   }
 }
 
-export function handleAgentEvents(id: string): RouteResult {
-  const session = getRpcSession(id);
+export async function handleAgentEvents(id: string): Promise<RouteResult> {
+  let session = getRpcSession(id);
   if (!session?.isAlive()) {
-    return jsonError("Session not running", 404);
+    const filePath = await resolveSessionPath(id);
+    if (!filePath) return jsonError("Session not found", 404);
+    const cwd = readSessionHeader(filePath)?.cwd ?? process.cwd();
+    session = (await startRpcSession(id, filePath, cwd)).session;
   }
 
   return {
@@ -310,10 +313,10 @@ export function handleAgentEvents(id: string): RouteResult {
       Connection: "keep-alive",
     },
     stream: (write, close) => {
-      write(`data: ${JSON.stringify({ type: "connected", sessionId: id })}\n\n`);
       const unsubscribe = session.onEvent((event) => {
         write(`data: ${JSON.stringify(event)}\n\n`);
       });
+      write(`data: ${JSON.stringify({ type: "connected", sessionId: id })}\n\n`);
       const heartbeat = setInterval(() => {
         write(":\n\n");
       }, 30_000);

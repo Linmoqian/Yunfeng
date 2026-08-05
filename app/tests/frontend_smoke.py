@@ -79,6 +79,38 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
         )
         return
 
+    if url.split("?", 1)[0].endswith("/api/sessions/attention-session/context"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({
+                "context": {
+                    "messages": [
+                        {"id": "user-1", "role": "user", "content": "检查发布风险"},
+                    ],
+                },
+            }),
+        )
+        return
+
+    if url.endswith("/api/agent/attention-session/events"):
+        events = [
+            {"type": "connected", "sessionId": "attention-session"},
+            {"type": "agent_start"},
+            {"type": "message_update", "assistantMessageEvent": {"type": "text_delta", "delta": "流式"}},
+            {"type": "message_update", "assistantMessageEvent": {"type": "text_delta", "delta": "回复"}},
+            {"type": "tool_execution_start", "toolName": "bash"},
+            {"type": "tool_execution_end", "toolName": "bash", "isError": False},
+            {"type": "agent_end", "messages": []},
+        ]
+        body = "".join(f"data: {json.dumps(event)}\n\n" for event in events)
+        route.fulfill(
+            status=200,
+            headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache"},
+            body=body,
+        )
+        return
+
     if url.endswith("/api/sessions"):
         payload = {"sessions": [] if empty else SESSIONS, "runningSessionIds": [] if empty else ["running-session"]}
         route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
@@ -116,6 +148,7 @@ def assert_workbench_has_no_horizontal_overflow(page: Page) -> None:
 def verify_populated_workbench(page: Page) -> None:
     create_payloads: list[dict[str, object]] = []
     set_model_payloads: list[dict[str, object]] = []
+    prompt_payloads: list[dict[str, object]] = []
 
     def route_api(route: Route) -> None:
         request = route.request
@@ -124,7 +157,10 @@ def verify_populated_workbench(page: Page) -> None:
             if request.url.endswith("/api/agent/new"):
                 create_payloads.append(payload)
             elif request.url.endswith("/api/agent/attention-session"):
-                set_model_payloads.append(payload)
+                if payload.get("type") == "set_model":
+                    set_model_payloads.append(payload)
+                else:
+                    prompt_payloads.append(payload)
         fulfill_api(route)
 
     page.route("**/api/**", route_api)
@@ -143,8 +179,14 @@ def verify_populated_workbench(page: Page) -> None:
     expect(task_panel).to_be_visible()
     expect(page.get_by_role("heading", name="发布前检查")).to_be_visible()
     expect(task_panel.get_by_text("发现两种实现路径，需要你选择", exact=True)).to_be_visible()
+    conversation_log = task_panel.get_by_role("log", name="会话对话")
+    expect(conversation_log).to_contain_text("检查发布风险")
+    expect(conversation_log).to_contain_text("流式回复")
     task_panel.get_by_label("当前任务模型").select_option("openai:gpt-5-mini")
     assert set_model_payloads[-1] == {"type": "set_model", "provider": "openai", "modelId": "gpt-5-mini"}
+    task_panel.get_by_label("继续这个任务").fill("继续检查发布风险")
+    task_panel.get_by_role("button", name="发送要求").click()
+    assert prompt_payloads[-1] == {"type": "prompt", "message": "继续检查发布风险"}
     page.get_by_role("button", name="关闭任务详情").click()
     expect(task_panel).not_to_be_visible()
 
