@@ -104,11 +104,17 @@ def verify_populated_workbench(page: Page) -> None:
     page.get_by_role("button", name="关闭任务详情").click()
     expect(page.get_by_role("dialog")).not_to_be_visible()
 
-    theme_button = page.get_by_role("button", name="切换主题，当前为跟随系统")
-    theme_button.click()
+    settings_button = page.get_by_role("button", name="打开设置")
+    settings_button.click()
+    settings_dialog = page.get_by_role("dialog")
+    expect(settings_dialog).to_be_visible()
+    expect(settings_dialog.get_by_role("heading", name="设置")).to_be_visible()
+    settings_dialog.get_by_role("button", name="浅色主题").click()
     assert page.locator("html").get_attribute("data-theme") == "light"
-    page.get_by_role("button", name="切换主题，当前为浅色主题").click()
+    settings_dialog.get_by_role("button", name="深色主题").click()
     assert page.locator("html").get_attribute("data-theme") == "dark"
+    settings_dialog.get_by_role("button", name="关闭设置").click()
+    expect(settings_dialog).not_to_be_visible()
 
     page.get_by_role("button", name="新建任务").first.click()
     new_task_dialog = page.get_by_role("dialog")

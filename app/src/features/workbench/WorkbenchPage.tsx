@@ -7,6 +7,7 @@ import {
 } from "../../services/taskService";
 import { MapleStatusMark } from "./MapleStatusMark";
 import { NewTaskDialog } from "./NewTaskDialog";
+import { SettingsDialog, type ThemeMode } from "./SettingsDialog";
 import { TaskFocusPanel } from "./TaskFocusPanel";
 import { TaskSection } from "./TaskSection";
 import {
@@ -17,14 +18,7 @@ import {
 } from "./taskPresentation";
 import "./workbench.css";
 
-type ThemeMode = "system" | "light" | "dark";
 type ConnectionState = "connecting" | "connected" | "offline";
-
-const THEME_LABELS: Record<ThemeMode, string> = {
-  system: "跟随系统",
-  light: "浅色主题",
-  dark: "深色主题",
-};
 
 export function WorkbenchPage() {
   const [sessions, setSessions] = useState<SessionSnapshot[]>([]);
@@ -33,6 +27,7 @@ export function WorkbenchPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskSummary | null>(null);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const storedTheme = window.localStorage.getItem("yunfeng-theme");
     return storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
@@ -44,7 +39,6 @@ export function WorkbenchPage() {
   );
   const sections = useMemo(() => buildTaskSections(tasks), [tasks]);
   const activeTaskCount = tasks.filter((task) => task.section !== "completed").length;
-  const themeLabel = THEME_LABELS[themeMode];
 
   const refreshTasks = useCallback(async () => {
     try {
@@ -83,14 +77,6 @@ export function WorkbenchPage() {
     }
   }, [selectedTask, tasks]);
 
-  function cycleTheme() {
-    setThemeMode((current) => {
-      if (current === "system") return "light";
-      if (current === "light") return "dark";
-      return "system";
-    });
-  }
-
   async function handleCreateTask(cwd: string, message: string) {
     await createTask(cwd, message);
     await refreshTasks();
@@ -113,8 +99,8 @@ export function WorkbenchPage() {
             <span className="connection-state__dot" aria-hidden="true" />
             {connectionState === "connected" ? "已同步" : connectionState === "connecting" ? "正在连接" : "状态可能已过期"}
           </span>
-          <button className="text-button" type="button" onClick={cycleTheme} aria-label={`切换主题，当前为${themeLabel}`}>
-            {themeLabel}
+          <button className="text-button" type="button" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
+            设置
           </button>
           <button className="button button--primary" type="button" onClick={() => setNewTaskOpen(true)}>
             新建任务
@@ -171,6 +157,13 @@ export function WorkbenchPage() {
         open={newTaskOpen}
         onClose={() => setNewTaskOpen(false)}
         onCreate={handleCreateTask}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        themeMode={themeMode}
+        onThemeChange={setThemeMode}
+        connectionState={connectionState}
       />
     </div>
   );

@@ -463,7 +463,8 @@
 }
 
 .focus-panel::backdrop,
-.new-task-dialog::backdrop {
+.new-task-dialog::backdrop,
+.settings-dialog::backdrop {
   background: var(--scrim);
 }
 
@@ -713,6 +714,126 @@
   margin-top: 24px;
 }
 
+.settings-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  box-shadow: var(--shadow-attention);
+}
+
+.settings-dialog__body {
+  padding: 36px;
+}
+
+.settings-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.settings-dialog__header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.settings-dialog__section {
+  padding: 22px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.settings-dialog__section-copy h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.settings-dialog__section-copy p {
+  margin: 6px 0 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings-dialog__theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings-dialog__theme-option {
+  display: flex;
+  min-height: 86px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 180ms var(--motion-ease), background 180ms var(--motion-ease), transform 180ms var(--motion-ease);
+}
+
+.settings-dialog__theme-option:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.settings-dialog__theme-option--active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.settings-dialog__theme-option span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-dialog__theme-option small {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.settings-dialog__connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.settings-dialog__connection--connected .connection-state__dot {
+  background: var(--positive);
+}
+
+.settings-dialog__connection--connecting .connection-state__dot {
+  background: var(--accent);
+}
+
+.settings-dialog__connection--offline .connection-state__dot {
+  background: var(--attention);
+}
+
+.settings-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -799,5 +920,13 @@
 
   .new-task-dialog__form {
     padding: 26px 22px;
+  }
+
+  .settings-dialog__body {
+    padding: 26px 22px;
+  }
+
+  .settings-dialog__theme-options {
+    grid-template-columns: 1fr;
   }
 }
