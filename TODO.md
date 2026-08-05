@@ -12,6 +12,7 @@
 - [x] sidecar 拆分 registry.ts（→ wrapper/commands/registry 三模块）
 - [x] 引入 vitest 前端单测（api.ts SSE 解析 / sessionActions / 契约镜像测试）
 - [x] sidecar 用 bun test 补充纯逻辑单测（命令分发 / JSONL 映射 / fs 路径校验）
+- [x] 接入 lin-workflow 工程规范与 project-engineering skill
 - [ ] 锁定 UI 主题并沉淀设计规范文档
 - [ ] 前端调试信息总线（AGENTS.md 要求）
 - [ ] sidecar 打包单文件二进制（bun compile）并验证
