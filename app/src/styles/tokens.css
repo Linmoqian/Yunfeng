@@ -1,0 +1,56 @@
+:root {
+  color-scheme: light;
+  --canvas: #f2f3ef;
+  --surface: #fbfaf6;
+  --surface-raised: #fffdf9;
+  --text-primary: #292720;
+  --text-secondary: #67675f;
+  --border-subtle: #dad8cf;
+  --border-strong: #b9b4a7;
+  --accent: #a35f3b;
+  --attention: #8b3e35;
+  --positive: #55705a;
+  --font-display: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  --font-body: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", monospace;
+  --shadow-attention: 0 12px 30px rgb(89 58 36 / 10%);
+  --focus-ring: 0 0 0 3px rgb(163 95 59 / 24%);
+  --scrim: rgb(41 39 32 / 30%);
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: #171a18;
+    --surface: #20231f;
+    --surface-raised: #292c27;
+    --text-primary: #f2efe7;
+    --text-secondary: #b8b6ac;
+    --border-subtle: #3a3e37;
+    --border-strong: #53584e;
+    --accent: #d39366;
+    --attention: #e07a6e;
+    --positive: #86ad8e;
+    --shadow-attention: 0 16px 40px rgb(0 0 0 / 25%);
+    --focus-ring: 0 0 0 3px rgb(211 147 102 / 30%);
+    --scrim: rgb(0 0 0 / 55%);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #171a18;
+  --surface: #20231f;
+  --surface-raised: #292c27;
+  --text-primary: #f2efe7;
+  --text-secondary: #b8b6ac;
+  --border-subtle: #3a3e37;
+  --border-strong: #53584e;
+  --accent: #d39366;
+  --attention: #e07a6e;
+  --positive: #86ad8e;
+  --shadow-attention: 0 16px 40px rgb(0 0 0 / 25%);
+  --focus-ring: 0 0 0 3px rgb(211 147 102 / 30%);
+  --scrim: rgb(0 0 0 / 55%);
+}

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:ui": "python tests/frontend_smoke.py"
   },
   "dependencies": {
     "react": "^19.1.0",
