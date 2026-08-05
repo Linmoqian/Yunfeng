@@ -100,7 +100,7 @@ export function SettingsDialog({
         <section className="settings-dialog__section" aria-labelledby="settings-model-title">
           <div className="settings-dialog__section-copy">
             <h3 id="settings-model-title">模型</h3>
-            <p>新建任务会使用这里选定的模型，已有任务可在详情中单独切换。</p>
+            <p>新建会话会使用这里选定的模型。</p>
           </div>
           {modelLoading ? (
             <p className="settings-dialog__model-status" role="status">正在读取可用模型…</p>
@@ -111,7 +111,7 @@ export function SettingsDialog({
             </div>
           ) : modelOptions.length > 0 ? (
             <label className="settings-dialog__model-field" htmlFor="settings-model">
-              <span>新任务默认模型</span>
+              <span>新会话默认模型</span>
               <select
                 id="settings-model"
                 value={selectedModelKey}
@@ -137,7 +137,7 @@ export function SettingsDialog({
         <section className="settings-dialog__section" aria-labelledby="settings-connection-title">
           <div className="settings-dialog__section-copy">
             <h3 id="settings-connection-title">连接</h3>
-            <p>任务状态通过后端事件流持续同步。</p>
+            <p>会话状态通过后端事件流持续同步。</p>
           </div>
           <div className={`settings-dialog__connection settings-dialog__connection--${connectionState}`}>
             <span className="connection-state__dot" aria-hidden="true" />

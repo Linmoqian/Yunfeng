@@ -12,7 +12,12 @@ export function TaskRow({ task, active = false, onOpen }: TaskRowProps) {
 
   return (
     <article className={`task-row task-row--${task.section} ${active ? "task-row--active" : ""}`.trim()}>
-      <button className="task-row__main" type="button" onClick={() => onOpen(task)}>
+      <button
+        className="task-row__main"
+        type="button"
+        onClick={() => onOpen(task)}
+        aria-label={`打开会话：${task.title}`}
+      >
         <span className="task-row__mark" aria-hidden="true">
           {attention ? <MapleStatusMark attention /> : <span className="task-row__quiet-mark" />}
         </span>
@@ -21,22 +26,10 @@ export function TaskRow({ task, active = false, onOpen }: TaskRowProps) {
           <span className="task-row__meta">
             <span>{task.projectName}</span>
             <span className="task-row__separator">·</span>
-            <span>{task.currentAction}</span>
+            <time dateTime={task.updatedAt}>{formatRelativeTime(task.updatedAt)}</time>
           </span>
-          {task.attentionReason ? (
-            <span className="task-row__reason">{task.attentionReason}</span>
-          ) : null}
-        </span>
-        <span className="task-row__status">
-          <span className="task-row__status-label">{task.statusLabel}</span>
-          <time dateTime={task.updatedAt}>{formatRelativeTime(task.updatedAt)}</time>
         </span>
       </button>
-      {task.primaryAction ? (
-        <button className="task-row__action" type="button" onClick={() => onOpen(task)}>
-          {task.primaryAction.label}
-        </button>
-      ) : null}
     </article>
   );
 }

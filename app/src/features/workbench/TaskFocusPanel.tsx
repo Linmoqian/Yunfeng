@@ -156,7 +156,7 @@ export function TaskFocusPanel({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!message.trim() || sending) return;
+    if (!message.trim() || sending || streamStatus === "streaming") return;
 
     const nextMessage = message.trim();
     setSending(true);
@@ -179,14 +179,14 @@ export function TaskFocusPanel({
   }
 
   return (
-    <section className="focus-panel focus-panel--inline" role="region" aria-label="当前会话">
+    <section className="focus-panel focus-panel--inline" role="region" aria-label="当前对话">
       <div className="focus-panel__body">
         <header className="focus-panel__header">
           <div>
             <p className="eyebrow">{task.projectName}</p>
             <h2 id="focus-panel-title">{task.title}</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭任务详情">
+          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭会话">
             <span aria-hidden="true">×</span>
           </button>
         </header>
@@ -211,19 +211,25 @@ export function TaskFocusPanel({
         </section>
 
         <form className="focus-panel__composer" onSubmit={handleSubmit}>
-          <label htmlFor="task-message">继续这个任务</label>
+          <label htmlFor="task-message">输入消息</label>
           <textarea
             id="task-message"
             value={message}
             onChange={(event) => setMessage(event.target.value)}
-            placeholder="补充要求、回答问题，或告诉 Agent 下一步"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
+            placeholder="输入消息，按 Enter 发送；Shift + Enter 换行"
             rows={3}
             disabled={sending}
           />
           <div className="focus-panel__composer-footer">
             <span role={feedback && feedback.includes("失败") ? "alert" : "status"}>{feedback}</span>
             <button className="button button--primary" type="submit" disabled={sending || streamStatus === "streaming" || !message.trim()}>
-              {sending ? "正在发送" : "发送要求"}
+              {sending ? "正在发送" : "发送"}
             </button>
           </div>
         </form>

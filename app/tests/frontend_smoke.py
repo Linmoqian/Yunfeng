@@ -164,18 +164,16 @@ def verify_populated_workbench(page: Page) -> None:
 
     sidebar = page.get_by_role("complementary", name="会话列表")
     expect(sidebar).to_be_visible()
-    expect(sidebar.get_by_role("heading", name="会话")).to_be_visible()
+    expect(sidebar.get_by_role("heading", name="对话")).to_be_visible()
     page.get_by_role("button", name="隐藏会话侧栏").click()
     expect(sidebar).not_to_be_visible()
     page.get_by_role("button", name="显示会话侧栏").click()
     expect(sidebar).to_be_visible()
-    expect(page.get_by_role("heading", name="需要你介入")).to_be_visible()
     expect(page.get_by_text("发布前检查")).to_be_visible()
-    expect(page.get_by_role("heading", name="正在进行")).to_be_visible()
-    expect(page.get_by_text("已完成", exact=True).first).to_be_visible()
+    expect(sidebar.get_by_role("navigation", name="最近会话")).to_be_visible()
 
-    page.get_by_role("button", name="查看任务").first.click()
-    task_panel = page.get_by_role("region", name="当前会话")
+    page.get_by_role("button", name="打开会话：发布前检查").click()
+    task_panel = page.get_by_role("region", name="当前对话")
     expect(task_panel).to_be_visible()
     expect(page.get_by_role("heading", name="发布前检查")).to_be_visible()
     conversation_log = task_panel.get_by_role("log", name="会话对话")
@@ -184,10 +182,10 @@ def verify_populated_workbench(page: Page) -> None:
     expect(task_panel.get_by_role("heading", name="任务轨迹")).not_to_be_visible()
     expect(task_panel.get_by_label("当前任务模型")).not_to_be_visible()
     expect(task_panel.get_by_text("查看过程", exact=True)).not_to_be_visible()
-    task_panel.get_by_label("继续这个任务").fill("继续检查发布风险")
-    task_panel.get_by_role("button", name="发送要求").click()
+    task_panel.get_by_label("输入消息").fill("继续检查发布风险")
+    task_panel.get_by_label("输入消息").press("Enter")
     assert prompt_payloads[-1] == {"type": "prompt", "message": "继续检查发布风险"}
-    page.get_by_role("button", name="关闭任务详情").click()
+    page.get_by_role("button", name="关闭会话").click()
     expect(task_panel).not_to_be_visible()
 
     settings_button = page.get_by_role("button", name="打开设置")
@@ -195,7 +193,7 @@ def verify_populated_workbench(page: Page) -> None:
     settings_dialog = page.get_by_role("dialog")
     expect(settings_dialog).to_be_visible()
     expect(settings_dialog.get_by_role("heading", name="设置")).to_be_visible()
-    settings_dialog.get_by_label("新任务默认模型").select_option("openai:gpt-5-mini")
+    settings_dialog.get_by_label("新会话默认模型").select_option("openai:gpt-5-mini")
     settings_dialog.get_by_role("button", name="浅色主题").click()
     assert page.locator("html").get_attribute("data-theme") == "light"
     settings_dialog.get_by_role("button", name="深色主题").click()
@@ -203,12 +201,12 @@ def verify_populated_workbench(page: Page) -> None:
     settings_dialog.get_by_role("button", name="关闭设置").click()
     expect(settings_dialog).not_to_be_visible()
 
-    page.get_by_role("button", name="新建任务").first.click()
+    page.get_by_role("button", name="新建会话").first.click()
     new_task_dialog = page.get_by_role("dialog")
     expect(new_task_dialog).to_be_visible()
     new_task_dialog.get_by_label("项目路径").fill("/Volumes/base/project/Yunfeng")
-    new_task_dialog.get_by_label("你要完成什么？").fill("检查工作台的视觉状态")
-    new_task_dialog.get_by_role("button", name="开始任务").click()
+    new_task_dialog.get_by_label("你想聊什么？").fill("检查工作台的视觉状态")
+    new_task_dialog.get_by_role("button", name="开始对话").click()
     expect(new_task_dialog).not_to_be_visible()
     assert create_payloads[-1] == {
         "cwd": "/Volumes/base/project/Yunfeng",
@@ -226,7 +224,7 @@ def verify_empty_workbench(page: Page) -> None:
     page.route("**/api/**", lambda route: fulfill_api(route, empty=True))
     page.goto(DEV_URL, wait_until="networkidle")
     expect(page.get_by_role("heading", name="工作台暂时安静。")).to_be_visible()
-    expect(page.get_by_role("button", name="新建任务").last).to_be_visible()
+    expect(page.get_by_role("button", name="新建会话").last).to_be_visible()
     assert_workbench_has_no_horizontal_overflow(page)
 
 

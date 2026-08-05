@@ -46,7 +46,7 @@ test("buildTaskSections 在同一分组中把最近更新的任务放在前面",
   assert.deepEqual(sections[0]?.tasks.map((item) => item.id), ["newer", "older"]);
 });
 
-test("createTaskSummaries 把运行会话映射为正在进行任务，其余会话保留为已完成", () => {
+test("createTaskSummaries 把运行会话映射为正在进行状态，其余会话保留为已完成", () => {
   const summaries = createTaskSummaries(
     [
       {
@@ -76,7 +76,6 @@ test("createTaskSummaries 把运行会话映射为正在进行任务，其余会
     section: "running",
     statusLabel: "正在进行",
     currentAction: "Agent 正在工作",
-    primaryAction: { label: "查看任务", kind: "open" },
     updatedAt: "2026-08-05T07:55:00.000Z",
   });
   assert.equal(summaries[1]?.title, "论文阅读");
@@ -99,7 +98,6 @@ test("createTaskSummaries 把带有介入原因的会话提升为需要介入", 
 
   assert.equal(summary?.section, "attention");
   assert.equal(summary?.attentionReason, "发现两种实现路径，需要你选择");
-  assert.deepEqual(summary?.primaryAction, { label: "查看任务", kind: "open" });
 });
 
 test("formatRelativeTime 使用简洁的中文相对时间", () => {

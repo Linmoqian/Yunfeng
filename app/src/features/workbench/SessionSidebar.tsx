@@ -1,5 +1,5 @@
 import { MapleStatusMark } from "./MapleStatusMark";
-import { TaskSection } from "./TaskSection";
+import { TaskRow } from "./TaskRow";
 import type { TaskSectionGroup, TaskSummary } from "./taskPresentation";
 
 interface SessionSidebarProps {
@@ -19,6 +19,10 @@ export function SessionSidebar({
   onOpenTask,
   onNewTask,
 }: SessionSidebarProps) {
+  const conversations = sections
+    .flatMap((section) => section.tasks)
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+
   return (
     <aside className="session-sidebar" aria-label="会话列表" aria-hidden={collapsed}>
       <a className="wordmark session-sidebar__wordmark" href="/" aria-label="Yunfeng 工作台">
@@ -28,26 +32,28 @@ export function SessionSidebar({
 
       <div className="session-sidebar__heading">
         <div>
-          <p className="eyebrow">任务脉络</p>
-          <h2>会话</h2>
+          <p className="eyebrow">全部会话</p>
+          <h2>对话</h2>
         </div>
         <span className="session-sidebar__count">{taskCount}</span>
       </div>
 
       <button className="button button--primary session-sidebar__new-task" type="button" onClick={onNewTask}>
-        新建任务
+        新建会话
       </button>
 
-      {sections.length > 0 ? (
-        <nav className="session-sidebar__sections" aria-label="会话分组">
-          {sections.map((section) => (
-            <TaskSection
-              key={section.id}
-              section={section}
-              activeTaskId={activeTaskId}
-              onOpenTask={onOpenTask}
-            />
-          ))}
+      {conversations.length > 0 ? (
+        <nav className="session-sidebar__sections" aria-label="最近会话">
+          <div className="session-sidebar__conversation-list">
+            {conversations.map((conversation) => (
+              <TaskRow
+                key={conversation.id}
+                task={conversation}
+                active={conversation.id === activeTaskId}
+                onOpen={onOpenTask}
+              />
+            ))}
+          </div>
         </nav>
       ) : (
         <div className="session-sidebar__empty">

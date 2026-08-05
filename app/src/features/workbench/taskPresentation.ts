@@ -8,10 +8,6 @@ export interface TaskSummary {
   statusLabel: string;
   currentAction: string;
   attentionReason?: string;
-  primaryAction?: {
-    label: string;
-    kind: "approve" | "answer" | "choose" | "retry" | "open";
-  };
   updatedAt: string;
 }
 
@@ -68,7 +64,7 @@ export function createTaskSummaries(
   const runningIds = new Set(runningSessionIds);
 
   return sessions.map((session) => {
-    const title = session.name.trim() || session.firstMessage.trim() || "未命名任务";
+    const title = session.name.trim() || session.firstMessage.trim() || "未命名会话";
     const projectName = getProjectName(session.cwd);
     const running = runningIds.has(session.id);
 
@@ -81,7 +77,6 @@ export function createTaskSummaries(
         statusLabel: "需要介入",
         currentAction: "等待你的决定",
         attentionReason: session.attentionReason,
-        primaryAction: { label: "查看任务", kind: "open" },
         updatedAt: session.modified,
       } satisfies TaskSummary;
     }
@@ -94,7 +89,6 @@ export function createTaskSummaries(
         section: "running",
         statusLabel: "正在进行",
         currentAction: "Agent 正在工作",
-        primaryAction: { label: "查看任务", kind: "open" },
         updatedAt: session.modified,
       } satisfies TaskSummary;
     }
@@ -106,7 +100,6 @@ export function createTaskSummaries(
       section: "completed",
       statusLabel: "已完成",
       currentAction: "已保存会话",
-      primaryAction: { label: "查看任务", kind: "open" },
       updatedAt: session.modified,
     } satisfies TaskSummary;
   });

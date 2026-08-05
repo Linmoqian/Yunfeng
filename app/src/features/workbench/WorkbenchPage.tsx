@@ -72,7 +72,7 @@ export function WorkbenchPage() {
       setConnectionState("connected");
     } catch (error) {
       setConnectionState("offline");
-      setLoadError(error instanceof Error ? error.message : "任务状态暂时无法读取");
+      setLoadError(error instanceof Error ? error.message : "会话状态暂时无法读取");
     }
   }, []);
 
@@ -176,8 +176,8 @@ export function WorkbenchPage() {
               <span aria-hidden="true">{sidebarCollapsed ? "☰" : "‹"}</span>
             </button>
             <div>
-              <p className="eyebrow">个人任务工作台</p>
-              <span>{selectedTask ? "当前会话" : "全部会话"}</span>
+              <p className="eyebrow">Yunfeng 对话</p>
+              <span>{selectedTask ? "当前对话" : "全部会话"}</span>
             </div>
           </div>
           <div className="workbench-header__actions">
@@ -208,15 +208,15 @@ export function WorkbenchPage() {
           <section className="session-overview" aria-labelledby="workbench-title">
             <div className="session-overview__intro">
               <p className="eyebrow">会话工作台</p>
-              <h1 id="workbench-title">从一段会话开始。</h1>
+              <h1 id="workbench-title">从一段对话开始。</h1>
               <p>
-                左侧保留全部任务的脉络，右侧只展开你正在关注的那一段。Agent 安静地推进，只有真正需要决定的事会靠近你。
+                左侧保留最近的会话，右侧展开完整的对话。和 Agent 说清楚想做什么，然后在同一段交流里继续推进。
               </p>
             </div>
             <div className="session-overview__summary">
               <div>
                 <strong>{activeTaskCount}</strong>
-                <span>个未完成任务</span>
+                <span>个活跃会话</span>
               </div>
               <div>
                 <strong>{tasks.length}</strong>
@@ -227,15 +227,15 @@ export function WorkbenchPage() {
               <section className="empty-state" aria-live="polite">
                 <MapleStatusMark />
                 <h2>工作台暂时安静。</h2>
-                <p>还没有任务在这里等待。可以从一个清晰的目标开始。</p>
+                <p>还没有会话。可以从一句清晰的话开始。</p>
                 <button className="button button--primary" type="button" onClick={() => setNewTaskOpen(true)}>
-                  新建任务
+                  新建会话
                 </button>
               </section>
             ) : (
               <div className="session-overview__hint">
                 <MapleStatusMark />
-                <p>从左侧选择一个会话，查看它的状态、模型和下一步。</p>
+                <p>从左侧打开一个会话，继续和 Agent 对话。</p>
               </div>
             )}
           </section>

@@ -37,7 +37,7 @@ export function NewTaskDialog({ open, onClose, onCreate }: NewTaskDialogProps) {
       setMessage("");
       onClose();
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "创建任务失败，请稍后重试。");
+      setError(submissionError instanceof Error ? submissionError.message : "创建会话失败，请稍后重试。");
     } finally {
       setSubmitting(false);
     }
@@ -49,14 +49,14 @@ export function NewTaskDialog({ open, onClose, onCreate }: NewTaskDialogProps) {
   }
 
   return (
-    <dialog ref={dialogRef} className="new-task-dialog" onCancel={handleCancel} aria-labelledby="new-task-title">
+    <dialog ref={dialogRef} className="new-task-dialog" onCancel={handleCancel} aria-labelledby="new-session-title">
       <form className="new-task-dialog__form" onSubmit={handleSubmit}>
         <div className="new-task-dialog__header">
           <div>
-            <p className="eyebrow">开始一段新的工作</p>
-            <h2 id="new-task-title">新建任务</h2>
+            <p className="eyebrow">开始一段新的对话</p>
+            <h2 id="new-session-title">新建会话</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭新建任务">
+          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭新建会话">
             <span aria-hidden="true">×</span>
           </button>
         </div>
@@ -69,12 +69,12 @@ export function NewTaskDialog({ open, onClose, onCreate }: NewTaskDialogProps) {
           autoComplete="off"
           disabled={submitting}
         />
-        <label htmlFor="task-prompt">你要完成什么？</label>
+        <label htmlFor="task-prompt">你想聊什么？</label>
         <textarea
           id="task-prompt"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder="描述目标、约束或希望 Agent 先做的事情"
+          placeholder="告诉 Agent 你想从哪里开始"
           rows={4}
           disabled={submitting}
         />
@@ -84,7 +84,7 @@ export function NewTaskDialog({ open, onClose, onCreate }: NewTaskDialogProps) {
             取消
           </button>
           <button className="button button--primary" type="submit" disabled={submitting || !cwd.trim() || !message.trim()}>
-            {submitting ? "正在创建" : "开始任务"}
+            {submitting ? "正在创建" : "开始对话"}
           </button>
         </div>
       </form>
