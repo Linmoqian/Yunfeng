@@ -2,10 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createTask,
   loadModelCatalog,
-  loadTaskModel,
   loadTaskSnapshot,
   sendTaskPrompt,
-  setTaskModel as setTaskModelRequest,
   subscribeRunningSessions,
   type ModelCatalog,
   type ModelSelection,
@@ -47,8 +45,9 @@ export function WorkbenchPage() {
       return null;
     }
   });
-  const [activeTaskModel, setActiveTaskModel] = useState<ModelSelection | null>(null);
-  const [activeTaskModelLoading, setActiveTaskModelLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return window.localStorage.getItem("yunfeng-sidebar-collapsed") === "true";
+  });
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const storedTheme = window.localStorage.getItem("yunfeng-theme");
     return storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
@@ -96,6 +95,14 @@ export function WorkbenchPage() {
   }, [themeMode]);
 
   useEffect(() => {
+    if (sidebarCollapsed) {
+      window.localStorage.setItem("yunfeng-sidebar-collapsed", "true");
+    } else {
+      window.localStorage.removeItem("yunfeng-sidebar-collapsed");
+    }
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
     if (selectedTask && !tasks.some((task) => task.id === selectedTask.id)) {
       setSelectedTask(null);
     }
@@ -125,25 +132,6 @@ export function WorkbenchPage() {
     return () => controller.abort();
   }, [modelCwd, modelReloadKey, selectedTask?.id, settingsOpen]);
 
-  useEffect(() => {
-    const taskId = selectedTask?.id;
-    if (!taskId) {
-      setActiveTaskModel(null);
-      setActiveTaskModelLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    setActiveTaskModel(null);
-    setActiveTaskModelLoading(true);
-    void loadTaskModel(taskId, controller.signal)
-      .then(setActiveTaskModel)
-      .catch(() => setActiveTaskModel(null))
-      .finally(() => setActiveTaskModelLoading(false));
-
-    return () => controller.abort();
-  }, [selectedTask?.id]);
-
   async function handleCreateTask(cwd: string, message: string) {
     await createTask(cwd, message, modelSelection);
     await refreshTasks();
@@ -163,17 +151,13 @@ export function WorkbenchPage() {
     }
   }
 
-  async function handleActiveTaskModelChange(taskId: string, nextModel: ModelSelection) {
-    const appliedModel = await setTaskModelRequest(taskId, nextModel);
-    setActiveTaskModel(appliedModel);
-  }
-
   return (
-    <div className="app-shell">
+    <div className={`app-shell${sidebarCollapsed ? " app-shell--sidebar-collapsed" : ""}`}>
       <SessionSidebar
         sections={sections}
         taskCount={tasks.length}
         activeTaskId={selectedTask?.id}
+        collapsed={sidebarCollapsed}
         onOpenTask={setSelectedTask}
         onNewTask={() => setNewTaskOpen(true)}
       />
@@ -181,8 +165,20 @@ export function WorkbenchPage() {
       <main className="session-main">
         <header className="workbench-header">
           <div className="session-main__context">
-            <p className="eyebrow">个人任务工作台</p>
-            <span>{selectedTask ? "当前会话" : "全部会话"}</span>
+            <button
+              className="icon-button sidebar-toggle"
+              type="button"
+              onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+              aria-label={sidebarCollapsed ? "显示会话侧栏" : "隐藏会话侧栏"}
+              aria-expanded={!sidebarCollapsed}
+              title={sidebarCollapsed ? "显示会话侧栏" : "隐藏会话侧栏"}
+            >
+              <span aria-hidden="true">{sidebarCollapsed ? "☰" : "‹"}</span>
+            </button>
+            <div>
+              <p className="eyebrow">个人任务工作台</p>
+              <span>{selectedTask ? "当前会话" : "全部会话"}</span>
+            </div>
           </div>
           <div className="workbench-header__actions">
             <span className={`connection-state connection-state--${connectionState}`}>
@@ -207,11 +203,6 @@ export function WorkbenchPage() {
             task={selectedTask}
             onClose={() => setSelectedTask(null)}
             onSend={handleSendTask}
-            model={activeTaskModel}
-            modelOptions={modelCatalog.models}
-            modelLoading={modelLoading || activeTaskModelLoading}
-            modelError={modelError}
-            onModelChange={handleActiveTaskModelChange}
           />
         ) : (
           <section className="session-overview" aria-labelledby="workbench-title">

@@ -147,7 +147,6 @@ def assert_workbench_has_no_horizontal_overflow(page: Page) -> None:
 
 def verify_populated_workbench(page: Page) -> None:
     create_payloads: list[dict[str, object]] = []
-    set_model_payloads: list[dict[str, object]] = []
     prompt_payloads: list[dict[str, object]] = []
 
     def route_api(route: Route) -> None:
@@ -157,10 +156,7 @@ def verify_populated_workbench(page: Page) -> None:
             if request.url.endswith("/api/agent/new"):
                 create_payloads.append(payload)
             elif request.url.endswith("/api/agent/attention-session"):
-                if payload.get("type") == "set_model":
-                    set_model_payloads.append(payload)
-                else:
-                    prompt_payloads.append(payload)
+                prompt_payloads.append(payload)
         fulfill_api(route)
 
     page.route("**/api/**", route_api)
@@ -169,6 +165,10 @@ def verify_populated_workbench(page: Page) -> None:
     sidebar = page.get_by_role("complementary", name="会话列表")
     expect(sidebar).to_be_visible()
     expect(sidebar.get_by_role("heading", name="会话")).to_be_visible()
+    page.get_by_role("button", name="隐藏会话侧栏").click()
+    expect(sidebar).not_to_be_visible()
+    page.get_by_role("button", name="显示会话侧栏").click()
+    expect(sidebar).to_be_visible()
     expect(page.get_by_role("heading", name="需要你介入")).to_be_visible()
     expect(page.get_by_text("发布前检查")).to_be_visible()
     expect(page.get_by_role("heading", name="正在进行")).to_be_visible()
@@ -178,12 +178,12 @@ def verify_populated_workbench(page: Page) -> None:
     task_panel = page.get_by_role("region", name="当前会话")
     expect(task_panel).to_be_visible()
     expect(page.get_by_role("heading", name="发布前检查")).to_be_visible()
-    expect(task_panel.get_by_text("发现两种实现路径，需要你选择", exact=True)).to_be_visible()
     conversation_log = task_panel.get_by_role("log", name="会话对话")
     expect(conversation_log).to_contain_text("检查发布风险")
     expect(conversation_log).to_contain_text("流式回复")
-    task_panel.get_by_label("当前任务模型").select_option("openai:gpt-5-mini")
-    assert set_model_payloads[-1] == {"type": "set_model", "provider": "openai", "modelId": "gpt-5-mini"}
+    expect(task_panel.get_by_role("heading", name="任务轨迹")).not_to_be_visible()
+    expect(task_panel.get_by_label("当前任务模型")).not_to_be_visible()
+    expect(task_panel.get_by_text("查看过程", exact=True)).not_to_be_visible()
     task_panel.get_by_label("继续这个任务").fill("继续检查发布风险")
     task_panel.get_by_role("button", name="发送要求").click()
     assert prompt_payloads[-1] == {"type": "prompt", "message": "继续检查发布风险"}

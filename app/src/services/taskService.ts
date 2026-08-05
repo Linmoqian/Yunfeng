@@ -129,22 +129,6 @@ export async function loadModelCatalog(cwd?: string, signal?: AbortSignal): Prom
   };
 }
 
-export async function loadTaskModel(sessionId: string, signal?: AbortSignal): Promise<ModelSelection | null> {
-  const stateResponse = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/state`, { signal });
-  const state = await readJson<{
-    running?: boolean;
-    state?: { model?: { provider?: string; id?: string } };
-  }>(stateResponse);
-  const liveModel = state.state?.model;
-  if (state.running && liveModel?.provider && liveModel.id) {
-    return { provider: liveModel.provider, modelId: liveModel.id };
-  }
-
-  const contextResponse = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/context`, { signal });
-  const context = await readJson<{ context?: { model?: ModelSelection } }>(contextResponse);
-  return context.context?.model ?? null;
-}
-
 export async function loadTaskConversation(sessionId: string, signal?: AbortSignal): Promise<TaskConversationMessage[]> {
   const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/context?deferMedia&deferThinking`, { signal });
   const data = await readJson<{ context?: { messages?: TaskConversationMessage[] } }>(response);
@@ -168,19 +152,6 @@ export function subscribeTaskEvents(
   source.onerror = () => onConnectionChange?.(false);
 
   return () => source.close();
-}
-
-export async function setTaskModel(sessionId: string, model: ModelSelection): Promise<ModelSelection> {
-  const response = await fetch(`/api/agent/${encodeURIComponent(sessionId)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "set_model", provider: model.provider, modelId: model.modelId }),
-  });
-  const data = await readJson<AgentResponse>(response);
-  return {
-    provider: data.data?.provider ?? model.provider,
-    modelId: data.data?.id ?? model.modelId,
-  };
 }
 
 async function readJson<T>(response: Response): Promise<T> {

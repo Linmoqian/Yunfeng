@@ -6,6 +6,7 @@ interface SessionSidebarProps {
   sections: TaskSectionGroup[];
   taskCount: number;
   activeTaskId?: string;
+  collapsed: boolean;
   onOpenTask: (task: TaskSummary) => void;
   onNewTask: () => void;
 }
@@ -14,11 +15,12 @@ export function SessionSidebar({
   sections,
   taskCount,
   activeTaskId,
+  collapsed,
   onOpenTask,
   onNewTask,
 }: SessionSidebarProps) {
   return (
-    <aside className="session-sidebar" aria-label="会话列表">
+    <aside className="session-sidebar" aria-label="会话列表" aria-hidden={collapsed}>
       <a className="wordmark session-sidebar__wordmark" href="/" aria-label="Yunfeng 工作台">
         <MapleStatusMark />
         <span>Yunfeng</span>
