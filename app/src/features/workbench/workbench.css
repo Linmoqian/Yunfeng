@@ -1449,6 +1449,98 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.focus-panel__queue-status {
+  align-self: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 运行中发送模式切换 */
+.focus-panel__mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.focus-panel__mode-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.mode-chip {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: border-color 180ms var(--motion-ease), color 180ms var(--motion-ease), background 180ms var(--motion-ease);
+}
+
+.mode-chip--active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--canvas));
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 消息操作与乐观状态 */
+.conversation-message__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 150ms var(--motion-ease);
+}
+
+.conversation-message:hover .conversation-message__actions {
+  opacity: 1;
+}
+
+.conversation-message__actions .text-button {
+  padding: 0;
+  font-size: 11px;
+}
+
+.message-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.message-dot--sending {
+  background: var(--accent);
+  animation: yf-pulse 1s ease-in-out infinite;
+}
+
+.message-dot--sent {
+  background: var(--positive);
+}
+
+.message-dot--failed {
+  background: var(--attention);
+}
+
+.conversation-message--failed {
+  border-color: color-mix(in srgb, var(--attention) 45%, var(--border-subtle));
+}
+
+@keyframes yf-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
 .session-overview__summary--attention strong {
   color: var(--attention);
 }

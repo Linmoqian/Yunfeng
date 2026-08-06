@@ -112,6 +112,8 @@ test("isTaskCommand 校验合法与非法命令", () => {
   assert.equal(isTaskCommand({ type: "prompt", message: "hello" }), true);
   assert.equal(isTaskCommand({ type: "abort" }), true);
   assert.equal(isTaskCommand({ type: "complete" }), true);
+  assert.equal(isTaskCommand({ type: "clearQueue" }), true);
+  assert.equal(isTaskCommand({ type: "getQueue" }), true);
   assert.equal(isTaskCommand({ type: "setTools", toolNames: ["read"] }), true);
   assert.equal(isTaskCommand({ type: "prompt" }), false);
   assert.equal(isTaskCommand({ type: "unknown" }), false);

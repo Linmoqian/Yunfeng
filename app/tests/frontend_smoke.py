@@ -172,6 +172,15 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
         return
 
     if "/api/tasks/" in path and path.endswith("/commands"):
+        payload = request.post_data_json
+        # 模拟 followUp 失败，用于验证乐观失败状态与重发
+        if payload and payload.get("type") == "followUp":
+            route.fulfill(
+                status=500,
+                content_type="application/json",
+                body=json.dumps({"error": {"code": "command_failed", "message": "模拟发送失败", "retryable": True}}),
+            )
+            return
         route.fulfill(status=200, content_type="application/json", body=json.dumps({"ok": True, "result": None}))
         return
 
@@ -258,6 +267,7 @@ def verify_task_workbench(page: Page) -> None:
 
     sidebar = page.get_by_role("complementary", name="任务列表")
     expect(sidebar).to_be_visible()
+    page.wait_for_timeout(600)
 
     # 真实状态分组展示
     expect(page.locator(".session-sidebar__group-heading", has_text="需要你介入")).to_be_visible()
@@ -278,11 +288,29 @@ def verify_task_workbench(page: Page) -> None:
     assert "?task=task-attention" in page.url
     page.get_by_role("button", name="关闭任务").click()
 
-    # 打开运行中任务：显示“Agent 正在工作”与阶段
+    # 打开运行中任务：显示“Agent 正在工作”与阶段、运行控制、steer/followUp 切换
     page.get_by_role("button", name="打开任务：优化上下文压缩策略").click()
     panel = page.get_by_role("region", name="当前任务")
     expect(panel.get_by_text("Agent 正在工作")).to_be_visible()
     expect(panel.get_by_text("实现中")).to_be_visible()
+    # 运行控制：中止 / 清空排队
+    expect(panel.get_by_role("button", name="中止运行")).to_be_visible()
+    expect(panel.get_by_role("button", name="清空排队")).to_be_visible()
+    # steer/followUp 切换（运行中默认 steer）
+    expect(panel.get_by_role("group", name="下一轮处理方式")).to_be_visible()
+    expect(panel.get_by_role("button", name="steer 影响当前运行")).to_have_attribute("aria-pressed", "true")
+    # 发送运行中消息 → 乐观状态 + 默认 steer 命令
+    panel.get_by_label("输入消息").fill("停一下并汇报进度")
+    panel.get_by_role("button", name="转向").click()
+    assert any(cmd.get("type") == "steer" for cmd in command_payloads)
+    # 切换到“下一轮处理”发送 → 触发 followUp 失败 → 乐观消息标记失败并可重发
+    panel.get_by_role("button", name="下一轮处理").click()
+    assert panel.get_by_role("button", name="下一轮处理").get_attribute("aria-pressed") == "true"
+    panel.get_by_label("输入消息").fill("这条会失败")
+    panel.get_by_role("button", name="发送到下一轮").click()
+    expect(panel.get_by_text("模拟发送失败")).to_be_visible()
+    expect(panel.locator(".conversation-message--failed")).to_be_visible()
+    expect(panel.get_by_role("button", name="重新发送")).to_be_visible()
     page.get_by_role("button", name="关闭任务").click()
 
     # 等待任务：显示“等待继续”，不显示“已完成”

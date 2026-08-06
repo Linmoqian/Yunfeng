@@ -52,6 +52,8 @@ export type TaskCommand =
   | { type: "steer"; message: string; images?: unknown[]; references?: unknown[] }
   | { type: "followUp"; message: string; images?: unknown[]; references?: unknown[] }
   | { type: "abort" }
+  | { type: "clearQueue" }
+  | { type: "getQueue" }
   | { type: "retry" }
   | { type: "compact"; instructions?: string }
   | { type: "fork"; entryId: string }

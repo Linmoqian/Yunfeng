@@ -36,6 +36,8 @@ export function isTaskCommand(value: Record<string, unknown>): value is TaskComm
       return typeof value.message === "string";
     case "abort":
     case "retry":
+    case "clearQueue":
+    case "getQueue":
     case "complete":
     case "reopen":
     case "archive":
@@ -195,18 +197,42 @@ export class TaskRuntime {
         this.transition(state, "running");
         state.phase = "planning";
         await this.hub.emit(state.id, "task_updated", { status: state.status, phase: state.phase, currentAction: "接收你的指令" });
-        const result = await wrapper.send({ type: "prompt", message: command.message, streamingBehavior: "followUp" });
+        const result = await wrapper.send({
+          type: "prompt",
+          message: command.message,
+          ...(command.images?.length ? { images: command.images } : {}),
+          streamingBehavior: "followUp",
+        });
         return result;
       }
       case "steer": {
         if (!RUNNING_STATUSES.has(state.status)) throw new CommandRejectedError("not_running", "任务未在运行，无法 steer");
-        return wrapper.send({ type: "steer", message: command.message });
+        return wrapper.send({
+          type: "steer",
+          message: command.message,
+          ...(command.images?.length ? { images: command.images } : {}),
+        });
       }
       case "followUp": {
         if (!RUNNING_STATUSES.has(state.status)) throw new CommandRejectedError("not_running", "任务未在运行，无法排入 follow-up");
-        return wrapper.send({ type: "follow_up", message: command.message });
+        return wrapper.send({
+          type: "follow_up",
+          message: command.message,
+          ...(command.images?.length ? { images: command.images } : {}),
+        });
       }
-      case "setModel": {
+      case "clearQueue": {
+        const result = await wrapper.send({ type: "clear_queue" });
+        await this.hub.emit(state.id, "queue_updated", { cleared: true });
+        return result;
+      }
+      case "getQueue": {
+        const stateResult = (await wrapper.send({ type: "get_state" })) as { queuedMessages?: { steering?: unknown[]; followUp?: unknown[] } } | undefined;
+        return {
+          steering: stateResult?.queuedMessages?.steering ?? [],
+          followUp: stateResult?.queuedMessages?.followUp ?? [],
+        };
+      }      case "setModel": {
         if (RUNNING_STATUSES.has(state.status)) throw new CommandRejectedError("cannot_change_while_running", "运行中禁止切换模型");
         const result = (await wrapper.send({ type: "set_model", provider: command.provider, modelId: command.modelId })) as { id?: string; provider?: string } | undefined;
         state.model = result ? { provider: result.provider ?? command.provider, modelId: result.id ?? command.modelId } : { provider: command.provider, modelId: command.modelId };
@@ -350,6 +376,10 @@ export class TaskRuntime {
           this.store.update(taskId, (s) => {
             if (s.status === "waiting_input" || s.status === "failed") s.status = "running";
           });
+          break;
+        }
+        case "queue_update": {
+          void this.hub.emit(taskId, "queue_updated", { changed: true, at: new Date().toISOString() });
           break;
         }
         default:

@@ -29,10 +29,12 @@ export interface TaskState {
 }
 
 export type TaskCommand =
-  | { type: "prompt"; message: string }
-  | { type: "steer"; message: string }
-  | { type: "followUp"; message: string }
+  | { type: "prompt"; message: string; images?: unknown[] }
+  | { type: "steer"; message: string; images?: unknown[] }
+  | { type: "followUp"; message: string; images?: unknown[] }
   | { type: "abort" }
+  | { type: "clearQueue" }
+  | { type: "getQueue" }
   | { type: "retry" }
   | { type: "compact"; instructions?: string }
   | { type: "fork"; entryId: string }
