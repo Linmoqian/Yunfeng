@@ -36,6 +36,27 @@ interface ConversationItem {
   status?: MessageStatus;
 }
 
+interface ToolCallInfo {
+  callId: string;
+  name: string;
+  args?: unknown;
+  startedAt?: string;
+  finishedAt?: string;
+  isError?: boolean;
+  result?: unknown;
+}
+
+ /** 工具参数/输出摘要展示（限制长度）。 */
+function formatToolOutput(value: unknown, max = 800): string {
+  if (value === undefined || value === null) return "";
+  let text: string;
+  if (typeof value === "string") text = value;
+  else {
+    try { text = JSON.stringify(value, null, 2); } catch { text = String(value); }
+  }
+  return text.length > max ? `${text.slice(0, max)}…[截断]` : text;
+}
+
 function contentToText(content: unknown): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -95,6 +116,30 @@ function ConversationMarkdown({ text }: { text: string }) {
   );
 }
 
+/** 工具调用卡片：名称、状态、参数摘要、折叠输出。默认折叠。 */
+function ToolCallCard({ call }: { call: ToolCallInfo }) {
+  const running = !call.finishedAt;
+  const args = formatToolOutput(call.args, 400);
+  const output = call.result !== undefined ? formatToolOutput(call.result) : "";
+  const statusLabel = call.isError ? "失败" : running ? "运行中" : "完成";
+  return (
+    <details className={`tool-card tool-card--${call.isError ? "error" : running ? "running" : "done"}`} open={running}>
+      <summary className="tool-card__summary">
+        <span className="tool-card__name">{call.name}</span>
+        <span className="tool-card__status">{statusLabel}</span>
+      </summary>
+      <div className="tool-card__body">
+        {args ? (
+          <pre className="tool-card__args"><code>{args}</code></pre>
+        ) : null}
+        {output ? (
+          <pre className="tool-card__output"><code>{output}</code></pre>
+        ) : <p className="tool-card__empty">该工具调用没有输出。</p>}
+      </div>
+    </details>
+  );
+}
+
 const STATUS_TEXT: Record<TaskState["status"], { label: string; tone: string }> = {
   running: { label: "Agent 正在工作", tone: "running" },
   waiting_input: { label: "等待继续", tone: "waiting" },
@@ -113,6 +158,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
   const [streamStatus, setStreamStatus] = useState<"connecting" | "idle" | "streaming" | "error">("connecting");
   const [streamError, setStreamError] = useState<string | null>(null);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
+  const [toolCalls, setToolCalls] = useState<ToolCallInfo[]>([]);
   const [localTask, setLocalTask] = useState<TaskState | null>(task ?? null);
   const conversationLogRef = useRef<HTMLDivElement>(null);
   const [capabilities, setCapabilities] = useState<TaskCapabilitiesResult | null>(null);
@@ -136,6 +182,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
     setStreamStatus("connecting");
     setStreamError(null);
     setToolActivity(null);
+    setToolCalls([]);
   }, []);
 
   useEffect(() => {
@@ -182,11 +229,36 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
       }
 
       if (event.type === "tool_started") {
-        const data = event.data as { name?: string } | undefined;
+        const data = event.data as { name?: string; callId?: string; args?: unknown; startedAt?: string } | undefined;
+        const callId = typeof data?.callId === "string" ? data.callId : `tool-${Date.now()}`;
         setStreamStatus("streaming");
         setToolActivity(`正在运行 ${typeof data?.name === "string" ? data.name : "工具"}`);
+        setToolCalls((current) => [
+          ...current.filter((call) => call.callId !== callId),
+          { callId, name: data?.name ?? "工具", args: data?.args, startedAt: data?.startedAt },
+        ]);
       }
-      if (event.type === "tool_finished") setToolActivity(null);
+      if (event.type === "tool_updated") {
+        const data = event.data as { callId?: string; name?: string; partialResult?: unknown } | undefined;
+        const callId = typeof data?.callId === "string" ? data.callId : "";
+        if (callId) {
+          setToolCalls((current) => current.map((call) =>
+            call.callId === callId ? { ...call, name: data?.name ?? call.name, args: data?.partialResult ?? call.args } : call,
+          ));
+        }
+      }
+      if (event.type === "tool_finished") {
+        const data = event.data as { callId?: string; name?: string; result?: unknown; isError?: boolean } | undefined;
+        const callId = typeof data?.callId === "string" ? data.callId : "";
+        setToolActivity(null);
+        if (callId) {
+          setToolCalls((current) => current.map((call) =>
+            call.callId === callId
+              ? { ...call, name: data?.name ?? call.name, result: data?.result, isError: Boolean(data?.isError), finishedAt: new Date().toISOString() }
+              : call,
+          ));
+        }
+      }
       if (event.type === "run_failed") {
         setStreamStatus("error");
         const data = event.data as { action?: string } | undefined;
@@ -510,6 +582,9 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
                   ) : null}
                 </div>
               </article>
+            ))}
+            {toolCalls.map((call) => (
+              <ToolCallCard key={call.callId} call={call} />
             ))}
             {toolActivity ? <p className="conversation-tool-status" role="status">{toolActivity}</p> : null}
             {streamError ? <p className="conversation-error" role="alert">{streamError}</p> : null}

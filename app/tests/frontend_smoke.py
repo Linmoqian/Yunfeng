@@ -282,11 +282,13 @@ def verify_task_workbench(page: Page) -> None:
         fulfill_api(route)
 
     page.route("**/api/**", route_api)
-    page.goto(DEV_URL, wait_until="networkidle")
+    page.goto(DEV_URL, wait_until="domcontentloaded")
 
     sidebar = page.get_by_role("complementary", name="任务列表")
     expect(sidebar).to_be_visible()
-    page.wait_for_timeout(600)
+    # 等待任务数据渲染（旧会话 + 任务行都来自 /api，等待首个任务行作为同步点）
+    expect(page.locator(".task-row").first).to_be_visible()
+    page.wait_for_timeout(400)
 
     # 真实状态分组展示
     expect(page.locator(".session-sidebar__group-heading", has_text="需要你介入")).to_be_visible()
@@ -399,7 +401,7 @@ def verify_task_workbench(page: Page) -> None:
 
 def verify_empty_workbench(page: Page) -> None:
     page.route("**/api/**", lambda route: fulfill_api(route, empty=True))
-    page.goto(DEV_URL, wait_until="networkidle")
+    page.goto(DEV_URL, wait_until="domcontentloaded")
     expect(page.get_by_role("heading", name="工作台暂时安静。")).to_be_visible()
     expect(page.get_by_role("button", name="新建任务").last).to_be_visible()
     assert_workbench_has_no_horizontal_overflow(page)

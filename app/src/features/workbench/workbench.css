@@ -734,6 +734,85 @@
   color: var(--attention);
 }
 
+/* 工具调用卡片 */
+.tool-card {
+  align-self: flex-start;
+  min-width: min(76%, 650px);
+  max-width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.tool-card--running {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+}
+
+.tool-card--error {
+  border-color: color-mix(in srgb, var(--attention) 45%, var(--border-subtle));
+}
+
+.tool-card__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tool-card__name {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.tool-card__status {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.tool-card--running .tool-card__status {
+  color: var(--accent);
+}
+
+.tool-card--error .tool-card__status {
+  color: var(--attention);
+}
+
+.tool-card__body {
+  padding: 0 14px 12px;
+}
+
+.tool-card__args,
+.tool-card__output {
+  overflow-x: auto;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--text-primary) 5%, var(--canvas));
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tool-card__args {
+  color: var(--text-secondary);
+}
+
+.tool-card__output {
+  color: var(--text-primary);
+}
+
+.tool-card__empty {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 .focus-panel__section {
   margin-top: 36px;
 }
