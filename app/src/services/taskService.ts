@@ -1,22 +1,70 @@
-import {
-  createTaskSummaries,
-  type SessionSnapshot,
-  type TaskSummary,
-} from "../features/workbench/taskPresentation";
+// 任务领域 API 客户端：/api/tasks 系列 + 兼容旧 /api/sessions 浏览。
+// 阶段 1：工作台以真实任务状态为准，旧会话保留浏览与懒关联导入。
 
-interface SessionsResponse {
-  sessions: SessionSnapshot[];
-  runningSessionIds?: string[];
+export interface TaskModelRef {
+  provider: string;
+  modelId: string;
 }
 
-interface AgentResponse {
-  success?: boolean;
-  sessionId?: string;
-  error?: string;
-  data?: {
-    id?: string;
-    provider?: string;
-  };
+export interface TaskState {
+  schemaVersion: number;
+  id: string;
+  sessionId: string;
+  cwd: string;
+  title: string;
+  source: "task" | "legacy" | "history";
+  status: "running" | "waiting_input" | "waiting_approval" | "failed" | "completed" | "archived";
+  phase: "understanding" | "planning" | "implementing" | "verifying" | "committing" | "done" | "unknown";
+  currentAction: string;
+  attentionReason?: string;
+  model?: TaskModelRef;
+  thinkingLevel?: string;
+  activeToolNames: string[];
+  pendingApprovalIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  archivedAt?: string;
+  lastEventSeq: number;
+}
+
+export type TaskCommand =
+  | { type: "prompt"; message: string }
+  | { type: "steer"; message: string }
+  | { type: "followUp"; message: string }
+  | { type: "abort" }
+  | { type: "retry" }
+  | { type: "compact"; instructions?: string }
+  | { type: "fork"; entryId: string }
+  | { type: "setModel"; provider: string; modelId: string }
+  | { type: "setThinkingLevel"; level: string }
+  | { type: "setTools"; toolNames: string[] }
+  | { type: "complete" }
+  | { type: "reopen" }
+  | { type: "archive" };
+
+export interface TaskListResponse {
+  tasks: TaskState[];
+  nextCursor?: string;
+  total: number;
+}
+
+export interface SessionSnapshot {
+  id: string;
+  name: string;
+  firstMessage: string;
+  cwd: string | undefined;
+  modified: string;
+  messageCount: number;
+}
+
+export interface TaskStreamEvent {
+  id?: string;
+  taskId?: string;
+  seq?: number;
+  type: string;
+  data?: unknown;
+  [key: string]: unknown;
 }
 
 export interface ModelOption {
@@ -35,112 +83,119 @@ export interface ModelCatalog {
   defaultModel: ModelSelection | null;
 }
 
-export interface TaskConversationMessage {
-  id?: string;
-  role: string;
-  content: unknown;
-  timestamp?: string | number;
+// ---------------------------------------------------------------------------
+// 读取
+// ---------------------------------------------------------------------------
+
+export interface TaskQuery {
+  q?: string;
+  project?: string;
+  status?: string;
+  archived?: "true" | "false";
+  cursor?: string;
+  limit?: number;
 }
 
-export interface TaskStreamEvent {
-  type: string;
-  [key: string]: unknown;
+export async function loadTasks(query: TaskQuery = {}, signal?: AbortSignal): Promise<TaskListResponse> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.project) params.set("project", query.project);
+  if (query.status) params.set("status", query.status);
+  if (query.archived) params.set("archived", query.archived);
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.limit) params.set("limit", String(query.limit));
+  const queryString = params.toString();
+  const response = await fetch(`/api/tasks${queryString ? `?${queryString}` : ""}`, { signal });
+  return readJson<TaskListResponse>(response);
 }
 
-export interface TaskSnapshot {
-  sessions: SessionSnapshot[];
-  runningSessionIds: string[];
-  tasks: TaskSummary[];
+export async function loadTask(taskId: string, signal?: AbortSignal): Promise<TaskState> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, { signal });
+  const data = await readJson<{ task: TaskState }>(response);
+  return data.task;
 }
 
-export async function loadTaskSnapshot(signal?: AbortSignal): Promise<TaskSnapshot> {
+/** 旧会话列表（未导入任务前仅浏览用）。 */
+export async function loadLegacySessions(signal?: AbortSignal): Promise<SessionSnapshot[]> {
   const response = await fetch("/api/sessions", { signal });
-  const data = await readJson<SessionsResponse>(response);
-  const runningSessionIds = data.runningSessionIds ?? [];
-
-  return {
-    sessions: data.sessions,
-    runningSessionIds,
-    tasks: createTaskSummaries(data.sessions, runningSessionIds),
-  };
+  const data = await readJson<{ sessions: SessionSnapshot[] }>(response);
+  return data.sessions ?? [];
 }
 
-export function subscribeRunningSessions(
-  onRunningSessions: (runningSessionIds: string[]) => void,
-  onConnectionChange: (connected: boolean) => void,
-): () => void {
-  const source = new EventSource("/api/agent/running/events");
-  source.onopen = () => onConnectionChange(true);
-  source.onmessage = (event) => {
-    try {
-      const payload = JSON.parse(event.data) as { type?: string; runningSessionIds?: string[] };
-      if (payload.type === "running" && Array.isArray(payload.runningSessionIds)) {
-        onRunningSessions(payload.runningSessionIds);
-      }
-    } catch {
-      onConnectionChange(false);
-    }
-  };
-  source.onerror = () => onConnectionChange(false);
-
-  return () => source.close();
+export async function loadTaskConversation(taskId: string, signal?: AbortSignal): Promise<unknown[]> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/conversation?deferMedia&deferThinking`, { signal });
+  const data = await readJson<{ context?: { messages?: unknown[] } }>(response);
+  return Array.isArray(data.context?.messages) ? data.context.messages : [];
 }
 
-export async function sendTaskPrompt(sessionId: string, message: string): Promise<void> {
-  const response = await fetch(`/api/agent/${encodeURIComponent(sessionId)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "prompt", message }),
-  });
-  await readJson<AgentResponse>(response);
-}
+// ---------------------------------------------------------------------------
+// 写入
+// ---------------------------------------------------------------------------
 
 export async function createTask(
   cwd: string,
   message: string,
   model?: ModelSelection | null,
-): Promise<string> {
-  const response = await fetch("/api/agent/new", {
+): Promise<{ task: TaskState; sessionId: string }> {
+  const response = await fetch("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       cwd,
-      type: "prompt",
       message,
-      ...(model ? { provider: model.provider, modelId: model.modelId } : {}),
+      ...(model ? { model: { provider: model.provider, modelId: model.modelId } } : {}),
     }),
   });
-  const data = await readJson<AgentResponse>(response);
-  if (!data.sessionId) throw new Error("服务器没有返回新任务 ID");
-  return data.sessionId;
+  const data = await readJson<{ task: TaskState; sessionId: string }>(response);
+  if (!data.task?.id) throw new Error("服务器没有返回任务信息");
+  return data;
 }
 
-export async function loadModelCatalog(cwd?: string, signal?: AbortSignal): Promise<ModelCatalog> {
-  const query = cwd ? `?cwd=${encodeURIComponent(cwd)}` : "";
-  const response = await fetch(`/api/models${query}`, { signal });
-  const data = await readJson<{
-    modelList?: ModelOption[];
-    defaultModel?: ModelSelection | null;
-  }>(response);
-
-  return {
-    models: Array.isArray(data.modelList) ? data.modelList : [],
-    defaultModel: data.defaultModel ?? null,
-  };
+/** 旧会话首次操作时懒关联：创建/返回对应任务记录。 */
+export async function importLegacySession(sessionId: string): Promise<TaskState> {
+  const response = await fetch("/api/tasks/import-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId }),
+  });
+  const data = await readJson<{ task: TaskState }>(response);
+  return data.task;
 }
 
-export async function loadTaskConversation(sessionId: string, signal?: AbortSignal): Promise<TaskConversationMessage[]> {
-  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/context?deferMedia&deferThinking`, { signal });
-  const data = await readJson<{ context?: { messages?: TaskConversationMessage[] } }>(response);
-  return Array.isArray(data.context?.messages) ? data.context.messages : [];
+export async function renameTask(taskId: string, name: string): Promise<TaskState> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  const data = await readJson<{ task: TaskState }>(response);
+  return data.task;
 }
 
+export async function sendTaskCommand(taskId: string, command: TaskCommand): Promise<unknown> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/commands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(command),
+  });
+  const data = await readJson<{ ok: boolean; result?: unknown }>(response);
+  return data.result;
+}
+
+// ---------------------------------------------------------------------------
+// 事件订阅
+// ---------------------------------------------------------------------------
+
+/**
+ * 任务详情事件流。带 Last-Event-ID 重连语义：
+ * 断线后 EventSource 自动重连，服务端按最后 seq 补发。
+ */
 export function subscribeTaskEvents(
-  sessionId: string,
+  taskId: string,
   onEvent: (event: TaskStreamEvent) => void,
   onConnectionChange?: (connected: boolean) => void,
 ): () => void {
-  const source = new EventSource(`/api/agent/${encodeURIComponent(sessionId)}/events`);
+  const source = new EventSource(`/api/tasks/${encodeURIComponent(taskId)}/events`);
   source.onopen = () => onConnectionChange?.(true);
   source.onmessage = (event) => {
     try {
@@ -150,27 +205,63 @@ export function subscribeTaskEvents(
     }
   };
   source.onerror = () => onConnectionChange?.(false);
-
   return () => source.close();
 }
 
+/**
+ * 工作台任务摘要事件流：首帧 task_snapshot，之后是所有任务的状态事件。
+ */
+export function subscribeTaskSummary(
+  onEvent: (event: TaskStreamEvent) => void,
+  onConnectionChange?: (connected: boolean) => void,
+): () => void {
+  const source = new EventSource("/api/tasks/events");
+  source.onopen = () => onConnectionChange?.(true);
+  source.onmessage = (event) => {
+    try {
+      onEvent(JSON.parse(event.data) as TaskStreamEvent);
+    } catch {
+      onConnectionChange?.(false);
+    }
+  };
+  source.onerror = () => onConnectionChange?.(false);
+  return () => source.close();
+}
+
+// ---------------------------------------------------------------------------
+// 兼容：模型目录
+// ---------------------------------------------------------------------------
+
+export async function loadModelCatalog(cwd?: string, signal?: AbortSignal): Promise<ModelCatalog> {
+  const query = cwd ? `?cwd=${encodeURIComponent(cwd)}` : "";
+  const response = await fetch(`/api/models${query}`, { signal });
+  const data = await readJson<{
+    modelList?: ModelOption[];
+    defaultModel?: ModelSelection | null;
+  }>(response);
+  return {
+    models: Array.isArray(data.modelList) ? data.modelList : [],
+    defaultModel: data.defaultModel ?? null,
+  };
+}
+
 async function readJson<T>(response: Response): Promise<T> {
-  let data: T | { error?: string };
+  let data: T | { error?: unknown };
   try {
-    data = await response.json() as T | { error?: string };
+    data = await response.json() as T | { error?: unknown };
   } catch {
     throw new Error(`服务器返回了无法读取的响应（HTTP ${response.status}）`);
   }
 
-  const payload = data as Record<string, unknown>;
   if (!response.ok) {
-    const error = typeof payload.error === "string" ? payload.error : `HTTP ${response.status}`;
-    throw new Error(error);
+    const payload = data as { error?: { code?: string; message?: string } | string };
+    const errorBody = payload.error;
+    const message = typeof errorBody === "object" && errorBody !== null && "message" in errorBody
+      ? String(errorBody.message)
+      : typeof errorBody === "string"
+        ? errorBody
+        : `HTTP ${response.status}`;
+    throw new Error(message);
   }
-
-  if (payload.success === false) {
-    throw new Error(typeof payload.error === "string" ? payload.error : "任务操作失败");
-  }
-
   return data as T;
 }

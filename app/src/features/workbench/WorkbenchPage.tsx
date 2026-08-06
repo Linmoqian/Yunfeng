@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import {
   createTask,
+  loadLegacySessions,
   loadModelCatalog,
-  loadTaskSnapshot,
-  sendTaskPrompt,
-  subscribeRunningSessions,
+  loadTasks,
+  renameTask,
+  sendTaskCommand,
+  subscribeTaskSummary,
   type ModelCatalog,
   type ModelSelection,
+  type SessionSnapshot,
+  type TaskState,
+  type TaskStreamEvent,
 } from "../../services/taskService";
 import { MapleStatusMark } from "./MapleStatusMark";
 import { NewTaskDialog } from "./NewTaskDialog";
@@ -15,20 +20,118 @@ import { SettingsDialog, type ThemeMode } from "./SettingsDialog";
 import { TaskFocusPanel } from "./TaskFocusPanel";
 import {
   buildTaskSections,
-  createTaskSummaries,
-  type SessionSnapshot,
+  collectProjects,
+  sessionToLegacySummary,
+  taskToSummary,
   type TaskSummary,
 } from "./taskPresentation";
 import "./workbench.css";
 
 type ConnectionState = "connecting" | "connected" | "offline";
 
+type ArchivedFilter = "all" | "active" | "archived";
+
+interface WorkbenchState {
+  tasks: TaskState[];
+  sessions: SessionSnapshot[];
+  currentTaskId: string | null;
+  currentSessionId: string | null;
+  connectionState: ConnectionState;
+  loadError: string | null;
+  search: string;
+  projectFilter: string;
+  archivedFilter: ArchivedFilter;
+  attentionCount: number;
+}
+
+type WorkbenchAction =
+  | { type: "snapshot"; tasks: TaskState[]; sessions: SessionSnapshot[] }
+  | { type: "taskUpdated"; task: TaskState }
+  | { type: "taskRemoved"; taskId: string }
+  | { type: "selectTask"; taskId: string | null }
+  | { type: "selectSession"; sessionId: string | null }
+  | { type: "connection"; state: ConnectionState; error?: string | null }
+  | { type: "search"; value: string }
+  | { type: "project"; value: string }
+  | { type: "archived"; value: ArchivedFilter };
+
+const initialState: WorkbenchState = {
+  tasks: [],
+  sessions: [],
+  currentTaskId: null,
+  currentSessionId: null,
+  connectionState: "connecting",
+  loadError: null,
+  search: "",
+  projectFilter: "",
+  archivedFilter: "active",
+  attentionCount: 0,
+};
+
+function getInitialSelection(): { taskId: string | null; sessionId: string | null } {
+  const params = new URLSearchParams(window.location.search);
+  return { taskId: params.get("task"), sessionId: params.get("session") };
+}
+
+function reducer(state: WorkbenchState, action: WorkbenchAction): WorkbenchState {
+  switch (action.type) {
+    case "snapshot":
+      return {
+        ...state,
+        tasks: action.tasks,
+        sessions: action.sessions,
+        attentionCount: action.tasks.filter((t) => t.status === "failed" || t.status === "waiting_approval").length,
+      };
+    case "taskUpdated": {
+      const task = action.task;
+      const exists = state.tasks.some((t) => t.id === task.id);
+      const tasks = exists
+        ? state.tasks.map((t) => (t.id === task.id ? task : t))
+        : [...state.tasks, task];
+      return {
+        ...state,
+        tasks,
+        attentionCount: tasks.filter((t) => t.status === "failed" || t.status === "waiting_approval").length,
+      };
+    }
+    case "taskRemoved":
+      return {
+        ...state,
+        tasks: state.tasks.filter((t) => t.id !== action.taskId),
+        ...(state.currentTaskId === action.taskId ? { currentTaskId: null } : {}),
+      };
+    case "selectTask":
+      return { ...state, currentTaskId: action.taskId, currentSessionId: action.taskId ? null : state.currentSessionId };
+    case "selectSession":
+      return { ...state, currentSessionId: action.sessionId, currentTaskId: action.sessionId ? null : state.currentTaskId };
+    case "connection":
+      return { ...state, connectionState: action.state, loadError: action.error !== undefined ? action.error : state.loadError };
+    case "search":
+      return { ...state, search: action.value };
+    case "project":
+      return { ...state, projectFilter: action.value };
+    case "archived":
+      return { ...state, archivedFilter: action.value };
+    default:
+      return state;
+  }
+}
+
+function syncUrl(state: WorkbenchState): void {
+  const params = new URLSearchParams();
+  if (state.currentTaskId) params.set("task", state.currentTaskId);
+  if (state.currentSessionId) params.set("session", state.currentSessionId);
+  const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+  if (window.location.pathname + window.location.search !== next) {
+    window.history.replaceState(null, "", next);
+  }
+}
+
 export function WorkbenchPage() {
-  const [sessions, setSessions] = useState<SessionSnapshot[]>([]);
-  const [runningSessionIds, setRunningSessionIds] = useState<string[]>([]);
-  const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedTask, setSelectedTask] = useState<TaskSummary | null>(null);
+  const [state, dispatch] = useReducer(reducer, initialState, (initial) => ({
+    ...initial,
+    ...getInitialSelection(),
+  }));
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({ models: [], defaultModel: null });
@@ -53,37 +156,103 @@ export function WorkbenchPage() {
     return storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
   });
 
-  const tasks = useMemo(
-    () => createTaskSummaries(sessions, runningSessionIds),
-    [runningSessionIds, sessions],
-  );
-  const sections = useMemo(() => buildTaskSections(tasks), [tasks]);
-  const activeTaskCount = tasks.filter((task) => task.section !== "completed").length;
-  const modelCwd = selectedTask
-    ? sessions.find((session) => session.id === selectedTask.id)?.cwd
-    : sessions.find((session) => session.cwd)?.cwd;
+  // 派生：当前任务 / 当前会话 / 分组 / 项目列表
+  const currentTask = state.currentTaskId
+    ? state.tasks.find((task) => task.id === state.currentTaskId) ?? null
+    : null;
+  const currentSession = state.currentSessionId
+    ? state.sessions.find((session) => session.id === state.currentSessionId) ?? null
+    : null;
 
-  const refreshTasks = useCallback(async () => {
+  const allSummaries = useMemo(() => {
+    const taskSummaries = state.tasks.map(taskToSummary);
+    const legacySummaries = state.sessions
+      .filter((session) => !state.tasks.some((task) => task.sessionId === session.id))
+      .map(sessionToLegacySummary);
+    return [...taskSummaries, ...legacySummaries];
+  }, [state.sessions, state.tasks]);
+
+  const filteredSummaries = useMemo(() => {
+    const needle = state.search.trim().toLowerCase();
+    return allSummaries.filter((task) => {
+      if (state.projectFilter && task.projectName !== state.projectFilter) return false;
+      if (state.archivedFilter === "archived" && task.section !== "archived") return false;
+      if (state.archivedFilter === "active" && task.section === "archived") return false;
+      if (needle) {
+        return (
+          task.title.toLowerCase().includes(needle) ||
+          task.currentAction.toLowerCase().includes(needle) ||
+          task.cwd.toLowerCase().includes(needle)
+        );
+      }
+      return true;
+    });
+  }, [allSummaries, state.archivedFilter, state.projectFilter, state.search]);
+
+  const sections = useMemo(
+    () => buildTaskSections(filteredSummaries, state.archivedFilter === "all" || state.archivedFilter === "archived"),
+    [filteredSummaries, state.archivedFilter],
+  );
+  const projects = useMemo(() => collectProjects(allSummaries), [allSummaries]);
+  const activeTaskCount = state.tasks.filter((task) => task.status !== "completed" && task.status !== "archived").length;
+
+  const modelCwd = currentTask?.cwd || currentSession?.cwd || state.tasks.find((task) => task.cwd)?.cwd;
+
+  const refreshSnapshot = useCallback(async () => {
     try {
-      const snapshot = await loadTaskSnapshot();
-      setSessions(snapshot.sessions);
-      setRunningSessionIds(snapshot.runningSessionIds);
-      setLoadError(null);
-      setConnectionState("connected");
+      const [taskResult, sessions] = await Promise.all([
+        loadTasks({ limit: 500 }),
+        loadLegacySessions(),
+      ]);
+      dispatch({ type: "snapshot", tasks: taskResult.tasks, sessions });
+      dispatch({ type: "connection", state: "connected", error: null });
     } catch (error) {
-      setConnectionState("offline");
-      setLoadError(error instanceof Error ? error.message : "会话状态暂时无法读取");
+      dispatch({
+        type: "connection",
+        state: "offline",
+        error: error instanceof Error ? error.message : "任务状态暂时无法读取",
+      });
     }
   }, []);
 
   useEffect(() => {
-    void refreshTasks();
-    return subscribeRunningSessions(
-      (nextRunningSessionIds) => setRunningSessionIds(nextRunningSessionIds),
-      (connected) => setConnectionState(connected ? "connected" : "offline"),
+    void refreshSnapshot();
+    return subscribeTaskSummary(
+      (event: TaskStreamEvent) => {
+        if (event.type === "task_snapshot" && Array.isArray(event.tasks)) {
+          dispatch({ type: "snapshot", tasks: event.tasks as TaskState[], sessions: state.sessions });
+          return;
+        }
+        if (event.type === "task_updated" && event.taskId && isTaskStateLike(event.data)) {
+          dispatch({ type: "taskUpdated", task: event.data as TaskState });
+        }
+      },
+      (connected) => dispatch({ type: "connection", state: connected ? "connected" : "offline" }),
     );
-  }, [refreshTasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // 同步 URL 深链接
+  useEffect(() => {
+    syncUrl(state);
+  }, [state.currentTaskId, state.currentSessionId]);
+
+  // popstate：浏览器前进后退恢复选择
+  useEffect(() => {
+    const onPopState = () => {
+      const { taskId, sessionId } = getInitialSelection();
+      if (taskId) dispatch({ type: "selectTask", taskId });
+      else if (sessionId) dispatch({ type: "selectSession", sessionId });
+      else {
+        dispatch({ type: "selectTask", taskId: null });
+        dispatch({ type: "selectSession", sessionId: null });
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  // 主题
   useEffect(() => {
     if (themeMode === "system") {
       document.documentElement.removeAttribute("data-theme");
@@ -102,14 +271,9 @@ export function WorkbenchPage() {
     }
   }, [sidebarCollapsed]);
 
+  // 模型目录
   useEffect(() => {
-    if (selectedTask && !tasks.some((task) => task.id === selectedTask.id)) {
-      setSelectedTask(null);
-    }
-  }, [selectedTask, tasks]);
-
-  useEffect(() => {
-    if (!settingsOpen && !selectedTask) return;
+    if (!settingsOpen && !currentTask) return;
     const controller = new AbortController();
     setModelLoading(true);
     setModelError(null);
@@ -130,16 +294,37 @@ export function WorkbenchPage() {
       .finally(() => setModelLoading(false));
 
     return () => controller.abort();
-  }, [modelCwd, modelReloadKey, selectedTask?.id, settingsOpen]);
+  }, [modelCwd, modelReloadKey, currentTask?.id, settingsOpen]);
 
   async function handleCreateTask(cwd: string, message: string) {
-    await createTask(cwd, message, modelSelection);
-    await refreshTasks();
+    const { task } = await createTask(cwd, message, modelSelection);
+    // 新任务创建成功：立即进入对应任务（不再忽略返回 ID）
+    dispatch({ type: "taskUpdated", task });
+    dispatch({ type: "selectTask", taskId: task.id });
+    await refreshSnapshot();
   }
 
-  async function handleSendTask(taskId: string, message: string) {
-    await sendTaskPrompt(taskId, message);
-    await refreshTasks();
+  async function handleRename(taskId: string, name: string) {
+    const updated = await renameTask(taskId, name);
+    dispatch({ type: "taskUpdated", task: updated });
+  }
+
+  async function handleArchive(taskId: string) {
+    await sendTaskCommand(taskId, { type: "archive" });
+    await refreshSnapshot();
+  }
+
+  async function handleReopen(taskId: string) {
+    await sendTaskCommand(taskId, { type: "reopen" });
+    await refreshSnapshot();
+  }
+
+  function handleOpenTask(task: TaskSummary) {
+    if (task.isLegacy) {
+      dispatch({ type: "selectSession", sessionId: task.sessionId });
+    } else {
+      dispatch({ type: "selectTask", taskId: task.id });
+    }
   }
 
   function handleModelChange(nextModel: ModelSelection | null) {
@@ -155,11 +340,22 @@ export function WorkbenchPage() {
     <div className={`app-shell${sidebarCollapsed ? " app-shell--sidebar-collapsed" : ""}`}>
       <SessionSidebar
         sections={sections}
-        taskCount={tasks.length}
-        activeTaskId={selectedTask?.id}
+        taskCount={state.tasks.length}
+        attentionCount={state.attentionCount}
+        activeTaskId={currentTask?.id ?? currentSession?.id}
         collapsed={sidebarCollapsed}
-        onOpenTask={setSelectedTask}
+        search={state.search}
+        onSearch={(value) => dispatch({ type: "search", value })}
+        projectFilter={state.projectFilter}
+        projects={projects}
+        onProjectFilter={(value) => dispatch({ type: "project", value })}
+        archivedFilter={state.archivedFilter}
+        onArchivedFilter={(value) => dispatch({ type: "archived", value })}
+        onOpenTask={handleOpenTask}
         onNewTask={() => setNewTaskOpen(true)}
+        onRename={handleRename}
+        onArchive={handleArchive}
+        onReopen={handleReopen}
       />
 
       <main className="session-main">
@@ -176,14 +372,14 @@ export function WorkbenchPage() {
               <span aria-hidden="true">{sidebarCollapsed ? "☰" : "‹"}</span>
             </button>
             <div>
-              <p className="eyebrow">Yunfeng 对话</p>
-              <span>{selectedTask ? "当前对话" : "全部会话"}</span>
+              <p className="eyebrow">Yunfeng 工作台</p>
+              <span>{currentTask || currentSession ? "当前任务" : "全部任务"}</span>
             </div>
           </div>
           <div className="workbench-header__actions">
-            <span className={`connection-state connection-state--${connectionState}`}>
+            <span className={`connection-state connection-state--${state.connectionState}`}>
               <span className="connection-state__dot" aria-hidden="true" />
-              {connectionState === "connected" ? "已同步" : connectionState === "connecting" ? "正在连接" : "状态可能已过期"}
+              {state.connectionState === "connected" ? "已同步" : state.connectionState === "connecting" ? "正在连接" : "状态可能已过期"}
             </span>
             <button className="text-button" type="button" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
               设置
@@ -191,51 +387,67 @@ export function WorkbenchPage() {
           </div>
         </header>
 
-        {connectionState === "offline" && loadError ? (
+        {state.connectionState === "offline" && state.loadError ? (
           <div className="connection-notice" role="status">
-            <span>{loadError}</span>
-            <button className="text-button" type="button" onClick={() => void refreshTasks()}>重新连接</button>
+            <span>{state.loadError}</span>
+            <button className="text-button" type="button" onClick={() => void refreshSnapshot()}>重新连接</button>
           </div>
         ) : null}
 
-        {selectedTask ? (
+        {currentTask ? (
           <TaskFocusPanel
-            task={selectedTask}
-            onClose={() => setSelectedTask(null)}
-            onSend={handleSendTask}
+            task={currentTask}
+            onClose={() => dispatch({ type: "selectTask", taskId: null })}
+            onTaskUpdated={(task) => dispatch({ type: "taskUpdated", task })}
+          />
+        ) : currentSession ? (
+          <TaskFocusPanel
+            legacySession={currentSession}
+            onClose={() => dispatch({ type: "selectSession", sessionId: null })}
+            onTaskUpdated={(task) => {
+              dispatch({ type: "taskUpdated", task });
+              dispatch({ type: "selectTask", taskId: task.id });
+            }}
           />
         ) : (
           <section className="session-overview" aria-labelledby="workbench-title">
             <div className="session-overview__intro">
-              <p className="eyebrow">会话工作台</p>
-              <h1 id="workbench-title">从一段对话开始。</h1>
+              <p className="eyebrow">任务工作台</p>
+              <h1 id="workbench-title">管理编码任务。</h1>
               <p>
-                左侧保留最近的会话，右侧展开完整的对话。和 Agent 说清楚想做什么，然后在同一段交流里继续推进。
+                任务由后端领域状态驱动：运行、等待继续、等待审批、失败与完成都以真实状态为准。
+                旧会话保留浏览，首次操作时自动接入任务体系。
               </p>
             </div>
             <div className="session-overview__summary">
               <div>
                 <strong>{activeTaskCount}</strong>
-                <span>个活跃会话</span>
+                <span>个活跃任务</span>
               </div>
               <div>
-                <strong>{tasks.length}</strong>
-                <span>段已保存会话</span>
+                <strong>{state.tasks.length}</strong>
+                <span>个任务</span>
               </div>
+              {state.attentionCount > 0 ? (
+                <div className="session-overview__summary--attention">
+                  <strong>{state.attentionCount}</strong>
+                  <span>需要处理</span>
+                </div>
+              ) : null}
             </div>
-            {tasks.length === 0 ? (
+            {state.tasks.length === 0 && state.sessions.length === 0 ? (
               <section className="empty-state" aria-live="polite">
                 <MapleStatusMark />
                 <h2>工作台暂时安静。</h2>
-                <p>还没有会话。可以从一句清晰的话开始。</p>
+                <p>还没有任务。可以从一句清晰的话开始。</p>
                 <button className="button button--primary" type="button" onClick={() => setNewTaskOpen(true)}>
-                  新建会话
+                  新建任务
                 </button>
               </section>
             ) : (
               <div className="session-overview__hint">
                 <MapleStatusMark />
-                <p>从左侧打开一个会话，继续和 Agent 对话。</p>
+                <p>从左侧打开一个任务或会话，继续推进。</p>
               </div>
             )}
           </section>
@@ -258,8 +470,15 @@ export function WorkbenchPage() {
         modelError={modelError}
         onModelChange={handleModelChange}
         onRetryModels={() => setModelReloadKey((value) => value + 1)}
-        connectionState={connectionState}
+        connectionState={state.connectionState}
       />
     </div>
   );
+}
+
+/** 检测事件负载是否看起来像 TaskState。 */
+function isTaskStateLike(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "string" && typeof candidate.sessionId === "string" && typeof candidate.status === "string";
 }

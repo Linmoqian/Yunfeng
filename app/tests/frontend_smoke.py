@@ -1,7 +1,11 @@
-"""Yunfeng workbench browser checks.
+"""Yunfeng 工作台浏览器冒烟测试（阶段 1）。
 
-The test starts Vite and stubs API responses in the browser, so it verifies the
-frontend without requiring the Node backend to be running.
+启动 Vite 并在浏览器中 stub 任务 API，验证前端在不依赖真实后端时：
+- 按真实任务状态分组展示
+- 新任务创建成功即打开并显示 running
+- 旧会话浏览与懒关联导入
+- 搜索 / 项目筛选 / 归档筛选 / 重命名 / 恢复归档
+- URL 深链接 ?task=<id>
 """
 
 from __future__ import annotations
@@ -21,31 +25,80 @@ APP_DIR = Path(__file__).resolve().parents[1]
 DEV_URL = "http://127.0.0.1:4173"
 
 
-SESSIONS = [
-    {
-        "id": "attention-session",
-        "name": "发布前检查",
-        "firstMessage": "检查发布风险",
+def make_task(overrides: dict) -> dict:
+    base = {
+        "schemaVersion": 1,
+        "sessionId": "session-" + overrides.get("id", "x"),
         "cwd": "/Volumes/base/project/Yunfeng",
-        "modified": "2026-08-05T07:59:00.000Z",
-        "messageCount": 5,
-        "attentionReason": "发现两种实现路径，需要你选择",
-    },
-    {
-        "id": "running-session",
-        "name": "优化上下文压缩策略",
-        "firstMessage": "优化上下文压缩策略",
-        "cwd": "/Volumes/base/project/Yunfeng",
-        "modified": "2026-08-05T07:55:00.000Z",
-        "messageCount": 3,
-    },
-    {
-        "id": "completed-session",
-        "name": "论文阅读",
-        "firstMessage": "收集论文",
+        "title": "未命名任务",
+        "source": "task",
+        "status": "waiting_input",
+        "phase": "unknown",
+        "currentAction": "",
+        "activeToolNames": [],
+        "pendingApprovalIds": [],
+        "createdAt": "2026-08-05T06:00:00.000Z",
+        "updatedAt": "2026-08-05T07:00:00.000Z",
+        "lastEventSeq": 0,
+    }
+    base.update(overrides)
+    return base
+
+
+TASKS = [
+    make_task({
+        "id": "task-running",
+        "title": "优化上下文压缩策略",
+        "status": "running",
+        "phase": "implementing",
+        "currentAction": "正在修改 task-runtime",
+        "updatedAt": "2026-08-05T07:55:00.000Z",
+    }),
+    make_task({
+        "id": "task-waiting",
+        "title": "修复会话恢复问题",
+        "status": "waiting_input",
+        "phase": "planning",
+        "updatedAt": "2026-08-05T07:45:00.000Z",
+    }),
+    make_task({
+        "id": "task-attention",
+        "title": "发布前检查",
+        "status": "failed",
+        "attentionReason": "模型请求超时，需要你决定是否重试",
+        "updatedAt": "2026-08-05T07:40:00.000Z",
+    }),
+    make_task({
+        "id": "task-completed",
+        "title": "论文阅读",
+        "status": "completed",
+        "phase": "done",
         "cwd": "/Volumes/base/project/Research",
-        "modified": "2026-08-04T07:55:00.000Z",
-        "messageCount": 8,
+        "updatedAt": "2026-08-04T07:55:00.000Z",
+    }),
+    make_task({
+        "id": "task-archived",
+        "title": "旧归档任务",
+        "status": "archived",
+        "updatedAt": "2026-08-01T07:00:00.000Z",
+    }),
+]
+
+# 动态创建的任务（POST /api/tasks 后追加），模拟真实持久化
+CREATED_TASKS: list[dict] = []
+
+
+def all_tasks() -> list[dict]:
+    return TASKS + CREATED_TASKS
+
+LEGACY_SESSIONS = [
+    {
+        "id": "legacy-session",
+        "name": "旧版会话",
+        "firstMessage": "帮我重构 rpc-manager",
+        "cwd": "/Volumes/base/project/Yunfeng",
+        "modified": "2026-08-03T09:00:00.000Z",
+        "messageCount": 12,
     },
 ]
 
@@ -53,8 +106,9 @@ SESSIONS = [
 def fulfill_api(route: Route, empty: bool = False) -> None:
     request = route.request
     url = request.url
+    path = url.split("?", 1)[0]
 
-    if url.split("?", 1)[0].endswith("/api/models"):
+    if path.endswith("/api/models"):
         route.fulfill(
             status=200,
             content_type="application/json",
@@ -68,47 +122,8 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
         )
         return
 
-    if url.endswith("/api/sessions/attention-session/state"):
-        route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps({
-                "running": True,
-                "state": {"model": {"provider": "anthropic", "id": "claude-sonnet"}},
-            }),
-        )
-        return
-
-    if url.split("?", 1)[0].endswith("/api/sessions/attention-session/context"):
-        route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps({
-                "context": {
-                    "messages": [
-                        {"id": "user-1", "role": "user", "content": "检查发布风险"},
-                        {
-                            "id": "assistant-1",
-                            "role": "assistant",
-                            "content": "这是 **历史消息**。\n\n```ts\nconst ready = true;\n```",
-                        },
-                    ],
-                },
-            }),
-        )
-        return
-
-    if url.endswith("/api/agent/attention-session/events"):
-        events = [
-            {"type": "connected", "sessionId": "attention-session"},
-            {"type": "agent_start"},
-            {"type": "message_update", "assistantMessageEvent": {"type": "text_delta", "delta": "流式"}},
-            {"type": "message_update", "assistantMessageEvent": {"type": "text_delta", "delta": "回复"}},
-            {"type": "tool_execution_start", "toolName": "bash"},
-            {"type": "tool_execution_end", "toolName": "bash", "isError": False},
-            {"type": "agent_end", "messages": []},
-        ]
-        body = "".join(f"data: {json.dumps(event)}\n\n" for event in events)
+    if path.endswith("/api/tasks/events"):
+        body = f"data: {json.dumps({'type': 'task_snapshot', 'tasks': [] if empty else all_tasks(), 'seq': 0})}\n\n"
         route.fulfill(
             status=200,
             headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache"},
@@ -116,14 +131,66 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
         )
         return
 
-    if url.endswith("/api/sessions"):
-        payload = {"sessions": [] if empty else SESSIONS, "runningSessionIds": [] if empty else ["running-session"]}
-        route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+    if path.endswith("/api/tasks") and request.method == "GET":
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"tasks": [] if empty else all_tasks(), "total": len(all_tasks())}),
+        )
         return
 
-    if url.endswith("/api/agent/running/events"):
-        running_ids = [] if empty else ["running-session"]
-        body = f'data: {json.dumps({"type": "running", "runningSessionIds": running_ids})}\n\n'
+    if path.endswith("/api/tasks") and request.method == "POST":
+        payload = request.post_data_json
+        new_task = make_task({
+            "id": "task-created",
+            "title": payload.get("message", "")[:60],
+            "status": "running",
+            "phase": "planning",
+            "cwd": payload.get("cwd", ""),
+            "updatedAt": "2026-08-05T08:00:00.000Z",
+        })
+        CREATED_TASKS.append(new_task)
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"task": new_task, "sessionId": "session-task-created"}),
+        )
+        return
+
+    if path.endswith("/api/tasks/import-session"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"task": make_task({
+                "id": "task-legacy",
+                "title": "旧版会话",
+                "source": "legacy",
+                "status": "waiting_input",
+                "sessionId": "legacy-session",
+            })}),
+        )
+        return
+
+    if "/api/tasks/" in path and path.endswith("/commands"):
+        route.fulfill(status=200, content_type="application/json", body=json.dumps({"ok": True, "result": None}))
+        return
+
+    if "/api/tasks/" in path and path.endswith("/conversation"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"context": {"messages": [
+                {"id": "user-1", "role": "user", "content": "检查发布风险"},
+                {"id": "assistant-1", "role": "assistant", "content": "这是 **历史消息**。\n\n```ts\nconst ready = true;\n```"},
+            ]}}),
+        )
+        return
+
+    if "/api/tasks/" in path and path.endswith("/events"):
+        # 打开任务时订阅该任务事件流；data 不含 status 以避免前端误改变任务状态
+        task_id = path.split("/api/tasks/")[1].split("/")[0]
+        event = {"type": "task_updated", "taskId": task_id, "data": {"phase": "planning"}}
+        body = f"data: {json.dumps(event)}\n\n"
         route.fulfill(
             status=200,
             headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache"},
@@ -131,16 +198,35 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
         )
         return
 
-    if request.method == "POST" and url.endswith("/api/agent/new"):
+    if "/api/tasks/" in path and request.method == "GET":
+        # 单个任务详情：从 TASKS 找，找不到返回创建的任务
+        task_id = path.split("/")[-1]
+        task = next((t for t in all_tasks() if t["id"] == task_id), None)
+        if task:
+            route.fulfill(status=200, content_type="application/json", body=json.dumps({"task": task}))
+        else:
+            route.fulfill(status=200, content_type="application/json", body=json.dumps({"task": make_task({"id": task_id})}))
+        return
+
+    if "/api/tasks/" in path and request.method == "PATCH":
         route.fulfill(
             status=200,
             content_type="application/json",
-            body=json.dumps({"success": True, "sessionId": "new-session"}),
+            body=json.dumps({"task": make_task({"id": "task-waiting", "title": request.post_data_json.get("name", "")})}),
         )
         return
 
-    if request.method == "POST" and "/api/agent/" in url:
-        route.fulfill(status=200, content_type="application/json", body=json.dumps({"success": True}))
+    if path.endswith("/api/sessions"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"sessions": [] if empty else LEGACY_SESSIONS}),
+        )
+        return
+
+    if path.endswith("/api/agent/running/events"):
+        body = 'data: {"type":"running","runningSessionIds":[]}\n\n'
+        route.fulfill(status=200, headers={"Content-Type": "text/event-stream"}, body=body)
         return
 
     route.fulfill(status=404, content_type="application/json", body=json.dumps({"error": "not mocked"}))
@@ -150,78 +236,109 @@ def assert_workbench_has_no_horizontal_overflow(page: Page) -> None:
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
 
 
-def verify_populated_workbench(page: Page) -> None:
-    create_payloads: list[dict[str, object]] = []
-    prompt_payloads: list[dict[str, object]] = []
+def verify_task_workbench(page: Page) -> None:
+    create_payloads: list[dict] = []
+    import_payloads: list[dict] = []
+    command_payloads: list[dict] = []
 
     def route_api(route: Route) -> None:
         request = route.request
         if request.method == "POST" and request.post_data_json:
             payload = request.post_data_json
-            if request.url.endswith("/api/agent/new"):
+            if request.url.endswith("/api/tasks"):
                 create_payloads.append(payload)
-            elif request.url.endswith("/api/agent/attention-session"):
-                prompt_payloads.append(payload)
+            elif request.url.endswith("/api/tasks/import-session"):
+                import_payloads.append(payload)
+            elif "/api/tasks/" in request.url and request.url.endswith("/commands"):
+                command_payloads.append(payload)
         fulfill_api(route)
 
     page.route("**/api/**", route_api)
     page.goto(DEV_URL, wait_until="networkidle")
 
-    sidebar = page.get_by_role("complementary", name="会话列表")
+    sidebar = page.get_by_role("complementary", name="任务列表")
     expect(sidebar).to_be_visible()
-    expect(sidebar.get_by_role("heading", name="对话")).to_be_visible()
-    page.get_by_role("button", name="隐藏会话侧栏").click()
-    expect(sidebar).not_to_be_visible()
-    page.get_by_role("button", name="显示会话侧栏").click()
-    expect(sidebar).to_be_visible()
-    expect(page.get_by_text("发布前检查")).to_be_visible()
-    expect(sidebar.get_by_role("navigation", name="最近会话")).to_be_visible()
 
-    page.get_by_role("button", name="打开会话：发布前检查").click()
-    task_panel = page.get_by_role("region", name="当前对话")
-    expect(task_panel).to_be_visible()
-    expect(page.get_by_role("heading", name="发布前检查")).to_be_visible()
-    conversation_log = task_panel.get_by_role("log", name="会话对话")
-    expect(conversation_log).to_contain_text("检查发布风险")
-    expect(conversation_log).to_contain_text("流式回复")
-    expect(conversation_log.locator("strong")).to_contain_text("历史消息")
-    expect(conversation_log.locator("code")).to_contain_text("const ready = true;")
-    expect(task_panel.get_by_role("heading", name="任务轨迹")).not_to_be_visible()
-    expect(task_panel.get_by_label("当前任务模型")).not_to_be_visible()
-    expect(task_panel.get_by_text("查看过程", exact=True)).not_to_be_visible()
-    task_panel.get_by_label("输入消息").fill("继续检查发布风险")
-    task_panel.get_by_label("输入消息").press("Enter")
-    assert prompt_payloads[-1] == {"type": "prompt", "message": "继续检查发布风险"}
-    page.get_by_role("button", name="关闭会话").click()
-    expect(task_panel).not_to_be_visible()
+    # 真实状态分组展示
+    expect(page.locator(".session-sidebar__group-heading", has_text="需要你介入")).to_be_visible()
+    expect(page.locator(".session-sidebar__group-heading", has_text="正在进行")).to_be_visible()
+    expect(page.locator(".session-sidebar__group-heading", has_text="等待继续")).to_be_visible()
+    expect(page.locator(".session-sidebar__group-heading", has_text="已完成")).to_be_visible()
+    expect(page.locator(".session-sidebar__group-heading", has_text="旧会话")).to_be_visible()
+    # 归档默认隐藏
+    expect(page.locator(".session-sidebar__group-heading", has_text="已归档")).not_to_be_visible()
 
-    settings_button = page.get_by_role("button", name="打开设置")
-    settings_button.click()
-    settings_dialog = page.get_by_role("dialog")
-    expect(settings_dialog).to_be_visible()
-    expect(settings_dialog.get_by_role("heading", name="设置")).to_be_visible()
-    settings_dialog.get_by_label("新会话默认模型").select_option("openai:gpt-5-mini")
-    settings_dialog.get_by_role("button", name="浅色主题").click()
-    assert page.locator("html").get_attribute("data-theme") == "light"
-    settings_dialog.get_by_role("button", name="深色主题").click()
-    assert page.locator("html").get_attribute("data-theme") == "dark"
-    settings_dialog.get_by_role("button", name="关闭设置").click()
-    expect(settings_dialog).not_to_be_visible()
+    # 打开失败任务：显示真实失败状态而非“已完成”
+    page.get_by_role("button", name="打开任务：发布前检查").click()
+    panel = page.get_by_role("region", name="当前任务")
+    expect(panel).to_be_visible()
+    expect(panel.get_by_text("本轮运行失败")).to_be_visible()
+    expect(panel.get_by_text("模型请求超时，需要你决定是否重试")).to_be_visible()
+    # URL 深链接
+    assert "?task=task-attention" in page.url
+    page.get_by_role("button", name="关闭任务").click()
 
-    page.get_by_role("button", name="新建会话").first.click()
-    new_task_dialog = page.get_by_role("dialog")
-    expect(new_task_dialog).to_be_visible()
-    new_task_dialog.get_by_label("项目路径").fill("/Volumes/base/project/Yunfeng")
-    new_task_dialog.get_by_label("你想聊什么？").fill("检查工作台的视觉状态")
-    new_task_dialog.get_by_role("button", name="开始对话").click()
-    expect(new_task_dialog).not_to_be_visible()
-    assert create_payloads[-1] == {
-        "cwd": "/Volumes/base/project/Yunfeng",
-        "type": "prompt",
-        "message": "检查工作台的视觉状态",
-        "provider": "openai",
-        "modelId": "gpt-5-mini",
-    }
+    # 打开运行中任务：显示“Agent 正在工作”与阶段
+    page.get_by_role("button", name="打开任务：优化上下文压缩策略").click()
+    panel = page.get_by_role("region", name="当前任务")
+    expect(panel.get_by_text("Agent 正在工作")).to_be_visible()
+    expect(panel.get_by_text("实现中")).to_be_visible()
+    page.get_by_role("button", name="关闭任务").click()
+
+    # 等待任务：显示“等待继续”，不显示“已完成”
+    page.get_by_role("button", name="打开任务：修复会话恢复问题").click()
+    panel = page.get_by_role("region", name="当前任务")
+    expect(panel.get_by_text("等待继续")).to_be_visible()
+    expect(panel.get_by_text("任务已完成")).not_to_be_visible()
+    page.get_by_role("button", name="关闭任务").click()
+
+    # 搜索过滤
+    page.get_by_placeholder("搜索任务…").fill("论文")
+    expect(page.locator(".session-sidebar__group-heading", has_text="已完成")).to_be_visible()
+    expect(page.locator(".session-sidebar__group-heading", has_text="正在进行")).not_to_be_visible()
+    page.get_by_placeholder("搜索任务…").fill("")
+
+    # 项目筛选
+    page.get_by_label("按项目筛选").select_option("Research")
+    expect(page.get_by_role("button", name="打开任务：论文阅读")).to_be_visible()
+    expect(page.get_by_role("button", name="打开任务：发布前检查")).not_to_be_visible()
+    page.get_by_label("按项目筛选").select_option("")
+
+    # 归档筛选 + 恢复
+    page.get_by_role("button", name="已归档").click()
+    expect(page.locator(".session-sidebar__group-heading", has_text="已归档")).to_be_visible()
+    page.get_by_role("button", name="恢复").first.click()
+    assert any(cmd.get("type") == "reopen" for cmd in command_payloads)
+    page.get_by_role("button", name="进行中").click()
+
+    # 重命名
+    rename_button = page.locator(".task-row__action--rename").first
+    rename_button.click()
+    rename_button.click()
+    rename_input = page.locator(".task-row__rename-input").first
+    rename_input.fill("重命名后的任务")
+    rename_input.press("Enter")
+    expect(page.get_by_text("重命名后的任务")).to_be_visible()
+
+    # 旧会话浏览 + 懒关联导入
+    page.get_by_role("button", name="打开任务：旧版会话").click()
+    panel = page.get_by_role("region", name="当前任务")
+    expect(panel.get_by_text("旧会话 · 首次发送消息后接入任务")).to_be_visible()
+    expect(panel.get_by_role("button", name="发送并接入任务")).to_be_visible()
+    page.get_by_label("输入消息").fill("继续重构")
+    page.get_by_label("输入消息").press("Enter")
+    assert import_payloads[-1] == {"sessionId": "legacy-session"}
+
+    # 新任务创建成功即打开并显示 running
+    page.get_by_role("button", name="新建任务").first.click()
+    dialog = page.get_by_role("dialog")
+    dialog.get_by_label("项目路径").fill("/Volumes/base/project/Yunfeng")
+    dialog.get_by_label("你想聊什么？").fill("检查工作台")
+    dialog.get_by_role("button", name="开始对话").click()
+    expect(dialog).not_to_be_visible()
+    assert create_payloads[-1]["cwd"] == "/Volumes/base/project/Yunfeng"
+    panel = page.get_by_role("region", name="当前任务")
+    expect(panel.get_by_text("Agent 正在工作")).to_be_visible()
 
     page.set_viewport_size({"width": 720, "height": 900})
     assert_workbench_has_no_horizontal_overflow(page)
@@ -231,7 +348,7 @@ def verify_empty_workbench(page: Page) -> None:
     page.route("**/api/**", lambda route: fulfill_api(route, empty=True))
     page.goto(DEV_URL, wait_until="networkidle")
     expect(page.get_by_role("heading", name="工作台暂时安静。")).to_be_visible()
-    expect(page.get_by_role("button", name="新建会话").last).to_be_visible()
+    expect(page.get_by_role("button", name="新建任务").last).to_be_visible()
     assert_workbench_has_no_horizontal_overflow(page)
 
 
@@ -272,7 +389,7 @@ def main() -> None:
                 launch_options["executable_path"] = executable
             browser = playwright.chromium.launch(**launch_options)
             try:
-                verify_populated_workbench(browser.new_page(viewport={"width": 1440, "height": 1000}))
+                verify_task_workbench(browser.new_page(viewport={"width": 1440, "height": 1000}))
                 verify_empty_workbench(browser.new_page(viewport={"width": 1440, "height": 1000}))
             finally:
                 browser.close()
