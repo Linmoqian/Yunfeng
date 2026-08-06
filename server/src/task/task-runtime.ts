@@ -91,6 +91,7 @@ export class TaskRuntime {
   private readonly runWrappers = new Map<string, AgentSessionWrapper>();
   private readonly bridgedSessions = new Set<string>();
   private readonly interventionResolvers = new Map<string, (value: string | boolean | null | undefined) => void>();
+  private readonly approvalActions = new Map<string, () => Promise<{ ok: boolean; message?: string }>>();
 
   constructor(init: RuntimeInit) {
     this.store = init.store;
@@ -470,6 +471,8 @@ export class TaskRuntime {
     impact?: string;
     options?: string[];
     defaultValue?: string;
+    /** 批准后自动执行的动作（如 push）。 */
+    action?: () => Promise<{ ok: boolean; message?: string }>;
   }): Promise<TaskIntervention> {
     const now = new Date().toISOString();
     const intervention: TaskIntervention = {
@@ -485,6 +488,9 @@ export class TaskRuntime {
       status: "pending",
       createdAt: now,
     };
+    if (input.action) {
+      this.approvalActions.set(intervention.id, input.action);
+    }
     this.store.appendIntervention(intervention);
     // 任务进入等待审批，并把请求 id 记入待决列表
     this.store.update(taskId, (state) => {
@@ -519,6 +525,22 @@ export class TaskRuntime {
       .map((item) => ({ ...item, status: "pending" as const }));
   }
 
+  /** 记录任务初始 Git 基线（异步、失败不影响任务创建）。 */
+  async recordGitBaseline(taskId: string): Promise<void> {
+    const state = this.store.get(taskId);
+    if (!state || state.gitBaseline) return;
+    try {
+      const { getTaskChanges } = await import("../git-operations.js");
+      const { files } = await getTaskChanges(state.cwd);
+      this.store.update(taskId, (s) => {
+        s.gitBaseline = files.map((file) => file.filePath);
+      });
+      await this.hub.emit(taskId, "git_changed", { baseline: state.gitBaseline });
+    } catch {
+      // 非 Git 仓库或读取失败：不阻断任务创建
+    }
+  }
+
   /** 提交审批结果。返回是否被解析（false 表示请求不存在或已失效）。 */
   resolveIntervention(taskId: string, requestId: string, value: string | boolean | null): { ok: boolean; reason?: string } {
     const storeItem = this.store.listInterventions(taskId).find((item) => item.id === requestId);
@@ -536,9 +558,31 @@ export class TaskRuntime {
       this.interventionResolvers.delete(requestId);
       resolve(value);
     }
-    // 从任务待决列表移除
+    // 若该审批绑定了批准后动作（如 push），且被批准，则执行
+    if (value === true) {
+      const action = this.approvalActions.get(requestId);
+      if (action) {
+        this.approvalActions.delete(requestId);
+        void action().then((actionResult) => {
+          if (!actionResult.ok) {
+            void this.hub.emit(taskId, "git_changed", { pushFailed: actionResult.message });
+          } else {
+            void this.hub.emit(taskId, "git_changed", { pushed: true });
+          }
+        }).catch((error: unknown) => {
+          void this.hub.emit(taskId, "git_changed", { pushFailed: error instanceof Error ? error.message : String(error) });
+        });
+      }
+    } else {
+      this.approvalActions.delete(requestId);
+    }
+    // 从任务待决列表移除；若无其他待决，任务回到等待态
     this.store.update(taskId, (state) => {
       state.pendingApprovalIds = state.pendingApprovalIds.filter((id) => id !== requestId);
+      if (state.pendingApprovalIds.length === 0 && state.status === "waiting_approval") {
+        state.status = value === true ? "running" : "waiting_input";
+        state.currentAction = value === true ? "审批通过，继续执行" : "审批已拒绝";
+      }
     });
     void this.hub.emit(taskId, "approval_resolved", { requestId, value });
     void this.hub.emit(taskId, "task_updated", { pendingApprovalIds: this.store.get(taskId)?.pendingApprovalIds ?? [] });

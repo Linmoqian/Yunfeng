@@ -41,6 +41,10 @@ import {
   handleTaskEvents,
   handleTaskEventsGlobal,
   handleTaskGet,
+  handleTaskGit,
+  handleTaskGitCommit,
+  handleTaskGitDiff,
+  handleTaskGitPush,
   handleTaskImport,
   handleTaskInterventionResolve,
   handleTaskInterventions,
@@ -179,6 +183,23 @@ const server = createServer(async (req, res) => {
         decodeURIComponent(taskInterventionResolveMatch[2]),
         await readJsonBody(req),
       ));
+    }
+
+    // 任务 Git 闭环
+    const taskGitMatch = route.match(/^\/tasks\/([^/]+)\/git$/);
+    if (taskGitMatch && method === "GET") {
+      return sendResult(res, await handleTaskGit(decodeURIComponent(taskGitMatch[1])));
+    }
+    if (taskGitMatch && method === "POST") {
+      return sendResult(res, await handleTaskGitPush(decodeURIComponent(taskGitMatch[1])));
+    }
+    const taskGitDiffMatch = route.match(/^\/tasks\/([^/]+)\/git\/diff$/);
+    if (taskGitDiffMatch && method === "GET") {
+      return sendResult(res, await handleTaskGitDiff(decodeURIComponent(taskGitDiffMatch[1]), query));
+    }
+    const taskGitCommitMatch = route.match(/^\/tasks\/([^/]+)\/git\/commit$/);
+    if (taskGitCommitMatch && method === "POST") {
+      return sendResult(res, await handleTaskGitCommit(decodeURIComponent(taskGitCommitMatch[1]), await readJsonBody(req)));
     }
     const taskPatchMatch = route.match(/^\/tasks\/([^/]+)$/);
     if (taskPatchMatch && method === "PATCH") {

@@ -13,6 +13,14 @@ import {
 import { CommandRejectedError, isTaskCommand, TaskNotFoundError } from "./task-runtime.js";
 import { getRpcSession, startRpcSession } from "../rpc-manager.js";
 import { readSessionHeader, resolveSessionPath } from "../session-reader.js";
+import {
+  checkPush,
+  commitTaskFiles,
+  getTaskChanges,
+  pushRemote,
+  validateCommit,
+} from "../git-operations.js";
+import { getGitFileDiff } from "../git-changes.js";
 import type { RouteResult } from "../routes.js";
 import { json } from "../routes.js";
 
@@ -121,6 +129,8 @@ export async function handleTaskCreate(body: Record<string, unknown>): Promise<R
     const state = store.create({ sessionId: realSessionId, cwd, title: message.slice(0, 60), source: "task" });
     runtime.importSession(session);
     await hub.emit(state.id, "task_updated", { status: state.status, created: true });
+    // 异步记录 Git 基线（不阻断首轮启动）
+    void runtime.recordGitBaseline(state.id);
     // 首轮 prompt
     await runtime.dispatchCommand(state, { type: "prompt", message });
     return json({ task: serializeTask(state), sessionId: realSessionId });
@@ -270,6 +280,93 @@ export async function handleTaskInterventionResolve(id: string, requestId: strin
   await hub.emit(id, "task_updated", { status: state.status, pendingApprovalIds: state.pendingApprovalIds });
   return json({ ok: true });
 }
+
+// ----------------------------------------------------------------------------
+// Git 闭环（受安全门禁保护）
+// ----------------------------------------------------------------------------
+
+/** 任务 Git 状态：基线、当前改动、可提交候选。 */
+export async function handleTaskGit(id: string): Promise<RouteResult> {
+  const { store } = getTaskContext();
+  const state = store.get(id);
+  if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+  const { repoRoot, files } = await getTaskChanges(state.cwd);
+  const baseline = new Set(state.gitBaseline ?? []);
+  const taskFiles = files.filter((file) => !baseline.has(file.filePath));
+  const baselineFiles = files.filter((file) => baseline.has(file.filePath));
+  return json({
+    git: {
+      isGitRepository: Boolean(repoRoot),
+      repositoryRoot: repoRoot || null,
+      files,
+      taskFiles,
+      baselineFiles,
+      baseline: state.gitBaseline ?? [],
+    },
+  });
+}
+
+export async function handleTaskGitDiff(id: string, query: URLSearchParams): Promise<RouteResult> {
+  const { store } = getTaskContext();
+  const state = store.get(id);
+  if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+  const filePath = query.get("path") ?? "";
+  if (!filePath) return jsonApi(json({ error: apiError("bad_request", "path 是必填项", { status: 400 }) }), null);
+  return json(await getGitFileDiff(state.cwd, filePath));
+}
+
+/** 本地安全提交：只提交任务产生且未在基线的文件；错误信息校验、拒绝敏感文件。 */
+export async function handleTaskGitCommit(id: string, body: Record<string, unknown>): Promise<RouteResult> {
+  const { store, hub } = getTaskContext();
+  const state = store.get(id);
+  if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+  const message = typeof body.message === "string" ? body.message : "";
+  const decision = await validateCommit({ cwd: state.cwd, baseline: state.gitBaseline ?? [], message });
+  if (!decision.allowed) {
+    const reasonMap: Record<string, string> = {
+      invalid_message: decision.messageError ?? "提交信息不符合规范",
+      no_git: "不是 Git 仓库",
+      empty: "没有可提交的任务改动",
+      includes_baseline: "仅剩任务开始前已有的改动，未发现任务新改动；混入既有改动需明确审批",
+    };
+    return jsonApi(json({ error: apiError("commit_rejected", reasonMap[decision.reason ?? ""] ?? "提交被拒绝", { status: 409 }) }), null);
+  }
+  const result = await commitTaskFiles(state.cwd, decision.stagedFiles ?? [], message);
+  if (!result.ok) {
+    return jsonApi(json({ error: apiError("commit_failed", result.message ?? "提交失败", { status: 500 }) }), null);
+  }
+  await hub.emit(id, "git_changed", { committedSha: result.commitSha });
+  return json({ ok: true, commit: result });
+}
+
+/** 推送审批前检查和生成审批卡（不执行远程操作直到审批通过）。 */
+export async function handleTaskGitPush(id: string): Promise<RouteResult> {
+  const { store, runtime } = getTaskContext();
+  const state = store.get(id);
+  if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+  const pushCheck = await checkPush(state.cwd);
+  if (!pushCheck.allowed) {
+    const reasons: Record<string, string> = {
+      no_git: "不是 Git 仓库",
+      no_branch: "无法确定当前分支",
+      no_upstream: `当前分支 ${pushCheck.branch ?? ""} 未配置上游远程，无法推送`,
+    };
+    return jsonApi(json({ error: apiError("push_rejected", reasons[pushCheck.reason ?? ""] ?? "推送前检查失败", { status: 409 }) }), null);
+  }
+  // 推送始终生成审批卡：通过后执行 pushRemote
+  const { remote, branch } = pushCheck;
+  const intervention = await runtime.createIntervention(id, {
+    kind: "confirm",
+    title: "推送代码",
+    message: `推送到 ${remote} 的 ${branch} 分支？`,
+    safeLabel: "git push",
+    impact: `推送到远程 ${remote}（${branch}）`,
+    action: async () => pushRemote(state.cwd, remote, branch),
+  });
+  return json({ ok: true, approvalRequestId: intervention.id, push: { branch, remote } });
+}
+
+
 
 /** 工作台任务摘要事件流（所有任务状态事件）。 */
 export function handleTaskEventsGlobal(): RouteResult {

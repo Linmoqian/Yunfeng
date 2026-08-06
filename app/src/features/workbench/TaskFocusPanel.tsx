@@ -6,12 +6,17 @@ import {
   loadTaskCapabilities,
   loadTaskConversation,
   loadTaskInterventions,
+  loadTaskGit,
+  loadTaskGitDiff,
+  commitTaskChanges,
+  requestTaskPush,
   resolveIntervention,
   sendTaskCommand,
   subscribeTaskEvents,
   type ModelCatalog,
   type SessionSnapshot,
   type TaskCapabilitiesResult,
+  type TaskGitSummary,
   type TaskState,
   type TaskStreamEvent,
 } from "../../services/taskService";
@@ -233,6 +238,12 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
   const [capabilities, setCapabilities] = useState<TaskCapabilitiesResult | null>(null);
   const [configBusy, setConfigBusy] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  const [gitState, setGitState] = useState<TaskGitSummary | null>(null);
+  const [gitOpen, setGitOpen] = useState(false);
+  const [commitMessage, setCommitMessage] = useState("");
+  const [diffOpenPath, setDiffOpenPath] = useState<string | null>(null);
+  const [diffContent, setDiffContent] = useState<string | null>(null);
+  const [gitBusy, setGitBusy] = useState(false);
 
   // 任务对象：优先真实任务，legacy 会话在首次操作后接入任务
   const activeTask = task ?? localTask;
@@ -429,6 +440,18 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
       });
     return () => controller.abort();
   }, [activeTaskId, isLegacy]);
+
+  // 加载任务 Git 状态（改动页签）
+  useEffect(() => {
+    if (!activeTaskId || isLegacy || !gitOpen) return;
+    const controller = new AbortController();
+    setGitBusy(true);
+    void loadTaskGit(activeTaskId, controller.signal)
+      .then(setGitState)
+      .catch(() => setGitState(null))
+      .finally(() => setGitBusy(false));
+    return () => controller.abort();
+  }, [activeTaskId, gitOpen, isLegacy]);
 
   // localTask 变化时上报父级；用微任务避开渲染期间 setState 父组件的问题。
   const prevTaskRef = useRef<TaskState | null | undefined>(task);
@@ -660,6 +683,65 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
 
   const sendDisabled = sending || streamStatus === "streaming" || !message.trim();
 
+  async function toggleDiff(filePath: string) {
+    if (diffOpenPath === filePath) {
+      setDiffOpenPath(null);
+      setDiffContent(null);
+      return;
+    }
+    setDiffOpenPath(filePath);
+    if (!activeTask) return;
+    setGitBusy(true);
+    try {
+      const diff = await loadTaskGitDiff(activeTask.id, filePath);
+      setDiffContent(diff.supported && diff.patch ? diff.patch : "该文件暂不支持结构化 diff。");
+    } catch {
+      setDiffContent("读取 diff 失败。");
+    } finally {
+      setGitBusy(false);
+    }
+  }
+
+  async function handleCommit() {
+    if (!activeTask || !commitMessage.trim()) return;
+    setGitBusy(true);
+    try {
+      await commitTaskChanges(activeTask.id, commitMessage.trim());
+      setCommitMessage("");
+      setFeedback("本地提交完成。");
+      const refreshed = await loadTaskGit(activeTask.id);
+      setGitState(refreshed);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "提交失败。");
+    } finally {
+      setGitBusy(false);
+    }
+  }
+
+  async function handlePush() {
+    if (!activeTask) return;
+    setGitBusy(true);
+    try {
+      const result = await requestTaskPush(activeTask.id);
+      if (result.approvalRequestId) {
+        setFeedback(`推送审批已生成，请在审批卡确认。`);
+      } else {
+        setFeedback("推送审批已排队。");
+      }
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "推送失败。");
+    } finally {
+      setGitBusy(false);
+    }
+  }
+
+  function copyPath(filePath: string) {
+    void navigator.clipboard.writeText(filePath).then(
+      () => setFeedback("路径已复制。"),
+      () => setFeedback("复制失败。"),
+    );
+  }
+
   return (
     <section className="focus-panel focus-panel--inline" role="region" aria-label="当前任务">
       <div className="focus-panel__body">
@@ -823,6 +905,86 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
           </section>
         ) : null}
 
+        {activeTask && !isLegacy ? (
+          <section className="focus-panel__git" aria-label="改动">
+            <button
+              type="button"
+              className="focus-panel__config-toggle"
+              onClick={() => setGitOpen((open) => !open)}
+              aria-expanded={gitOpen}
+            >
+              改动
+              <span className="focus-panel__config-chevron" aria-hidden="true">{gitOpen ? "▾" : "▸"}</span>
+            </button>
+            {gitOpen ? (
+              <div className="focus-panel__git-body">
+                {gitBusy && !gitState ? (
+                  <p className="focus-panel__config-note">正在读取 Git 状态…</p>
+                ) : !gitState ? (
+                  <p className="focus-panel__config-note">无法读取 Git 状态（可能不是 Git 仓库）。</p>
+                ) : !gitState.isGitRepository ? (
+                  <p className="focus-panel__config-note">当前目录不是 Git 仓库。</p>
+                ) : gitState.taskFiles.length === 0 && gitState.baselineFiles.length === 0 ? (
+                  <p className="focus-panel__config-note">工作区干净，没有待提交改动。</p>
+                ) : (
+                  <>
+                    <div className="focus-panel__git-summary">
+                      <span>任务产生 {gitState.taskFiles.length} 项</span>
+                      {gitState.baselineFiles.length > 0 ? (
+                        <span className="focus-panel__git-baseline">任务前已有 {gitState.baselineFiles.length} 项（不自动提交）</span>
+                      ) : null}
+                    </div>
+                    <div className="focus-panel__git-files">
+                      {gitState.taskFiles.map((file) => (
+                        <div key={file.filePath} className="git-file">
+                          <span className={`git-file__status git-file__status--${file.status}`}>{statusLabel(file.status)}</span>
+                          <button type="button" className="git-file__name" onClick={() => void toggleDiff(file.filePath)}>
+                            {basename(file.filePath)}
+                          </button>
+                          <button type="button" className="git-file__copy" onClick={() => copyPath(file.filePath)}>复制路径</button>
+                        </div>
+                      ))}
+                    </div>
+                    {diffOpenPath && diffContent ? (
+                      <details className="focus-panel__diff" open>
+                        <summary>diff · {basename(diffOpenPath)}</summary>
+                        <pre><code>{diffContent}</code></pre>
+                      </details>
+                    ) : null}
+                    <div className="focus-panel__git-actions">
+                      <input
+                        className="focus-panel__git-message"
+                        value={commitMessage}
+                        onChange={(event) => setCommitMessage(event.target.value)}
+                        placeholder="feat(server): 描述本次提交（Conventional Commits）"
+                        disabled={gitBusy}
+                      />
+                      <div className="focus-panel__git-buttons">
+                        <button
+                          className="button"
+                          type="button"
+                          onClick={() => void handleCommit()}
+                          disabled={gitBusy || !commitMessage.trim()}
+                        >
+                          本地提交
+                        </button>
+                        <button
+                          className="button button--primary"
+                          type="button"
+                          onClick={() => void handlePush()}
+                          disabled={gitBusy}
+                        >
+                          推送（需审批）
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
         <form className="focus-panel__composer" onSubmit={handleSubmit}>
           <label htmlFor="task-message">输入消息</label>
           <textarea
@@ -881,3 +1043,18 @@ const PHASE_LABELS: Record<TaskState["phase"], string> = {
   done: "已完成",
   unknown: "",
 };
+
+function basename(filePath: string): string {
+  return filePath.split(/[\\/]/).pop() ?? filePath;
+}
+
+function statusLabel(status: string): string {
+  switch (status) {
+    case "modified": return "改";
+    case "added": return "增";
+    case "deleted": return "删";
+    case "untracked": return "新";
+    case "renamed": return "重命名";
+    default: return status;
+  }
+}

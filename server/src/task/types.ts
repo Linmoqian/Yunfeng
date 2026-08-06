@@ -40,6 +40,8 @@ export interface TaskState {
   thinkingLevel?: string;
   activeToolNames: string[];
   pendingApprovalIds: string[];
+  /** 任务开始时的 Git 脏文件（区分任务产生/任务开始前已有改动）。 */
+  gitBaseline?: string[];
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

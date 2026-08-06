@@ -194,6 +194,50 @@ export async function resolveIntervention(
   await readJson<{ ok: boolean }>(response);
 }
 
+// ---------------------------------------------------------------------------
+// 任务 Git 闭环
+// ---------------------------------------------------------------------------
+
+export interface TaskGitSummary {
+  isGitRepository: boolean;
+  repositoryRoot: string | null;
+  files: Array<{ filePath: string; status: string }>;
+  taskFiles: Array<{ filePath: string; status: string }>;
+  baselineFiles: Array<{ filePath: string; status: string }>;
+  baseline: string[];
+}
+
+export async function loadTaskGit(taskId: string, signal?: AbortSignal): Promise<TaskGitSummary> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/git`, { signal });
+  const data = await readJson<{ git: TaskGitSummary }>(response);
+  return data.git;
+}
+
+export async function loadTaskGitDiff(taskId: string, filePath: string, signal?: AbortSignal): Promise<{ supported: boolean; status?: string; patch?: string }> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/git/diff?path=${encodeURIComponent(filePath)}`, { signal });
+  return readJson<{ supported: boolean; status?: string; patch?: string }>(response);
+}
+
+export async function commitTaskChanges(taskId: string, message: string): Promise<{ commitSha?: string; message?: string }> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/git/commit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  // 允许 409（被拒绝）也读取结构化错误
+  const data = await readJson<{ ok: boolean; commit?: { commitSha?: string; message?: string } }>(response);
+  return data.commit ?? {};
+}
+
+export async function requestTaskPush(taskId: string): Promise<{ approvalRequestId?: string; push?: { branch?: string; remote?: string } }> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/git`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  return readJson<{ ok: boolean; approvalRequestId?: string; push?: { branch?: string; remote?: string } }>(response);
+}
+
 export async function sendTaskCommand(taskId: string, command: TaskCommand): Promise<unknown> {
   const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/commands`, {
     method: "POST",
