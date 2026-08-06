@@ -134,7 +134,7 @@ export function WorkbenchPage() {
   }));
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({ models: [], defaultModel: null });
+  const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({ models: [], defaultModel: null, thinkingLevels: {}, thinkingLevelPins: {} });
   const [modelLoading, setModelLoading] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
   const [modelReloadKey, setModelReloadKey] = useState(0);
@@ -399,6 +399,7 @@ export function WorkbenchPage() {
             task={currentTask}
             onClose={() => dispatch({ type: "selectTask", taskId: null })}
             onTaskUpdated={(task) => dispatch({ type: "taskUpdated", task })}
+            modelCatalog={modelCatalog}
           />
         ) : currentSession ? (
           <TaskFocusPanel
@@ -408,6 +409,7 @@ export function WorkbenchPage() {
               dispatch({ type: "taskUpdated", task });
               dispatch({ type: "selectTask", taskId: task.id });
             }}
+            modelCatalog={modelCatalog}
           />
         ) : (
           <section className="session-overview" aria-labelledby="workbench-title">

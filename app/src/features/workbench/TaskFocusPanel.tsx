@@ -3,10 +3,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   importLegacySession,
+  loadTaskCapabilities,
   loadTaskConversation,
   sendTaskCommand,
   subscribeTaskEvents,
+  type ModelCatalog,
   type SessionSnapshot,
+  type TaskCapabilitiesResult,
   type TaskState,
   type TaskStreamEvent,
 } from "../../services/taskService";
@@ -17,6 +20,7 @@ interface TaskFocusPanelProps {
   legacySession?: SessionSnapshot;
   onClose: () => void;
   onTaskUpdated: (task: TaskState) => void;
+  modelCatalog?: ModelCatalog;
 }
 
 const STREAMING_MESSAGE_ID = "__streaming_assistant__";
@@ -100,7 +104,7 @@ const STATUS_TEXT: Record<TaskState["status"], { label: string; tone: string }> 
   archived: { label: "已归档", tone: "completed" },
 };
 
-export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated }: TaskFocusPanelProps) {
+export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, modelCatalog }: TaskFocusPanelProps) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -111,6 +115,9 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated }: 
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [localTask, setLocalTask] = useState<TaskState | null>(task ?? null);
   const conversationLogRef = useRef<HTMLDivElement>(null);
+  const [capabilities, setCapabilities] = useState<TaskCapabilitiesResult | null>(null);
+  const [configBusy, setConfigBusy] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   // 任务对象：优先真实任务，legacy 会话在首次操作后接入任务
   const activeTask = task ?? localTask;
@@ -220,6 +227,23 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated }: 
     const log = conversationLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
   }, [conversation, toolActivity]);
+
+  // 加载任务能力（工具列表、当前模型/思考等级），供运行配置切换 UI
+  const activeTaskId = activeTask?.id ?? "";
+  useEffect(() => {
+    if (!activeTaskId || isLegacy) {
+      setCapabilities(null);
+      return;
+    }
+    const controller = new AbortController();
+    void loadTaskCapabilities(activeTaskId, controller.signal)
+      .then(setCapabilities)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setCapabilities(null);
+      });
+    return () => controller.abort();
+  }, [activeTaskId, isLegacy]);
 
   // localTask 变化时上报父级；用微任务避开渲染期间 setState 父组件的问题。
   const prevTaskRef = useRef<TaskState | null | undefined>(task);
@@ -380,6 +404,61 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated }: 
 
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
 
+  const configDisabled = running || busyCommand !== null || configBusy;
+  const modelKey = (capa: TaskCapabilitiesResult): string =>
+    capa.model ? `${capa.model.provider}:${capa.model.modelId}` : "";
+  const selectedModelKey = capabilities ? modelKey(capabilities) : "";
+  const currentThinkingLevels = (modelCatalog?.thinkingLevels ?? {})[selectedModelKey] ?? [];
+
+  async function handleSetModel(nextKey: string) {
+    if (!activeTask || !nextKey) return;
+    const [provider, modelId] = nextKey.split(":");
+    if (!provider || !modelId) return;
+    setConfigBusy(true);
+    try {
+      await sendTaskCommand(activeTask.id, { type: "setModel", provider, modelId });
+      setFeedback(`已切换到 ${modelId}。`);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "切换模型失败。");
+    } finally {
+      setConfigBusy(false);
+    }
+  }
+
+  async function handleSetThinkingLevel(level: string) {
+    if (!activeTask) return;
+    setConfigBusy(true);
+    try {
+      await sendTaskCommand(activeTask.id, { type: "setThinkingLevel", level });
+      setFeedback(`思考等级已设为 ${level}。`);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "切换思考等级失败。");
+    } finally {
+      setConfigBusy(false);
+    }
+  }
+
+  async function handleToggleTool(toolName: string, active: boolean) {
+    if (!activeTask || !capabilities) return;
+    const draft = active
+      ? capabilities.tools.map((tool) => (tool.name === toolName ? { ...tool, active: false } : tool))
+      : capabilities.tools.map((tool) => (tool.name === toolName ? { ...tool, active: true } : tool));
+    setCapabilities((current) => (current ? { ...current, tools: draft } : current));
+    setConfigBusy(true);
+    try {
+      const names = draft.filter((tool) => tool.active).map((tool) => tool.name);
+      await sendTaskCommand(activeTask.id, { type: "setTools", toolNames: names });
+      setFeedback(toolName === "" ? "" : "工具已更新。");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "更新工具失败。");
+      // 回滚
+      const refreshed = await loadTaskCapabilities(activeTask.id).catch(() => null);
+      if (refreshed) setCapabilities(refreshed);
+    } finally {
+      setConfigBusy(false);
+    }
+  }
+
   const sendDisabled = sending || streamStatus === "streaming" || !message.trim();
 
   return (
@@ -461,6 +540,76 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated }: 
             ) : null}
             {queueStatus ? <span className="focus-panel__queue-status">{queueStatus}</span> : null}
           </div>
+        ) : null}
+
+        {activeTask && capabilities ? (
+          <section className="focus-panel__config" aria-label="运行配置">
+            <button
+              type="button"
+              className="focus-panel__config-toggle"
+              onClick={() => setConfigOpen((open) => !open)}
+              aria-expanded={configOpen}
+            >
+              运行配置{configDisabled ? " · 运行中禁切" : ""}
+              <span className="focus-panel__config-chevron" aria-hidden="true">{configOpen ? "▾" : "▸"}</span>
+            </button>
+            {configOpen ? (
+              <div className="focus-panel__config-body">
+                <div className="focus-panel__config-field">
+                  <label htmlFor="config-model">模型</label>
+                  <select
+                    id="config-model"
+                    value={selectedModelKey}
+                    onChange={(event) => void handleSetModel(event.target.value)}
+                    disabled={configDisabled}
+                  >
+                    {(modelCatalog?.models ?? []).map((model) => (
+                      <option key={`${model.provider}:${model.id}`} value={`${model.provider}:${model.id}`}>
+                        {model.name}（{model.provider}）
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {currentThinkingLevels.length > 0 ? (
+                  <div className="focus-panel__config-field">
+                    <label htmlFor="config-thinking">思考等级</label>
+                    <select
+                      id="config-thinking"
+                      value={capabilities.thinkingLevel ?? ""}
+                      onChange={(event) => void handleSetThinkingLevel(event.target.value)}
+                      disabled={configDisabled}
+                    >
+                      {currentThinkingLevels.map((level) => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <p className="focus-panel__config-note">当前模型不支持切分思考等级。</p>
+                )}
+                <div className="focus-panel__config-field">
+                  <span className="focus-panel__config-label">工具</span>
+                  {capabilities.tools.length === 0 ? (
+                    <p className="focus-panel__config-note">暂无工具信息。</p>
+                  ) : (
+                    <div className="focus-panel__tool-list">
+                      {capabilities.tools.map((tool) => (
+                        <label key={tool.name} className="tool-switch">
+                          <input
+                            type="checkbox"
+                            checked={tool.active}
+                            onChange={(event) => void handleToggleTool(tool.name, event.target.checked)}
+                            disabled={configDisabled}
+                          />
+                          <span>{tool.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </section>
         ) : null}
 
         <form className="focus-panel__composer" onSubmit={handleSubmit}>

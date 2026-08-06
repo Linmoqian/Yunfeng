@@ -118,6 +118,8 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
                     {"provider": "openai", "id": "gpt-5-mini", "name": "GPT-5 mini"},
                 ],
                 "defaultModel": {"provider": "anthropic", "modelId": "claude-sonnet"},
+                "thinkingLevels": {"anthropic:claude-sonnet": ["off", "low", "high"]},
+                "thinkingLevelPins": {},
             }),
         )
         return
@@ -192,6 +194,23 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
                 {"id": "user-1", "role": "user", "content": "检查发布风险"},
                 {"id": "assistant-1", "role": "assistant", "content": "这是 **历史消息**。\n\n```ts\nconst ready = true;\n```"},
             ]}}),
+        )
+        return
+
+    if "/api/tasks/" in path and path.endswith("/capabilities"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"capabilities": {
+                "model": {"provider": "anthropic", "modelId": "claude-sonnet"},
+                "thinkingLevel": "low",
+                "activeTools": [],
+                "tools": [
+                    {"name": "read", "active": True},
+                    {"name": "bash", "active": True},
+                    {"name": "edit", "active": True},
+                ],
+            }}),
         )
         return
 
@@ -296,6 +315,12 @@ def verify_task_workbench(page: Page) -> None:
     # 运行控制：中止 / 清空排队
     expect(panel.get_by_role("button", name="中止运行")).to_be_visible()
     expect(panel.get_by_role("button", name="清空排队")).to_be_visible()
+    # 运行配置：打开后模型/思考等级/工具切换在运行中禁用
+    panel.get_by_role("button", name="运行配置 · 运行中禁切").click()
+    expect(panel.get_by_label("模型")).to_be_disabled()
+    expect(panel.get_by_label("思考等级")).to_be_disabled()
+    expect(panel.get_by_text("bash")).to_be_visible()
+    panel.get_by_role("button", name="运行配置 · 运行中禁切").click()
     # steer/followUp 切换（运行中默认 steer）
     expect(panel.get_by_role("group", name="下一轮处理方式")).to_be_visible()
     expect(panel.get_by_role("button", name="steer 影响当前运行")).to_have_attribute("aria-pressed", "true")

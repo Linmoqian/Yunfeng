@@ -1541,6 +1541,106 @@
   }
 }
 
+/* 运行配置（模型/思考等级/工具切换） */
+.focus-panel__config {
+  margin-top: 22px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.focus-panel__config-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.focus-panel__config-chevron {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.focus-panel__config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 18px;
+}
+
+.focus-panel__config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.focus-panel__config-field > label,
+.focus-panel__config-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.focus-panel__config-field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--canvas);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.focus-panel__config-field select:disabled {
+  opacity: 0.55;
+}
+
+.focus-panel__config-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.focus-panel__tool-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tool-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: border-color 180ms var(--motion-ease), color 180ms var(--motion-ease);
+}
+
+.tool-switch:hover {
+  border-color: var(--accent);
+}
+
+.tool-switch input {
+  accent-color: var(--accent);
+}
+
+.tool-switch:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .session-overview__summary--attention strong {
   color: var(--attention);
 }

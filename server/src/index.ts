@@ -34,6 +34,7 @@ import {
 } from "./routes.js";
 import { destroyAllSessions } from "./rpc-manager.js";
 import {
+  handleTaskCapabilities,
   handleTaskCommands,
   handleTaskConversation,
   handleTaskCreate,
@@ -156,6 +157,10 @@ const server = createServer(async (req, res) => {
     const taskConversationMatch = route.match(/^\/tasks\/([^/]+)\/conversation$/);
     if (taskConversationMatch && method === "GET") {
       return sendResult(res, await handleTaskConversation(decodeURIComponent(taskConversationMatch[1]), query));
+    }
+    const taskCapabilitiesMatch = route.match(/^\/tasks\/([^/]+)\/capabilities$/);
+    if (taskCapabilitiesMatch && method === "GET") {
+      return sendResult(res, await handleTaskCapabilities(decodeURIComponent(taskCapabilitiesMatch[1])));
     }
     const taskCommandsMatch = route.match(/^\/tasks\/([^/]+)\/commands$/);
     if (taskCommandsMatch && method === "POST") {

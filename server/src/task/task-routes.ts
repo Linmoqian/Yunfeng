@@ -183,6 +183,7 @@ export async function handleTaskConversation(id: string, query: URLSearchParams)
 }
 
 export async function handleTaskCommands(id: string, body: Record<string, unknown>): Promise<RouteResult> {
+
   const { store, runtime, hub } = getTaskContext();
   const state = store.get(id);
   if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
@@ -202,6 +203,41 @@ export async function handleTaskCommands(id: string, body: Record<string, unknow
       return jsonApi(json({ error: apiError(error instanceof CommandRejectedError ? error.code : "task_not_found", error.message, { status: error instanceof CommandRejectedError ? 409 : 404, retryable: false }) }), error);
     }
     return jsonApi(json({ error: apiError("command_failed", error instanceof Error ? error.message : String(error)) }), error);
+  }
+}
+
+/** 任务能力：当前模型/思考等级/工具，供前端切换 UI（运行中由命令层拒绝切换）。 */
+export async function handleTaskCapabilities(id: string): Promise<RouteResult> {
+  const { store } = getTaskContext();
+  const state = store.get(id);
+  if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+
+  try {
+    await ensureSessionForTask(state.sessionId);
+    const wrapper = getRpcSession(state.sessionId);
+    let tools: Array<{ name: string; active: boolean }> = [];
+    if (wrapper?.isAlive()) {
+      try {
+        const toolResult = (await wrapper.send({ type: "get_tools" })) as
+          | Array<{ name: string; active?: boolean }>
+          | undefined;
+        tools = Array.isArray(toolResult)
+          ? toolResult.map((tool) => ({ name: tool.name, active: Boolean(tool.active) }))
+          : [];
+      } catch {
+        tools = [];
+      }
+    }
+    return json({
+      capabilities: {
+        model: state.model ?? null,
+        thinkingLevel: state.thinkingLevel ?? null,
+        activeTools: state.activeToolNames,
+        tools,
+      },
+    });
+  } catch (error) {
+    return jsonApi(json({ error: apiError("capabilities_failed", error instanceof Error ? error.message : String(error)) }), error);
   }
 }
 

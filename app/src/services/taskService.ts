@@ -83,9 +83,9 @@ export interface ModelSelection {
 export interface ModelCatalog {
   models: ModelOption[];
   defaultModel: ModelSelection | null;
+  thinkingLevels: Record<string, string[]>;
+  thinkingLevelPins: Record<string, string>;
 }
-
-// ---------------------------------------------------------------------------
 // 读取
 // ---------------------------------------------------------------------------
 
@@ -184,6 +184,19 @@ export async function sendTaskCommand(taskId: string, command: TaskCommand): Pro
   return data.result;
 }
 
+export interface TaskCapabilitiesResult {
+  model: ModelSelection | null;
+  thinkingLevel: string | null;
+  activeTools: string[];
+  tools: Array<{ name: string; active: boolean }>;
+}
+
+export async function loadTaskCapabilities(taskId: string, signal?: AbortSignal): Promise<TaskCapabilitiesResult> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/capabilities`, { signal });
+  const data = await readJson<{ capabilities: TaskCapabilitiesResult }>(response);
+  return data.capabilities;
+}
+
 // ---------------------------------------------------------------------------
 // 事件订阅
 // ---------------------------------------------------------------------------
@@ -240,10 +253,14 @@ export async function loadModelCatalog(cwd?: string, signal?: AbortSignal): Prom
   const data = await readJson<{
     modelList?: ModelOption[];
     defaultModel?: ModelSelection | null;
+    thinkingLevels?: Record<string, string[]>;
+    thinkingLevelPins?: Record<string, string>;
   }>(response);
   return {
     models: Array.isArray(data.modelList) ? data.modelList : [],
     defaultModel: data.defaultModel ?? null,
+    thinkingLevels: data.thinkingLevels ?? {},
+    thinkingLevelPins: data.thinkingLevelPins ?? {},
   };
 }
 
