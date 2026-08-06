@@ -42,6 +42,8 @@ import {
   handleTaskEventsGlobal,
   handleTaskGet,
   handleTaskImport,
+  handleTaskInterventionResolve,
+  handleTaskInterventions,
   handleTaskPatch,
   handleTasksGet,
 } from "./task/task-routes.js";
@@ -165,6 +167,18 @@ const server = createServer(async (req, res) => {
     const taskCommandsMatch = route.match(/^\/tasks\/([^/]+)\/commands$/);
     if (taskCommandsMatch && method === "POST") {
       return sendResult(res, await handleTaskCommands(decodeURIComponent(taskCommandsMatch[1]), await readJsonBody(req)));
+    }
+    const taskInterventionsMatch = route.match(/^\/tasks\/([^/]+)\/interventions$/);
+    if (taskInterventionsMatch && method === "GET") {
+      return sendResult(res, await handleTaskInterventions(decodeURIComponent(taskInterventionsMatch[1])));
+    }
+    const taskInterventionResolveMatch = route.match(/^\/tasks\/([^/]+)\/interventions\/([^/]+)$/);
+    if (taskInterventionResolveMatch && method === "POST") {
+      return sendResult(res, await handleTaskInterventionResolve(
+        decodeURIComponent(taskInterventionResolveMatch[1]),
+        decodeURIComponent(taskInterventionResolveMatch[2]),
+        await readJsonBody(req),
+      ));
     }
     const taskPatchMatch = route.match(/^\/tasks\/([^/]+)$/);
     if (taskPatchMatch && method === "PATCH") {

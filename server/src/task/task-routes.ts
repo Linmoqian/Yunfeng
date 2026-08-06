@@ -241,6 +241,36 @@ export async function handleTaskCapabilities(id: string): Promise<RouteResult> {
   }
 }
 
+/** 列出任务待审批的介入请求。 */
+export async function handleTaskInterventions(id: string): Promise<RouteResult> {
+  const { store, runtime } = getTaskContext();
+  if (!store.get(id)) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+  return json({ interventions: runtime.listInterventions(id) });
+}
+
+/** 提交审批：允许一次 / 拒绝。 */
+export async function handleTaskInterventionResolve(id: string, requestId: string, body: Record<string, unknown>): Promise<RouteResult> {
+  const { store, runtime, hub } = getTaskContext();
+  const state = store.get(id);
+  if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+
+  const decision = body.decision;
+  if (decision !== "approve" && decision !== "reject") {
+    return jsonApi(json({ error: apiError("bad_request", "decision 必须是 approve 或 reject", { status: 400 }) }), null);
+  }
+  const value = decision === "approve" ? true : false;
+  // 也可携带 select/input 的选择值
+  const choice = typeof body.value === "string" ? body.value : undefined;
+  const finalValue: string | boolean | null = choice !== undefined && choice.length > 0 ? choice : value;
+
+  const result = runtime.resolveIntervention(id, requestId, finalValue);
+  if (!result.ok) {
+    return jsonApi(json({ error: apiError("intervention_not_found", result.reason === "already_resolved" ? "该审批已被处理" : "审批请求不存在或已失效", { status: 404 }) }), null);
+  }
+  await hub.emit(id, "task_updated", { status: state.status, pendingApprovalIds: state.pendingApprovalIds });
+  return json({ ok: true });
+}
+
 /** 工作台任务摘要事件流（所有任务状态事件）。 */
 export function handleTaskEventsGlobal(): RouteResult {
   const { hub, store } = getTaskContext();

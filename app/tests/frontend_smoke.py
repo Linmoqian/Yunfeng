@@ -69,6 +69,13 @@ TASKS = [
         "updatedAt": "2026-08-05T07:40:00.000Z",
     }),
     make_task({
+        "id": "task-approval",
+        "title": "确认推送",
+        "status": "waiting_approval",
+        "pendingApprovalIds": ["approval-1"],
+        "updatedAt": "2026-08-05T07:38:00.000Z",
+    }),
+    make_task({
         "id": "task-completed",
         "title": "论文阅读",
         "status": "completed",
@@ -215,15 +222,36 @@ def fulfill_api(route: Route, empty: bool = False) -> None:
         return
 
     if "/api/tasks/" in path and path.endswith("/events"):
-        # 打开任务时订阅该任务事件流；data 不含 status 以避免前端误改变任务状态
         task_id = path.split("/api/tasks/")[1].split("/")[0]
-        event = {"type": "task_updated", "taskId": task_id, "data": {"phase": "planning"}}
-        body = f"data: {json.dumps(event)}\n\n"
+        events = []
+        if task_id == "task-approval":
+            events.append({"type": "approval_requested", "taskId": task_id, "data": {
+                "requestId": "approval-1", "kind": "confirm", "title": "确认推送",
+                "message": "要推送到远程仓库吗？", "safeLabel": "git push", "impact": "推送到 origin",
+            }})
+        events.append({"type": "task_updated", "taskId": task_id, "data": {"phase": "planning"}})
+        body = "".join(f"data: {json.dumps(event)}\n\n" for event in events)
         route.fulfill(
             status=200,
             headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache"},
             body=body,
         )
+        return
+
+    if "/api/tasks/" in path and path.endswith("/interventions"):
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"interventions": [{
+                "id": "approval-1", "taskId": "task-approval", "kind": "confirm",
+                "title": "确认推送", "message": "要推送到远程仓库吗？", "safeLabel": "git push",
+                "impact": "推送到 origin", "status": "pending", "createdAt": "2026-08-05T07:38:00.000Z",
+            }]}),
+        )
+        return
+
+    if "/api/tasks/" in path and path.endswith("/interventions/approval-1"):
+        route.fulfill(status=200, content_type="application/json", body=json.dumps({"ok": True}))
         return
 
     if "/api/tasks/" in path and request.method == "GET":
@@ -268,6 +296,7 @@ def verify_task_workbench(page: Page) -> None:
     create_payloads: list[dict] = []
     import_payloads: list[dict] = []
     command_payloads: list[dict] = []
+    approval_payloads: list[dict] = []
 
     def route_api(route: Route) -> None:
         request = route.request
@@ -277,6 +306,8 @@ def verify_task_workbench(page: Page) -> None:
                 create_payloads.append(payload)
             elif request.url.endswith("/api/tasks/import-session"):
                 import_payloads.append(payload)
+            elif "/interventions/" in request.url:
+                approval_payloads.append(payload)
             elif "/api/tasks/" in request.url and request.url.endswith("/commands"):
                 command_payloads.append(payload)
         fulfill_api(route)
@@ -294,6 +325,7 @@ def verify_task_workbench(page: Page) -> None:
     expect(page.locator(".session-sidebar__group-heading", has_text="需要你介入")).to_be_visible()
     expect(page.locator(".session-sidebar__group-heading", has_text="正在进行")).to_be_visible()
     expect(page.locator(".session-sidebar__group-heading", has_text="等待继续")).to_be_visible()
+    expect(page.locator(".session-sidebar__group-heading", has_text="等待审批")).to_be_visible()
     expect(page.locator(".session-sidebar__group-heading", has_text="已完成")).to_be_visible()
     expect(page.locator(".session-sidebar__group-heading", has_text="旧会话")).to_be_visible()
     # 归档默认隐藏
@@ -307,6 +339,18 @@ def verify_task_workbench(page: Page) -> None:
     expect(panel.get_by_text("模型请求超时，需要你决定是否重试")).to_be_visible()
     # URL 深链接
     assert "?task=task-attention" in page.url
+    page.get_by_role("button", name="关闭任务").click()
+
+    # 审批：等待审批任务显示审批卡，允许一次触发审批 API
+    page.get_by_role("button", name="打开任务：确认推送").click()
+    panel = page.get_by_role("region", name="当前任务")
+    approval_card = panel.locator(".approval-card")
+    expect(approval_card).to_be_visible()
+    expect(approval_card.get_by_text("确认推送")).to_be_visible()
+    expect(approval_card.get_by_text("git push")).to_be_visible()
+    # 允许一次 → 触发审批 API
+    approval_card.get_by_role("button", name="允许一次").click()
+    assert any(cmd.get("decision") == "approve" for cmd in approval_payloads)
     page.get_by_role("button", name="关闭任务").click()
 
     # 打开运行中任务：显示“Agent 正在工作”与阶段、运行控制、steer/followUp 切换

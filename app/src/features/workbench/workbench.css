@@ -813,6 +813,71 @@
   font-size: 12px;
 }
 
+/* 审批卡 */
+.approval-card {
+  align-self: stretch;
+  margin: 4px 0;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--attention) 45%, var(--border-subtle));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--attention) 6%, var(--surface));
+  box-shadow: var(--shadow-attention);
+}
+
+.approval-card__eyebrow {
+  margin: 0 0 8px;
+  color: var(--attention);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.approval-card__title {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.approval-card__message {
+  margin: 0 0 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.approval-card__impact {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.approval-card__select,
+.approval-card__input {
+  width: 100%;
+  min-height: 38px;
+  margin-bottom: 12px;
+  padding: 0 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--canvas);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.approval-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.approval-card__actions .button {
+  min-height: 34px;
+  padding: 0 14px;
+}
+
 .focus-panel__section {
   margin-top: 36px;
 }

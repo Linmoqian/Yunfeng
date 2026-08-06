@@ -174,6 +174,26 @@ export async function renameTask(taskId: string, name: string): Promise<TaskStat
   return data.task;
 }
 
+export async function loadTaskInterventions(taskId: string, signal?: AbortSignal): Promise<unknown[]> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/interventions`, { signal });
+  const data = await readJson<{ interventions?: unknown[] }>(response);
+  return data.interventions ?? [];
+}
+
+export async function resolveIntervention(
+  taskId: string,
+  requestId: string,
+  decision: "approve" | "reject",
+  value?: string,
+): Promise<void> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/interventions/${encodeURIComponent(requestId)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ decision, ...(value ? { value } : {}) }),
+  });
+  await readJson<{ ok: boolean }>(response);
+}
+
 export async function sendTaskCommand(taskId: string, command: TaskCommand): Promise<unknown> {
   const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/commands`, {
     method: "POST",

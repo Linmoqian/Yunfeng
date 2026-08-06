@@ -138,6 +138,60 @@ test("TaskEventHub 清理回调：退订后不再收到事件", async () => {
   }
 });
 
+test("审批：创建介入→任务进 waiting_approval→批准→待决清空", async () => {
+  const ctx = tempContext();
+  try {
+    const state = ctx.store.create({ sessionId: "a1", cwd: "/tmp/proj", title: "审批", source: "task" });
+    const intervention = await ctx.runtime.createIntervention(state.id, {
+      kind: "confirm",
+      title: "确认推送",
+      message: "要推送到远程吗？",
+      safeLabel: "git push",
+    });
+    // 任务进入等待审批，待决列表含请求 id
+    assert.equal(ctx.store.get(state.id)!.status, "waiting_approval");
+    assert.ok(ctx.store.get(state.id)!.pendingApprovalIds.includes(intervention.id));
+    assert.equal(ctx.store.listInterventions(state.id).length, 1);
+
+    // 批准
+    const result = ctx.runtime.resolveIntervention(state.id, intervention.id, true);
+    assert.deepEqual(result, { ok: true });
+    assert.equal(ctx.store.get(state.id)!.pendingApprovalIds.length, 0);
+    assert.equal(ctx.runtime.listInterventions(state.id).length, 0, "已解决的介入不应再出现在待决列表");
+    // store 层仍保留 resolved 记录（用于审计）
+    assert.equal(ctx.store.listInterventions(state.id)[0]?.status, "resolved");
+
+    // 重复解析拒绝
+    const again = ctx.runtime.resolveIntervention(state.id, intervention.id, true);
+    assert.equal(again.ok, false);
+  } finally {
+    ctx.cleanup();
+  }
+});
+
+test("审批：未决介入在服务重启后失效，绝不自动放行", async () => {
+  const ctx = tempContext();
+  try {
+    const state = ctx.store.create({ sessionId: "a2", cwd: "/tmp/proj", title: "重启失效", source: "task" });
+    await ctx.runtime.createIntervention(state.id, { kind: "confirm", title: "待决", message: "" });
+    assert.equal(ctx.store.get(state.id)!.status, "waiting_approval");
+
+    // 模拟服务重启：用同一数据目录新建 runtime（构造时失效未决审批）
+    const store2 = new TaskStore({ dataDir: ctx.dir });
+    const hub2 = new TaskEventHub(store2);
+    const runtime2 = new TaskRuntime({ store: store2, hub: hub2 });
+
+    const reloaded = store2.get(state.id)!;
+    assert.equal(reloaded.status, "waiting_input", "重启后应回到等待输入");
+    assert.equal(reloaded.pendingApprovalIds.length, 0);
+    assert.equal(runtime2.listInterventions(state.id).length, 0, "重启后未决介入应失效并移出待决");
+    // store 层标记为 timed_out，绝不放行
+    assert.equal(store2.listInterventions(state.id)[0]?.status, "timed_out");
+  } finally {
+    ctx.cleanup();
+  }
+});
+
 /** 验证一个 SSE 客户端退订后不会重复推送。 */
 test("TaskEventHub SSE 客户端断开后不再推送", async () => {
   const ctx = tempContext();

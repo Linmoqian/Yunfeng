@@ -5,6 +5,8 @@ import {
   importLegacySession,
   loadTaskCapabilities,
   loadTaskConversation,
+  loadTaskInterventions,
+  resolveIntervention,
   sendTaskCommand,
   subscribeTaskEvents,
   type ModelCatalog,
@@ -44,6 +46,17 @@ interface ToolCallInfo {
   finishedAt?: string;
   isError?: boolean;
   result?: unknown;
+}
+
+interface ApprovalInfo {
+  requestId: string;
+  kind: "confirm" | "select" | "input";
+  title: string;
+  message: string;
+  safeLabel?: string;
+  impact?: string;
+  options?: string[];
+  status: "pending" | "resolved";
 }
 
  /** 工具参数/输出摘要展示（限制长度）。 */
@@ -140,6 +153,61 @@ function ToolCallCard({ call }: { call: ToolCallInfo }) {
   );
 }
 
+/** 审批卡：允许一次 / 拒绝。提供 select/input 的可选输入。 */
+function ApprovalCard({ approval, busy, onApprove, onReject }: {
+  approval: ApprovalInfo;
+  busy: boolean;
+  onApprove: (value?: string) => void;
+  onReject: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const needsInput = approval.kind !== "confirm";
+  return (
+    <article className={`approval-card approval-card--${approval.kind}`}>
+      <p className="approval-card__eyebrow">需要你审批 · {approval.kind === "confirm" ? "确认" : approval.kind === "select" ? "选择" : "输入"}</p>
+      <h4 className="approval-card__title">{approval.title}</h4>
+      {approval.message ? <p className="approval-card__message">{approval.message}</p> : null}
+      {approval.safeLabel ? <p className="approval-card__impact">操作：{approval.safeLabel}</p> : null}
+      {approval.impact ? <p className="approval-card__impact">影响范围：{approval.impact}</p> : null}
+      {approval.kind === "select" && approval.options && approval.options.length > 0 ? (
+        <select
+          className="approval-card__select"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          disabled={busy}
+        >
+          <option value="">请选择…</option>
+          {approval.options.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      ) : null}
+      {approval.kind === "input" ? (
+        <input
+          className="approval-card__input"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="输入内容"
+          disabled={busy}
+        />
+      ) : null}
+      <div className="approval-card__actions">
+        <button className="button button--quiet" type="button" onClick={onReject} disabled={busy}>
+          拒绝
+        </button>
+        <button
+          className="button button--primary"
+          type="button"
+          onClick={() => onApprove(needsInput && draft ? draft : undefined)}
+          disabled={busy || (needsInput && approval.kind === "select" && !draft)}
+        >
+          {approval.kind === "confirm" ? "允许一次" : "提交"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
 const STATUS_TEXT: Record<TaskState["status"], { label: string; tone: string }> = {
   running: { label: "Agent 正在工作", tone: "running" },
   waiting_input: { label: "等待继续", tone: "waiting" },
@@ -159,6 +227,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
   const [streamError, setStreamError] = useState<string | null>(null);
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [toolCalls, setToolCalls] = useState<ToolCallInfo[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalInfo[]>([]);
   const [localTask, setLocalTask] = useState<TaskState | null>(task ?? null);
   const conversationLogRef = useRef<HTMLDivElement>(null);
   const [capabilities, setCapabilities] = useState<TaskCapabilitiesResult | null>(null);
@@ -183,6 +252,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
     setStreamError(null);
     setToolActivity(null);
     setToolCalls([]);
+    setApprovals([]);
   }, []);
 
   useEffect(() => {
@@ -272,6 +342,29 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
           item.id === STREAMING_MESSAGE_ID ? { ...item, id: `assistant-${Date.now()}`, streaming: false } : item
         )));
       }
+      if (event.type === "approval_requested") {
+        const data = event.data as ApprovalInfo & { requestId?: string } | undefined;
+        const requestId = data?.requestId;
+        if (requestId) {
+          setApprovals((current) => [...current.filter((a) => a.requestId !== requestId), {
+            requestId,
+            kind: data.kind ?? "confirm",
+            title: data.title ?? "审批",
+            message: data.message ?? "",
+            safeLabel: data.safeLabel,
+            impact: data.impact,
+            options: data.options,
+            status: "pending",
+          }]);
+        }
+      }
+      if (event.type === "approval_resolved") {
+        const data = event.data as { requestId?: string } | undefined;
+        const requestId = data?.requestId;
+        if (requestId) {
+          setApprovals((current) => current.filter((a) => a.requestId !== requestId));
+        }
+      }
     }, (connected) => {
       if (!connected) setStreamStatus("connecting");
     });
@@ -287,6 +380,26 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
         setStreamStatus("error");
       })
       .finally(() => setConversationLoading(false));
+
+    // 加载初始待审批介入（刷新页面后待审批仍存在）
+    void loadTaskInterventions(taskId, controller.signal)
+      .then((items) => {
+        const raw = items as Array<Record<string, unknown>>;
+        const pending = raw
+          .filter((item) => item.status === "pending")
+          .map((item) => ({
+            requestId: item.id as string,
+            kind: (item.kind as ApprovalInfo["kind"]) ?? "confirm",
+            title: (item.title as string) ?? "审批",
+            message: (item.message as string) ?? "",
+            safeLabel: item.safeLabel as string | undefined,
+            impact: item.impact as string | undefined,
+            options: item.options as string[] | undefined,
+            status: "pending" as const,
+          }));
+        if (pending.length > 0) setApprovals(pending);
+      })
+      .catch(() => { /* 忽略：审批会在 SSE 事件中到达 */ });
 
     return () => {
       controller.abort();
@@ -448,6 +561,20 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
     }
   }
 
+  async function handleApproval(requestId: string, decision: "approve" | "reject", value?: string) {
+    if (!activeTask) return;
+    setBusyCommand(`approval-${requestId}`);
+    try {
+      await resolveIntervention(activeTask.id, requestId, decision, value);
+      setApprovals((current) => current.filter((a) => a.requestId !== requestId));
+      setFeedback(decision === "approve" ? "已允许该操作。" : "已拒绝该操作。");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "审批提交失败。");
+    } finally {
+      setBusyCommand(null);
+    }
+  }
+
   async function handleRetry() {
     if (!activeTask) return;
     setBusyCommand("retry");
@@ -582,6 +709,15 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
                   ) : null}
                 </div>
               </article>
+            ))}
+            {approvals.map((approval) => (
+              <ApprovalCard
+                key={approval.requestId}
+                approval={approval}
+                busy={busyCommand === `approval-${approval.requestId}`}
+                onApprove={(value) => void handleApproval(approval.requestId, "approve", value)}
+                onReject={() => void handleApproval(approval.requestId, "reject")}
+              />
             ))}
             {toolCalls.map((call) => (
               <ToolCallCard key={call.callId} call={call} />

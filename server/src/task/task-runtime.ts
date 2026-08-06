@@ -1,12 +1,20 @@
 // TaskRuntime：把 pi 运行时会话适配到任务领域。
 // 负责状态机、命令执行、事件映射与审批。不直接依赖前端实现。
 
+import { randomUUID } from "node:crypto";
 import type { AgentSessionWrapper } from "../rpc-manager.js";
 import type { TaskEventHub } from "./task-event-hub.js";
 import type { TaskStore } from "./task-store.js";
 import {
+  registerInterventionHandler,
+  type ConfirmRequest,
+  type InputRequest,
+  type SelectRequest,
+} from "./intervention-bridge.js";
+import {
   apiError,
   type TaskCommand,
+  type TaskIntervention,
   type TaskPhase,
   type TaskState,
   type TaskStatus,
@@ -82,10 +90,17 @@ export class TaskRuntime {
   private readonly hub: TaskEventHub;
   private readonly runWrappers = new Map<string, AgentSessionWrapper>();
   private readonly bridgedSessions = new Set<string>();
+  private readonly interventionResolvers = new Map<string, (value: string | boolean | null | undefined) => void>();
 
   constructor(init: RuntimeInit) {
     this.store = init.store;
     this.hub = init.hub;
+    // 服务重启：未决 UI 审批全部标记失效，绝不自动放行
+    for (const task of this.store.findAll()) {
+      if (task.pendingApprovalIds.length > 0 || this.store.listInterventions(task.id).some((item) => item.status === "pending")) {
+        this.invalidateInterventionsForTask(task.id);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -123,6 +138,8 @@ export class TaskRuntime {
       this.bridgedSessions.add(session.sessionId);
       this.bridgePiEvents(session);
     }
+    // 注册干预 handler，供 pi 扩展的 confirm/select/input 接入审批流
+    this.registerHandlerFor(session.sessionId, state.id);
     return state;
   }
 
@@ -398,4 +415,156 @@ export class TaskRuntime {
 
     return unsubscribe;
   }
+
+  // -------------------------------------------------------------------------
+  // 审批/介入
+  // -------------------------------------------------------------------------
+
+  private registerHandlerFor(sessionId: string, taskId: string): () => void {
+    const requestConfirm = async (request: ConfirmRequest): Promise<boolean> => {
+      const intervention = await this.createIntervention(taskId, {
+        kind: "confirm",
+        title: request.title || "确认操作",
+        message: request.message || "",
+        safeLabel: request.safeLabel,
+        impact: request.impact,
+      });
+      const value = await this.waitForIntervention(intervention.id);
+      return value === true;
+    };
+    const requestSelect = async (request: SelectRequest): Promise<string | undefined> => {
+      const intervention = await this.createIntervention(taskId, {
+        kind: "select",
+        title: request.title || "选择一项",
+        message: request.message || "",
+        options: request.options,
+        defaultValue: request.defaultValue,
+      });
+      const value = await this.waitForIntervention(intervention.id);
+      return typeof value === "string" ? value : undefined;
+    };
+    const requestInput = async (request: InputRequest): Promise<string | undefined> => {
+      const intervention = await this.createIntervention(taskId, {
+        kind: "input",
+        title: request.title || "输入文本",
+        message: request.message || "",
+        defaultValue: request.defaultValue,
+      });
+      const value = await this.waitForIntervention(intervention.id);
+      return typeof value === "string" ? value : undefined;
+    };
+
+    return registerInterventionHandler(sessionId, {
+      requestConfirm,
+      requestSelect,
+      requestInput,
+      invalidatePending: (requestId) => { void requestId; },
+    });
+  }
+
+  async createIntervention(taskId: string, input: {
+    kind: TaskIntervention["kind"];
+    title: string;
+    message: string;
+    safeLabel?: string;
+    impact?: string;
+    options?: string[];
+    defaultValue?: string;
+  }): Promise<TaskIntervention> {
+    const now = new Date().toISOString();
+    const intervention: TaskIntervention = {
+      id: randomUUID(),
+      taskId,
+      kind: input.kind,
+      title: input.title,
+      message: input.message,
+      ...(input.options && input.options.length ? { options: input.options } : {}),
+      ...(input.defaultValue !== undefined ? { defaultValue: input.defaultValue } : {}),
+      ...(input.safeLabel ? { safeLabel: input.safeLabel } : {}),
+      ...(input.impact ? { impact: input.impact } : {}),
+      status: "pending",
+      createdAt: now,
+    };
+    this.store.appendIntervention(intervention);
+    // 任务进入等待审批，并把请求 id 记入待决列表
+    this.store.update(taskId, (state) => {
+      if (!state.pendingApprovalIds.includes(intervention.id)) {
+        state.pendingApprovalIds.push(intervention.id);
+      }
+      if (state.status !== "running") state.status = "waiting_approval";
+    });
+    await this.hub.emit(taskId, "approval_requested", {
+      requestId: intervention.id,
+      kind: intervention.kind,
+      title: intervention.title,
+      message: intervention.message,
+      safeLabel: intervention.safeLabel,
+      impact: intervention.impact,
+      options: intervention.options,
+    });
+    await this.hub.emit(taskId, "task_updated", { status: "waiting_approval", pendingApprovalIds: [intervention.id] });
+    return intervention;
+  }
+
+  private async waitForIntervention(requestId: string): Promise<string | boolean | null | undefined> {
+    const resolution = new Promise<string | boolean | null | undefined>((resolve) => {
+      this.interventionResolvers.set(requestId, resolve);
+    });
+    return resolution;
+  }
+
+  listInterventions(taskId: string): TaskIntervention[] {
+    return this.store.listInterventions(taskId)
+      .filter((item) => item.status === "pending")
+      .map((item) => ({ ...item, status: "pending" as const }));
+  }
+
+  /** 提交审批结果。返回是否被解析（false 表示请求不存在或已失效）。 */
+  resolveIntervention(taskId: string, requestId: string, value: string | boolean | null): { ok: boolean; reason?: string } {
+    const storeItem = this.store.listInterventions(taskId).find((item) => item.id === requestId);
+    if (!storeItem || storeItem.status === "resolved") return { ok: false, reason: storeItem ? "already_resolved" : "not_found" };
+
+    const updated: TaskIntervention = {
+      ...storeItem,
+      value,
+      status: "resolved",
+      resolvedAt: new Date().toISOString(),
+    };
+    this.store.updateIntervention(updated);
+    const resolve = this.interventionResolvers.get(requestId);
+    if (resolve) {
+      this.interventionResolvers.delete(requestId);
+      resolve(value);
+    }
+    // 从任务待决列表移除
+    this.store.update(taskId, (state) => {
+      state.pendingApprovalIds = state.pendingApprovalIds.filter((id) => id !== requestId);
+    });
+    void this.hub.emit(taskId, "approval_resolved", { requestId, value });
+    void this.hub.emit(taskId, "task_updated", { pendingApprovalIds: this.store.get(taskId)?.pendingApprovalIds ?? [] });
+    return { ok: true };
+  }
+
+  /** 服务重启或任务失效：把未决审批标记为 timed_out（绝不自动放行）。 */
+  invalidateInterventionsForTask(taskId: string): void {
+    for (const item of this.store.listInterventions(taskId)) {
+      if (item.status === "pending") {
+        const updated = { ...item, status: "timed_out" as const, resolvedAt: new Date().toISOString() };
+        this.store.updateIntervention(updated);
+        const resolve = this.interventionResolvers.get(item.id);
+        if (resolve) {
+          this.interventionResolvers.delete(item.id);
+          resolve(null);
+        }
+      }
+    }
+    this.store.update(taskId, (state) => {
+      state.pendingApprovalIds = [];
+      if (state.status === "waiting_approval") {
+        state.status = "waiting_input";
+        state.currentAction = "待审批项已失效，请重新执行";
+      }
+    });
+  }
 }
+

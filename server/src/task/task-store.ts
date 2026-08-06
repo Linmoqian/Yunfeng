@@ -18,7 +18,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import type { TaskEvent, TaskEventName, TaskSource, TaskState } from "./types.js";
+import type { TaskEvent, TaskEventName, TaskIntervention, TaskSource, TaskState } from "./types.js";
 
 const YUNFENG_DIR = ".yunfeng";
 const TASKS_DIR = "tasks";
@@ -245,6 +245,57 @@ export class TaskStore {
 
   findAll(): TaskState[] {
     return [...this.states.values()];
+  }
+
+  // ---------------------------------------------------------------------------
+  // 介入请求持久化（审批待处理项在刷新后保持，重启后由 runtime 标失效）
+  // ---------------------------------------------------------------------------
+
+  private interventionsPath(taskId: string): string {
+    return path.join(getTasksDir(this.dataDir), taskId, "interventions.jsonl");
+  }
+
+  listInterventions(taskId: string): TaskIntervention[] {
+    const file = this.interventionsPath(taskId);
+    if (!existsSync(file)) return [];
+    const result: TaskIntervention[] = [];
+    try {
+      const content = readFileSync(file, "utf8");
+      for (const line of content.split("\n")) {
+        if (!line.trim()) continue;
+        try {
+          result.push(JSON.parse(line) as TaskIntervention);
+        } catch { /* 忽略损坏行 */ }
+      }
+    } catch {
+      return [];
+    }
+    return result;
+  }
+
+  appendIntervention(intervention: TaskIntervention): void {
+    const file = this.interventionsPath(intervention.taskId);
+    const dir = path.dirname(file);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const fd = openSync(file, "a");
+    try {
+      writeSync(fd, `${JSON.stringify(intervention)}\n`, null, "utf8");
+    } finally {
+      closeSync(fd);
+    }
+  }
+
+  updateIntervention(intervention: TaskIntervention): void {
+    // 重写整个文件以更新状态
+    const file = this.interventionsPath(intervention.taskId);
+    const all = this.listInterventions(intervention.taskId).map((item) =>
+      item.id === intervention.id ? intervention : item,
+    );
+    const dir = path.dirname(file);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const temp = `${file}.tmp`;
+    writeFileSync(temp, all.map((item) => JSON.stringify(item)).join("\n") + "\n", "utf8");
+    renameSync(temp, file);
   }
 }
 

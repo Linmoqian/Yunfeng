@@ -19,6 +19,7 @@ import { invalidateModelsCache } from "./models-cache.js";
 import { resolveVisibleModels, selectInitialModelScope } from "./model-scope.js";
 import { getProjectTrustStatus, projectTrustReloadOptions } from "./project-trust.js";
 import { persistExplicitStartupPreferences } from "./startup-preferences.js";
+import { getInterventionHandlerOrReject } from "./task/intervention-bridge.js";
 
 const CODING_TOOL_NAMES = ["read", "bash", "edit", "write", "grep", "find", "ls"];
 
@@ -527,10 +528,29 @@ export class AgentSessionWrapper {
   }
 
   private createMinimalUiContext(): unknown {
+    const sessionIdForBridge = this.sessionId || this.inner.sessionId;
+    const handler = () => getInterventionHandlerOrReject(sessionIdForBridge);
     return {
-      select: () => Promise.resolve(undefined),
-      confirm: () => Promise.resolve(false),
-      input: () => Promise.resolve(undefined),
+      select: (request: { title?: string; message?: string; options?: unknown; defaultValue?: unknown }) =>
+        handler().requestSelect({
+          title: request?.title ?? "",
+          message: request?.message ?? "",
+          options: (Array.isArray(request?.options) ? request.options : []).map(String),
+          defaultValue: typeof request?.defaultValue === "string" ? request.defaultValue : undefined,
+        }),
+      confirm: (request: { title?: string; message?: string; safeLabel?: string; impact?: string }) =>
+        handler().requestConfirm({
+          title: request?.title ?? "",
+          message: request?.message ?? "",
+          safeLabel: request?.safeLabel,
+          impact: request?.impact,
+        }),
+      input: (request: { title?: string; message?: string; defaultValue?: unknown }) =>
+        handler().requestInput({
+          title: request?.title ?? "",
+          message: request?.message ?? "",
+          defaultValue: typeof request?.defaultValue === "string" ? request.defaultValue : undefined,
+        }),
       editor: () => Promise.resolve(undefined),
       notify: () => {},
       onTerminalInput: () => () => {},

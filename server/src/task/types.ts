@@ -115,3 +115,29 @@ export function apiError(
 export function toApiErrorBody(error: { code: string; message: string; retryable: boolean; details?: unknown }): ApiErrorBody {
   return { error: { code: error.code, message: error.message, retryable: error.retryable, details: error.details } };
 }
+
+// ----------------------------------------------------------------------------
+// 审批/介入请求
+// ----------------------------------------------------------------------------
+
+export type InterventionKind = "confirm" | "select" | "input";
+
+export interface TaskIntervention {
+  id: string;
+  taskId: string;
+  kind: InterventionKind;
+  title: string;
+  message: string;
+  /** select 的可选值（confirm/input 为空）。 */
+  options?: string[];
+  /** input 的预填值。 */
+  defaultValue?: string;
+  /** confirm 的安全标签（如“git push”）。 */
+  safeLabel?: string;
+  /** 影响范围说明。 */
+  impact?: string;
+  status: "pending" | "resolved" | "timed_out";
+  value?: string | boolean | null;
+  createdAt: string;
+  resolvedAt?: string;
+}
