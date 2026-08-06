@@ -33,6 +33,18 @@ import {
   type RouteResult,
 } from "./routes.js";
 import { destroyAllSessions } from "./rpc-manager.js";
+import {
+  handleTaskCommands,
+  handleTaskConversation,
+  handleTaskCreate,
+  handleTaskEvents,
+  handleTaskEventsGlobal,
+  handleTaskGet,
+  handleTaskImport,
+  handleTaskPatch,
+  handleTasksGet,
+} from "./task/task-routes.js";
+import { getTaskContext } from "./task/task-context.js";
 
 interface CliArgs {
   port: number;
@@ -67,24 +79,21 @@ function sendResult(res: ServerResponse, result: RouteResult): void {
   });
   if (result.stream) {
     let closed = false;
+    let streamCleanup: (() => void) | undefined;
     const write = (chunk: string): void => {
       if (!closed && !res.writableEnded) res.write(chunk);
     };
-    const close = (): void => {
+    const finish = (): void => {
       if (closed) return;
       closed = true;
+      try { streamCleanup?.(); } catch { /* ignore */ }
       try { res.end(); } catch { /* ignore */ }
-      activeSse.delete(cleanup);
+      activeSse.delete(finish);
     };
-    const cleanup = (): void => {
-      if (closed) return;
-      closed = true;
-      try { res.end(); } catch { /* ignore */ }
-      activeSse.delete(cleanup);
-    };
-    activeSse.add(cleanup);
-    res.on("close", cleanup);
-    result.stream(write, close);
+    activeSse.add(finish);
+    res.on("close", finish);
+    const returned = result.stream(write, finish);
+    if (typeof returned === "function") streamCleanup = returned;
     return;
   }
   res.end(JSON.stringify(result.body ?? null));
@@ -125,6 +134,39 @@ const server = createServer(async (req, res) => {
     }
     if (method === "GET" && route === "/agent/running/events") {
       return sendResult(res, handleRunningEvents());
+    }
+
+    // 任务领域 API（阶段 0+）: /api/tasks/...
+    if (method === "GET" && route === "/tasks") {
+      return sendResult(res, await handleTasksGet(query));
+    }
+    if (method === "POST" && route === "/tasks") {
+      return sendResult(res, await handleTaskCreate(await readJsonBody(req)));
+    }
+    if (method === "POST" && route === "/tasks/import-session") {
+      return sendResult(res, await handleTaskImport(await readJsonBody(req)));
+    }
+    if (method === "GET" && route === "/tasks/events") {
+      return sendResult(res, handleTaskEventsGlobal());
+    }
+    const taskEventsMatch = route.match(/^\/tasks\/([^/]+)\/events$/);
+    if (taskEventsMatch && method === "GET") {
+      return sendResult(res, handleTaskEvents(decodeURIComponent(taskEventsMatch[1]), query));
+    }
+    const taskConversationMatch = route.match(/^\/tasks\/([^/]+)\/conversation$/);
+    if (taskConversationMatch && method === "GET") {
+      return sendResult(res, await handleTaskConversation(decodeURIComponent(taskConversationMatch[1]), query));
+    }
+    const taskCommandsMatch = route.match(/^\/tasks\/([^/]+)\/commands$/);
+    if (taskCommandsMatch && method === "POST") {
+      return sendResult(res, await handleTaskCommands(decodeURIComponent(taskCommandsMatch[1]), await readJsonBody(req)));
+    }
+    const taskPatchMatch = route.match(/^\/tasks\/([^/]+)$/);
+    if (taskPatchMatch && method === "PATCH") {
+      return sendResult(res, await handleTaskPatch(decodeURIComponent(taskPatchMatch[1]), await readJsonBody(req)));
+    }
+    if (taskPatchMatch && method === "GET") {
+      return sendResult(res, await handleTaskGet(decodeURIComponent(taskPatchMatch[1])));
     }
 
     // Sessions

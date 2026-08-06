@@ -56,7 +56,8 @@ export interface RouteResult {
   status: number;
   headers?: Record<string, string>;
   body?: unknown;
-  stream?: (write: (chunk: string) => void, close: () => void) => void;
+  /** 流式响应。可选返回清理回调，连接关闭时由服务层调用。 */
+  stream?: (write: (chunk: string) => void, close: () => void) => void | (() => void);
 }
 
 export function json(data: unknown, status = 200, headers?: Record<string, string>): RouteResult {
@@ -320,14 +321,11 @@ export async function handleAgentEvents(id: string): Promise<RouteResult> {
       const heartbeat = setInterval(() => {
         write(":\n\n");
       }, 30_000);
-      const cleanup = () => {
+      return () => {
         clearInterval(heartbeat);
         unsubscribe();
         close();
       };
-      // 返回清理函数由 index.ts 在连接断开时调用
-      (cleanup as unknown as { run: () => void }).run = cleanup;
-      (session as unknown as Record<string, unknown>).__eventCleanup = cleanup;
     },
   };
 }
@@ -348,12 +346,11 @@ export function handleRunningEvents(): RouteResult {
       const heartbeat = setInterval(() => {
         write(":\n\n");
       }, 30_000);
-      const cleanup = () => {
+      return () => {
         clearInterval(heartbeat);
         unsubscribe();
         close();
       };
-      (cleanup as unknown as { run: () => void }).run = cleanup;
     },
   };
 }
