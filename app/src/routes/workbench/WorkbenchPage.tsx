@@ -119,8 +119,6 @@ export function WorkbenchPage() {
     [filteredSummaries, archivedFilter],
   );
   const projects = useMemo(() => collectProjects(allSummaries), [allSummaries]);
-  const activeTaskCount = tasks.filter((task) => task.status !== "completed" && task.status !== "archived").length;
-
   const modelCwd = currentTask?.cwd || currentSession?.cwd || tasks.find((task) => task.cwd)?.cwd;
 
   const refreshSnapshot = useCallback(async () => {
@@ -336,9 +334,6 @@ export function WorkbenchPage() {
             />
           ) : (
             <OverviewPane
-              activeTaskCount={activeTaskCount}
-              taskCount={tasks.length}
-              attentionCount={attentionCount}
               hasAny={tasks.length > 0 || sessions.length > 0}
               onNewTask={handleOpenNewTask}
             />

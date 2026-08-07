@@ -1,6 +1,5 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { motion } from "motion/react";
 import { Bot, Check, Loader2, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState } from "react";
 
@@ -227,11 +226,8 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
       {!loading && items.length === 0 ? <p className="conversation-placeholder">这段会话还没有可展示的消息。</p> : null}
 
       {items.map((item) => (
-        <motion.article
+        <article
           key={item.id}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
           className={`conversation-message conversation-message--${item.role} ${item.streaming ? "conversation-message--streaming" : ""} ${item.status === "failed" ? "conversation-message--failed" : ""}`.trim()}
         >
           <span className="conversation-message__role">
@@ -257,7 +253,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
               </button>
             ) : null}
           </div>
-        </motion.article>
+        </article>
       ))}
 
       {approvals.map((approval) => (

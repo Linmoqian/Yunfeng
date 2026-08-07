@@ -1,5 +1,5 @@
 import { Button, Input } from "antd";
-import { Send } from "lucide-react";
+import { CircleStop, Send } from "lucide-react";
 import { useState } from "react";
 
 type StreamStatus = "connecting" | "idle" | "streaming" | "error";
@@ -9,15 +9,20 @@ interface ComposerProps {
   isLegacy: boolean;
   sending: boolean;
   streamStatus: StreamStatus;
+  stopping: boolean;
   onSubmit: (text: string, mode: "steer" | "followUp") => Promise<void>;
+  onStop: () => Promise<void>;
 }
 
-export function Composer({ running, isLegacy, sending, streamStatus, onSubmit }: ComposerProps) {
+export function Composer({ running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [nextActionMode, setNextActionMode] = useState<"steer" | "followUp">("steer");
 
-  const disabled = sending || streamStatus === "streaming" || !draft.trim();
+  const streaming = streamStatus === "streaming";
+  const hasDraft = Boolean(draft.trim());
+  const showStop = streaming || (running && !hasDraft);
+  const disabled = sending || streaming || !draft.trim();
 
   async function handleSubmit() {
     if (!draft.trim() || sending || streamStatus === "streaming") return;
@@ -39,7 +44,7 @@ export function Composer({ running, isLegacy, sending, streamStatus, onSubmit }:
         void handleSubmit();
       }}
     >
-      <label htmlFor="task-message">输入消息</label>
+      <label className="sr-only" htmlFor="task-message">输入消息</label>
       <Input.TextArea
         id="task-message"
         value={draft}
@@ -50,12 +55,12 @@ export function Composer({ running, isLegacy, sending, streamStatus, onSubmit }:
             void handleSubmit();
           }
         }}
-        placeholder={running ? "Agent 正在运行，将作为下一条指令" : "输入消息，按 Enter 发送；Shift + Enter 换行"}
-        rows={2}
+        placeholder={running ? "Agent 正在运行，可停止后继续输入" : "给 Yunfeng 发送消息"}
+        autoSize={{ minRows: 1, maxRows: 6 }}
         disabled={sending}
         maxLength={10000}
       />
-      {running ? (
+      {running && hasDraft ? (
         <div className="focus-panel__mode-switch" role="group" aria-label="下一轮处理方式">
           <span className="focus-panel__mode-label">运行中发送为</span>
           <Button
@@ -82,15 +87,31 @@ export function Composer({ running, isLegacy, sending, streamStatus, onSubmit }:
             {feedback}
           </span>
         ) : null}
-        <Button
-          type="primary"
-          onClick={() => void handleSubmit()}
-          disabled={disabled}
-          loading={sending}
-          icon={<Send size={15} />}
-        >
-          {sending ? "正在发送" : isLegacy ? "发送并接入任务" : running ? (nextActionMode === "steer" ? "转向" : "发送到下一轮") : "发送"}
-        </Button>
+        {showStop ? (
+          <Button
+            className="focus-panel__composer-submit"
+            type="primary"
+            shape="circle"
+            onClick={() => void onStop()}
+            disabled={stopping}
+            loading={stopping}
+            icon={<CircleStop size={17} />}
+            aria-label="停止生成"
+            title="停止生成"
+          />
+        ) : (
+          <Button
+            className="focus-panel__composer-submit"
+            type="primary"
+            shape="circle"
+            onClick={() => void handleSubmit()}
+            disabled={disabled}
+            loading={sending}
+            icon={<Send size={16} />}
+            aria-label={isLegacy ? "发送并接入任务" : running ? (nextActionMode === "steer" ? "转向" : "发送到下一轮") : "发送消息"}
+            title="发送消息"
+          />
+        )}
       </div>
     </form>
   );

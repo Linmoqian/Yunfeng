@@ -1,6 +1,6 @@
-import { App, Button, Tag } from "antd";
+import { App, Button } from "antd";
 import { motion } from "motion/react";
-import { ChevronUp, Settings2, X } from "lucide-react";
+import { Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -76,7 +76,6 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
   });
 
   const statusInfo = activeTask ? STATUS_TEXT[activeTask.status] : null;
-  const title = activeTask?.title ?? legacySession?.name?.trim() ?? legacySession?.firstMessage ?? "旧会话";
   const projectName = activeTask ? getProjectName(activeTask.cwd) : getProjectName(legacySession?.cwd);
   const running = activeTask?.status === "running" || activeTask?.status === "waiting_approval";
 
@@ -134,6 +133,19 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
     }
   }
 
+  async function handleStop() {
+    if (!activeTask || busyCommand) return;
+    setBusyCommand("abort");
+    try {
+      await sendTaskCommand(activeTask.id, { type: "abort" });
+      message.success("已停止生成。");
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "停止生成失败。");
+    } finally {
+      setBusyCommand(null);
+    }
+  }
+
   function copyMessage(text: string) {
     void navigator.clipboard.writeText(text).then(
       () => message.success("已复制。"),
@@ -185,17 +197,16 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
     >
       <div className="focus-panel__body">
         <header className="focus-panel__header">
-          <div>
-            <p className="eyebrow">{projectName}</p>
-            <h2 id="focus-panel-title">{title}</h2>
+          <div className="focus-panel__task-meta">
+            <span className="focus-panel__project">{projectName}</span>
             {statusInfo ? (
-              <p className={`focus-panel__status focus-panel__status--${statusInfo.tone}`}>
+              <span className={`focus-panel__status focus-panel__status--${statusInfo.tone}`}>
                 {statusInfo.label}
                 {activeTask?.phase && activeTask.phase !== "unknown" ? ` · ${PHASE_LABELS[activeTask.phase]}` : ""}
                 {activeTask?.attentionReason ? ` · ${activeTask.attentionReason}` : ""}
-              </p>
+              </span>
             ) : (
-              <p className="focus-panel__status focus-panel__status--legacy">旧会话 · 首次发送消息后接入任务</p>
+              <span className="focus-panel__status focus-panel__status--legacy">旧会话 · 首次发送消息后接入任务</span>
             )}
           </div>
           <div className="focus-panel__header-actions">
@@ -213,19 +224,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
           </div>
         </header>
 
-        <section className="conversation-section" aria-labelledby="conversation-title">
-          <div className="focus-panel__section-heading">
-            <h3 id="conversation-title">对话</h3>
-            <span>
-              {streamStatus === "streaming" ? (
-                <Tag icon={<ChevronUp size={12} />} color="processing">Agent 正在回复</Tag>
-              ) : streamStatus === "connecting" ? (
-                <Tag color="warning">正在连接</Tag>
-              ) : (
-                <Tag>实时同步</Tag>
-              )}
-            </span>
-          </div>
+        <section className="conversation-section" aria-label="对话">
           <ConversationLog
             ref={conversationLogRef}
             items={conversation}
@@ -249,7 +248,9 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
           isLegacy={isLegacy}
           sending={sending}
           streamStatus={streamStatus}
+          stopping={busyCommand === "abort"}
           onSubmit={(text, mode) => handleSubmit(text, mode)}
+          onStop={() => handleStop()}
         />
       </div>
       {activeTask ? (

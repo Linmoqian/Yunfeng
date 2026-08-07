@@ -59,17 +59,6 @@ export function SessionSidebar({
         <Button type="text" icon={<X size={17} />} onClick={onClose} aria-label="关闭任务列表" />
       </div>
 
-      <div className="session-sidebar__heading">
-        <div>
-          <p className="eyebrow">任务工作台</p>
-          <h2>任务</h2>
-        </div>
-        <span className="session-sidebar__count">
-          {taskCount}
-          {attentionCount > 0 ? ` · ${attentionCount} 待处理` : ""}
-        </span>
-      </div>
-
       <Button
         type="primary"
         block
@@ -121,6 +110,13 @@ export function SessionSidebar({
         </div>
       </div>
 
+      <div className="session-sidebar__list-heading">
+        <span>最近对话</span>
+        <span className="session-sidebar__count">
+          {taskCount}{attentionCount > 0 ? ` · ${attentionCount} 待处理` : ""}
+        </span>
+      </div>
+
       {conversations.length > 0 ? (
         <nav className="session-sidebar__sections" aria-label="最近任务">
           <div className="session-sidebar__conversation-list">
@@ -152,8 +148,6 @@ export function SessionSidebar({
           <span>{search || projectFilter || archivedFilter === "archived" ? "换个筛选条件试试。" : "从一个清晰的目标开始。"}</span>
         </div>
       )}
-
-      <p className="session-sidebar__footer">任务状态由后端领域状态提供，与 pi 会话保持同步。</p>
     </aside>
   );
 }

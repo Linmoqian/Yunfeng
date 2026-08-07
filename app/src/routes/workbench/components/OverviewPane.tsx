@@ -5,17 +5,11 @@ import { Button } from "antd";
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 
 interface OverviewPaneProps {
-  activeTaskCount: number;
-  taskCount: number;
-  attentionCount: number;
   hasAny: boolean;
   onNewTask: () => void;
 }
 
 export function OverviewPane({
-  activeTaskCount,
-  taskCount,
-  attentionCount,
   hasAny,
   onNewTask,
 }: OverviewPaneProps) {
@@ -36,22 +30,6 @@ export function OverviewPane({
         <Button type="primary" size="large" icon={<Plus size={17} />} onClick={onNewTask}>
           新建任务
         </Button>
-      </div>
-      <div className="session-overview__summary">
-        <div>
-          <strong>{activeTaskCount}</strong>
-          <span>个活跃任务</span>
-        </div>
-        <div>
-          <strong>{taskCount}</strong>
-          <span>个任务</span>
-        </div>
-        {attentionCount > 0 ? (
-          <div className="session-overview__summary--attention">
-            <strong>{attentionCount}</strong>
-            <span>需要处理</span>
-          </div>
-        ) : null}
       </div>
       {hasAny ? (
         <motion.div
