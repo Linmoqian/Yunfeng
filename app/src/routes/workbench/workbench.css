@@ -2550,3 +2550,131 @@
 .focus-panel__composer-feedback[role="alert"] {
   color: var(--attention);
 }
+
+/* 应用内目录选择器：路径只读，目录通过明确的层级导航选择。 */
+.new-task-dialog__directory {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--canvas);
+}
+
+.new-task-dialog__directory--selected {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
+}
+
+.new-task-dialog__directory > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-secondary);
+}
+
+.new-task-dialog__directory > div > span {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-picker__location {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--canvas);
+}
+
+.directory-picker__location > span {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-picker__content {
+  min-height: 320px;
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 74%, var(--canvas));
+}
+
+.directory-picker__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+}
+
+.directory-picker__item {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background 160ms var(--motion-ease), border-color 160ms var(--motion-ease);
+}
+
+.directory-picker__item:hover {
+  border-color: var(--border-subtle);
+  background: var(--surface-raised);
+}
+
+.directory-picker__item > svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.directory-picker__item > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-picker__state {
+  display: flex;
+  min-height: 320px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.directory-picker__state--error {
+  flex-direction: column;
+  color: var(--attention);
+}
+
+.directory-picker__content .ant-empty {
+  margin: 96px 0 0;
+}
+
+@media (max-width: 620px) {
+  .directory-picker__list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -86,8 +86,30 @@ export interface ModelCatalog {
   thinkingLevels: Record<string, string[]>;
   thinkingLevelPins: Record<string, string>;
 }
+
+export interface BrowsableDirectory {
+  name: string;
+  path: string;
+}
+
+export interface DirectoryBrowseResult {
+  path: string;
+  parentPath: string | null;
+  directories: BrowsableDirectory[];
+}
 // 读取
 // ---------------------------------------------------------------------------
+
+export async function browseDirectories(
+  path?: string,
+  signal?: AbortSignal,
+): Promise<DirectoryBrowseResult> {
+  const params = new URLSearchParams();
+  if (path) params.set("path", path);
+  const query = params.toString();
+  const response = await fetch(`/api/cwd/browse${query ? `?${query}` : ""}`, { signal });
+  return readJson<DirectoryBrowseResult>(response);
+}
 
 export interface TaskQuery {
   q?: string;
