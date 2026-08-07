@@ -1,8 +1,10 @@
-import { MapleStatusMark } from "./MapleStatusMark";
-import { TaskRow } from "./TaskRow";
-import type { TaskSectionGroup, TaskSummary } from "./taskPresentation";
+import { Input, Segmented, Button } from "antd";
+import { Plus, Search, FolderGit2 } from "lucide-react";
 
-type ArchivedFilter = "all" | "active" | "archived";
+import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
+import { TaskRow } from "../../../features/workbench/TaskRow";
+import type { TaskSectionGroup, TaskSummary } from "../../../features/workbench/taskPresentation";
+import type { ArchivedFilter } from "../../../store/workbenchSlice";
 
 interface SessionSidebarProps {
   sections: TaskSectionGroup[];
@@ -43,9 +45,7 @@ export function SessionSidebar({
   onArchive,
   onReopen,
 }: SessionSidebarProps) {
-  const conversations = sections
-    .flatMap((section) => section.tasks)
-    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+  const conversations = sections.flatMap((section) => section.tasks);
 
   return (
     <aside className="session-sidebar" aria-label="任务列表" aria-hidden={collapsed}>
@@ -60,55 +60,59 @@ export function SessionSidebar({
           <h2>任务</h2>
         </div>
         <span className="session-sidebar__count">
-          {taskCount}{attentionCount > 0 ? ` · ${attentionCount} 待处理` : ""}
+          {taskCount}
+          {attentionCount > 0 ? ` · ${attentionCount} 待处理` : ""}
         </span>
       </div>
 
-      <button className="button button--primary session-sidebar__new-task" type="button" onClick={onNewTask}>
+      <Button
+        type="primary"
+        block
+        className="session-sidebar__new-task"
+        icon={<Plus size={16} />}
+        onClick={onNewTask}
+      >
         新建任务
-      </button>
+      </Button>
 
       <div className="session-sidebar__filters">
-        <label className="session-sidebar__search" htmlFor="task-search" aria-label="搜索任务">
-          <span className="session-sidebar__search-icon" aria-hidden="true">⌕</span>
-          <input
-            id="task-search"
+        <div className="session-sidebar__search">
+          <Search size={14} className="session-sidebar__search-icon" aria-hidden="true" />
+          <Input
             type="search"
             value={search}
             onChange={(event) => onSearch(event.target.value)}
             placeholder="搜索任务…"
             autoComplete="off"
+            allowClear
+            variant="borderless"
           />
-        </label>
+        </div>
         <div className="session-sidebar__filter-row">
-          <label htmlFor="project-filter" className="sr-only">按项目筛选</label>
-          <select
-            id="project-filter"
-            value={projectFilter}
-            onChange={(event) => onProjectFilter(event.target.value)}
-            aria-label="按项目筛选"
-          >
-            <option value="">全部项目</option>
-            {projects.map((project) => (
-              <option key={project} value={project}>{project}</option>
-            ))}
-          </select>
-          <div className="session-sidebar__segmented" role="group" aria-label="归档筛选">
-            {([
-              ["active", "进行中"],
-              ["archived", "已归档"],
-            ] as Array<[ArchivedFilter, string]>).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className={`session-sidebar__segment${archivedFilter === value ? " session-sidebar__segment--active" : ""}`}
-                onClick={() => onArchivedFilter(value)}
-                aria-pressed={archivedFilter === value}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="session-sidebar__project-field">
+            <FolderGit2 size={13} className="session-sidebar__search-icon" aria-hidden="true" />
+            <select
+              className="session-sidebar__project-select"
+              value={projectFilter}
+              onChange={(event) => onProjectFilter(event.target.value)}
+              aria-label="按项目筛选"
+            >
+              <option value="">全部项目</option>
+              {projects.map((project) => (
+                <option key={project} value={project}>{project}</option>
+              ))}
+            </select>
           </div>
+          <Segmented
+            size="small"
+            value={archivedFilter === "all" ? "all" : archivedFilter}
+            onChange={(value) => onArchivedFilter(value as ArchivedFilter)}
+            options={[
+              { label: "进行中", value: "active" },
+              { label: "已归档", value: "archived" },
+            ]}
+            className="session-sidebar__segmented"
+          />
         </div>
       </div>
 

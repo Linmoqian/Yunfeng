@@ -2308,3 +2308,245 @@
     margin-top: 48px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Ant Design 组件适配：Collapse 标签、Select、设置弹窗、侧栏项目筛选等。
+   ---------------------------------------------------------------- */
+
+/* Collapse(config/git) 用作可展开区块时的标签行 */
+.focus-panel__config-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.config-collapse .ant-collapse-header,
+.git-collapse .ant-collapse-header {
+  padding: 14px 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.git-collapse .ant-collapse-header {
+  border-bottom: 0;
+}
+
+.config-collapse .ant-collapse-content-box,
+.git-collapse .ant-collapse-content-box {
+  padding: 4px 0 18px;
+}
+
+.config-collapse .ant-collapse-header-text,
+.git-collapse .ant-collapse-header-text {
+  display: flex;
+  align-items: center;
+}
+.git-collapse .ant-collapse-header-text {
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* 运行配置 select 宽度 */
+.focus-panel__config-select {
+  width: 100%;
+}
+
+/* 设置对话框：样式由 Ant Modal body 承担，这里微调区块垂直节奏 */
+.settings-dialog__body {
+  color: var(--text-primary);
+}
+
+.settings-dialog__section {
+  padding: 20px 0;
+  margin-top: 4px;
+}
+
+.settings-dialog__section + .settings-dialog__section {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.settings-dialog__section-copy h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.settings-dialog__section-copy p {
+  margin: 6px 0 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings-dialog__model-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-dialog__model-field > .ant-select,
+.settings-dialog__model-field .ant-select {
+  width: 100%;
+}
+
+.settings-dialog__model-status {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.settings-dialog__model-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--attention);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.settings-dialog__theme-desc {
+  margin: 10px 2px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.settings-dialog__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* 新建会话弹窗标题 */
+.new-task-dialog__title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+.new-task-dialog__title .eyebrow {
+  margin: 0;
+}
+
+/* 侧栏项目筛选 */
+.session-sidebar__project-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--canvas);
+  color: var(--text-secondary);
+}
+
+.session-sidebar__project-select {
+  min-width: 0;
+  flex: 1;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.session-sidebar__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-sidebar__segmented {
+  flex: 0 0 auto;
+}
+
+/* 头部设置按钮 */
+.workbench-header__settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 工具卡 loading 旋转 */
+.spin {
+  animation: yf-spin 1s linear infinite;
+}
+
+@keyframes yf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 消息角色图标与标签 */
+.conversation-message__role {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.conversation-message__role-label {
+  text-transform: uppercase;
+}
+
+/* 突出专注任务行的 attention 标记 */
+.task-row__attention-check {
+  color: var(--attention);
+}
+
+/* focus panel 顶部关闭按钮 */
+.icon-button-slim {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+/* 编辑器底栏加号用于占位，避免反馈抖动 */
+.focus-panel__composer-hint {
+  max-width: 65%;
+  color: var(--positive);
+  font-size: 12px;
+}
+
+.focus-panel__git-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 编辑器底栏：反馈靠左，发送按钮靠右 */
+.focus-panel__composer-footer {
+  justify-content: space-between;
+}
+
+/* 内联发送反馈（与 Ant message 并存，满足面板内可见） */
+.focus-panel__composer-feedback {
+  max-width: 70%;
+  color: var(--positive);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.focus-panel__composer-feedback[role="alert"] {
+  color: var(--attention);
+}

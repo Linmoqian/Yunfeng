@@ -404,11 +404,11 @@ def verify_task_workbench(page: Page) -> None:
     page.get_by_label("按项目筛选").select_option("")
 
     # 归档筛选 + 恢复
-    page.get_by_role("button", name="已归档").click()
+    page.locator(".session-sidebar__segmented").get_by_text("已归档").click()
     expect(page.locator(".session-sidebar__group-heading", has_text="已归档")).to_be_visible()
     page.get_by_role("button", name="恢复").first.click()
     assert any(cmd.get("type") == "reopen" for cmd in command_payloads)
-    page.get_by_role("button", name="进行中").click()
+    page.locator(".session-sidebar__segmented").get_by_text("进行中").click()
 
     # 重命名
     rename_button = page.locator(".task-row__action--rename").first

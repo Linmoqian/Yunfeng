@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
-import type { ModelOption, ModelSelection } from "../../services/taskService";
+import { Button, Modal, Select, Segmented, Tag, App } from "antd";
+import { useState } from "react";
 
-export type ThemeMode = "system" | "light" | "dark";
-type ConnectionState = "connecting" | "connected" | "offline";
+import type { ModelOption, ModelSelection } from "../../services/taskService";
+import type { ThemeMode } from "../../theme/ThemeProvider";
+import type { ConnectionState } from "../../store/workbenchSlice";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -30,6 +31,12 @@ const CONNECTION_LABELS: Record<ConnectionState, string> = {
   offline: "状态可能已过期",
 };
 
+const CONNECTION_TONE: Record<ConnectionState, "default" | "success" | "warning" | "error"> = {
+  connecting: "warning",
+  connected: "success",
+  offline: "error",
+};
+
 export function SettingsDialog({
   open,
   onClose,
@@ -43,58 +50,45 @@ export function SettingsDialog({
   onRetryModels,
   connectionState,
 }: SettingsDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const { message } = App.useApp();
+  const [themeDraft, setThemeDraft] = useState<ThemeMode>(themeMode);
+  const selectedModelKey = modelSelection ? `${modelSelection.provider}:${modelSelection.modelId}` : "";
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  function handleCancel(event: React.SyntheticEvent<HTMLDialogElement>) {
-    event.preventDefault();
+  function handleOk() {
+    onThemeChange(themeDraft);
+    if (themeDraft !== themeMode) message.success("主题已更新");
     onClose();
   }
 
-  const selectedModelKey = modelSelection ? `${modelSelection.provider}:${modelSelection.modelId}` : "";
-
   return (
-    <dialog ref={dialogRef} className="settings-dialog" onCancel={handleCancel} aria-labelledby="settings-title">
+    <Modal
+      title={<span className="settings-dialog__title">设置</span>}
+      open={open}
+      onOk={handleOk}
+      onCancel={onClose}
+      okText="完成"
+      cancelText="取消"
+      centered
+      width={560}
+    >
       <div className="settings-dialog__body">
-        <header className="settings-dialog__header">
-          <div>
-            <p className="eyebrow">工作台偏好</p>
-            <h2 id="settings-title">设置</h2>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭设置">
-            <span aria-hidden="true">×</span>
-          </button>
-        </header>
+        <p className="eyebrow">工作台偏好</p>
 
         <section className="settings-dialog__section" aria-labelledby="settings-appearance-title">
           <div className="settings-dialog__section-copy">
             <h3 id="settings-appearance-title">外观</h3>
             <p>选择工作台在不同光线里的状态。</p>
           </div>
-          <div className="settings-dialog__theme-options" role="group" aria-label="主题">
-            {THEME_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                className={`settings-dialog__theme-option ${themeMode === option.value ? "settings-dialog__theme-option--active" : ""}`}
-                type="button"
-                aria-pressed={themeMode === option.value}
-                onClick={() => onThemeChange(option.value)}
-              >
-                <span>{option.label}</span>
-                <small>{option.description}</small>
-              </button>
-            ))}
-          </div>
+          <Segmented
+            block
+            value={themeDraft}
+            onChange={(value) => setThemeDraft(value as ThemeMode)}
+            options={THEME_OPTIONS.map((option) => option.label)}
+            aria-label="主题"
+          />
+          <p className="settings-dialog__theme-desc">
+            {THEME_OPTIONS.find((option) => option.value === themeDraft)?.description}
+          </p>
         </section>
 
         <section className="settings-dialog__section" aria-labelledby="settings-model-title">
@@ -107,28 +101,32 @@ export function SettingsDialog({
           ) : modelError ? (
             <div className="settings-dialog__model-error" role="alert">
               <span>{modelError}</span>
-              <button className="text-button" type="button" onClick={onRetryModels}>重新读取</button>
+              <Button size="small" type="link" onClick={onRetryModels}>重新读取</Button>
             </div>
           ) : modelOptions.length > 0 ? (
-            <label className="settings-dialog__model-field" htmlFor="settings-model">
-              <span>新会话默认模型</span>
-              <select
-                id="settings-model"
-                value={selectedModelKey}
-                onChange={(event) => {
-                  const [provider, ...modelIdParts] = event.target.value.split(":");
+            <div className="settings-dialog__model-field">
+              <span className="settings-dialog__model-label">新会话默认模型</span>
+              <Select
+                value={selectedModelKey || undefined}
+                onChange={(value) => {
+                  if (!value) {
+                    onModelChange(null);
+                    return;
+                  }
+                  const [provider, ...modelIdParts] = value.split(":");
                   const modelId = modelIdParts.join(":");
                   onModelChange(provider && modelId ? { provider, modelId } : null);
                 }}
-              >
-                <option value="">跟随服务器默认</option>
-                {modelOptions.map((model) => (
-                  <option key={`${model.provider}:${model.id}`} value={`${model.provider}:${model.id}`}>
-                    {model.provider} · {model.name || model.id}
-                  </option>
-                ))}
-              </select>
-            </label>
+                placeholder="跟随服务器默认"
+                allowClear
+                options={[
+                  ...modelOptions.map((model) => ({
+                    value: `${model.provider}:${model.id}`,
+                    label: `${model.provider} · ${model.name || model.id}`,
+                  })),
+                ]}
+              />
+            </div>
           ) : (
             <p className="settings-dialog__model-status">当前没有可用模型，请先配置 pi 的模型凭据。</p>
           )}
@@ -139,18 +137,9 @@ export function SettingsDialog({
             <h3 id="settings-connection-title">连接</h3>
             <p>会话状态通过后端事件流持续同步。</p>
           </div>
-          <div className={`settings-dialog__connection settings-dialog__connection--${connectionState}`}>
-            <span className="connection-state__dot" aria-hidden="true" />
-            <span>{CONNECTION_LABELS[connectionState]}</span>
-          </div>
+          <Tag color={CONNECTION_TONE[connectionState]}>{CONNECTION_LABELS[connectionState]}</Tag>
         </section>
-
-        <footer className="settings-dialog__footer">
-          <button className="button button--primary" type="button" onClick={onClose}>
-            完成
-          </button>
-        </footer>
       </div>
-    </dialog>
+    </Modal>
   );
 }

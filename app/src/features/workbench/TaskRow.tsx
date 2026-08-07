@@ -1,6 +1,8 @@
+import { App } from "antd";
+import { Archive, Check, Pencil, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
 import { formatRelativeTime, type TaskSummary } from "./taskPresentation";
-import { MapleStatusMark } from "./MapleStatusMark";
 
 interface TaskRowProps {
   task: TaskSummary;
@@ -12,6 +14,7 @@ interface TaskRowProps {
 }
 
 export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onReopen }: TaskRowProps) {
+  const { modal, message } = App.useApp();
   const attention = task.section === "attention";
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -31,10 +34,24 @@ export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onR
     setBusy(true);
     try {
       await onRename(task.id, name);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "重命名失败。");
     } finally {
       setBusy(false);
       setRenaming(false);
     }
+  }
+
+  function handleArchiveClick(event: React.MouseEvent) {
+    event.stopPropagation();
+    modal.confirm({
+      title: `归档任务“${task.title}”？`,
+      content: "归档后仍可恢复。",
+      okText: "归档",
+      okButtonProps: { danger: true },
+      cancelText: "取消",
+      onOk: () => onArchive(task.id),
+    });
   }
 
   return (
@@ -46,7 +63,11 @@ export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onR
         aria-label={`打开任务：${task.title}`}
       >
         <span className="task-row__mark" aria-hidden="true">
-          {attention ? <MapleStatusMark attention /> : <span className="task-row__quiet-mark" />}
+          {attention ? (
+            <Check size={14} className="task-row__attention-check" />
+          ) : (
+            <span className="task-row__quiet-mark" />
+          )}
         </span>
         <span className="task-row__content">
           {renaming ? (
@@ -84,8 +105,12 @@ export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onR
             className="task-row__action"
             type="button"
             disabled={busy}
-            onClick={(event) => { event.stopPropagation(); void onReopen(task.id); }}
+            onClick={(event) => {
+              event.stopPropagation();
+              void onReopen(task.id);
+            }}
           >
+            <RotateCcw size={12} aria-hidden="true" />
             恢复
           </button>
         ) : null}
@@ -94,11 +119,9 @@ export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onR
             className="task-row__action task-row__action--archive"
             type="button"
             disabled={busy}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (window.confirm(`归档任务“${task.title}”？归档后仍可恢复。`)) void onArchive(task.id);
-            }}
+            onClick={handleArchiveClick}
           >
+            <Archive size={12} aria-hidden="true" />
             归档
           </button>
         ) : null}
@@ -113,6 +136,7 @@ export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onR
               setRenaming(true);
             }}
           >
+            <Pencil size={12} aria-hidden="true" />
             重命名
           </button>
         ) : null}

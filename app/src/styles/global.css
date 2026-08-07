@@ -34,6 +34,17 @@ textarea {
   font: inherit;
 }
 
+/* 隐藏视觉滚动条但保留滚轮/触控板/键盘滚动能力（桌面规范）。 */
+* {
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;

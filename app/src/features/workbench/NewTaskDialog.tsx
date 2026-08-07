@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { App, Form, Input, Modal } from "antd";
+import { FolderOpen, Send, X } from "lucide-react";
+import { useState } from "react";
 
 interface NewTaskDialogProps {
   open: boolean;
@@ -6,88 +8,84 @@ interface NewTaskDialogProps {
   onCreate: (cwd: string, message: string) => Promise<void>;
 }
 
+interface NewTaskFormValues {
+  cwd: string;
+  message: string;
+}
+
 export function NewTaskDialog({ open, onClose, onCreate }: NewTaskDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const [cwd, setCwd] = useState("");
-  const [message, setMessage] = useState("");
+  const { message } = App.useApp();
+  const [form] = Form.useForm<NewTaskFormValues>();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      setError(null);
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!cwd.trim() || !message.trim() || submitting) return;
+  async function handleOk() {
+    const values = await form.validateFields().catch(() => null);
+    if (!values || submitting) return;
+    const cwd = values.cwd.trim();
+    const prompt = values.message.trim();
+    if (!cwd || !prompt) return;
 
     setSubmitting(true);
-    setError(null);
     try {
-      await onCreate(cwd.trim(), message.trim());
-      setCwd("");
-      setMessage("");
+      await onCreate(cwd, prompt);
+      form.resetFields();
       onClose();
-    } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "创建会话失败，请稍后重试。");
+      message.success("会话已创建");
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "创建会话失败，请稍后重试。");
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleCancel(event: React.SyntheticEvent<HTMLDialogElement>) {
-    event.preventDefault();
-    onClose();
-  }
-
   return (
-    <dialog ref={dialogRef} className="new-task-dialog" onCancel={handleCancel} aria-labelledby="new-session-title">
-      <form className="new-task-dialog__form" onSubmit={handleSubmit}>
-        <div className="new-task-dialog__header">
-          <div>
-            <p className="eyebrow">开始一段新的对话</p>
-            <h2 id="new-session-title">新建会话</h2>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭新建会话">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <label htmlFor="task-cwd">项目路径</label>
-        <input
-          id="task-cwd"
-          value={cwd}
-          onChange={(event) => setCwd(event.target.value)}
-          placeholder="/path/to/project"
-          autoComplete="off"
-          disabled={submitting}
-        />
-        <label htmlFor="task-prompt">你想聊什么？</label>
-        <textarea
-          id="task-prompt"
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          placeholder="告诉 Agent 你想从哪里开始"
-          rows={4}
-          disabled={submitting}
-        />
-        {error ? <p className="form-error" role="alert">{error}</p> : null}
-        <div className="new-task-dialog__footer">
-          <button className="button button--quiet" type="button" onClick={onClose} disabled={submitting}>
-            取消
-          </button>
-          <button className="button button--primary" type="submit" disabled={submitting || !cwd.trim() || !message.trim()}>
-            {submitting ? "正在创建" : "开始对话"}
-          </button>
-        </div>
-      </form>
-    </dialog>
+    <Modal
+      title={
+        <span className="new-task-dialog__title">
+          <span className="eyebrow">开始一段新的对话</span>
+          新建会话
+        </span>
+      }
+      open={open}
+      onOk={handleOk}
+      onCancel={onClose}
+      okText={submitting ? "正在创建" : "开始对话"}
+      cancelText="取消"
+      okButtonProps={{
+        disabled: submitting,
+        loading: submitting,
+        icon: <Send size={14} />,
+      }}
+      closeIcon={<X size={16} aria-label="关闭新建会话" />}
+      centered
+      width={520}
+      forceRender
+    >
+      <Form layout="vertical" form={form} className="new-task-dialog__form">
+        <Form.Item
+          name="cwd"
+          label="项目路径"
+          rules={[{ required: true, message: "请输入项目路径" }]}
+        >
+          <Input
+            prefix={<FolderOpen size={14} />}
+            placeholder="/path/to/project"
+            autoComplete="off"
+            disabled={submitting}
+          />
+        </Form.Item>
+        <Form.Item
+          name="message"
+          label="你想聊什么？"
+          rules={[{ required: true, message: "请输入任务目标" }]}
+        >
+          <Input.TextArea
+            placeholder="告诉 Agent 你想从哪里开始"
+            rows={4}
+            disabled={submitting}
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }
