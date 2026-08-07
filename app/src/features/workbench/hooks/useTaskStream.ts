@@ -137,8 +137,11 @@ export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: Stre
     if (event.type === "run_settled" || event.type === "message_completed") {
       setStreamStatus("idle");
       setToolActivity(null);
+      const eventIdentity = typeof event.id === "string" && event.id
+        ? event.id
+        : typeof event.seq === "number" ? String(event.seq) : crypto.randomUUID();
       setConversation((current) => current.map((item) => (
-        item.id === STREAMING_MESSAGE_ID ? { ...item, id: `assistant-${Date.now()}`, streaming: false } : item
+        item.id === STREAMING_MESSAGE_ID ? { ...item, id: `assistant-${eventIdentity}`, streaming: false } : item
       )));
     }
     if (event.type === "approval_requested") {
