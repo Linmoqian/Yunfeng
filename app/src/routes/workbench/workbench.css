@@ -2679,25 +2679,24 @@
   }
 }
 
-/* 对话优先布局：任务列表为覆盖抽屉，主区始终占满窗口。 */
+/* 桌面端常驻任务导航；窄屏切换为覆盖抽屉。 */
 .app-shell,
 .app-shell--sidebar-collapsed {
-  display: block;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
   min-height: 100dvh;
 }
 
 .session-sidebar {
-  position: fixed;
-  z-index: 50;
+  position: sticky;
+  z-index: 30;
   top: 0;
-  bottom: 0;
-  left: 0;
-  width: min(340px, calc(100vw - 32px));
+  width: 300px;
   height: 100dvh;
   padding: 24px 18px;
   border-right: 1px solid var(--border-subtle);
   background: var(--surface);
-  box-shadow: 20px 0 60px rgb(26 23 18 / 14%);
+  box-shadow: none;
   opacity: 1;
   overflow-y: auto;
   transform: translateX(0);
@@ -2706,7 +2705,7 @@
 }
 
 .app-shell--sidebar-collapsed .session-sidebar {
-  width: min(340px, calc(100vw - 32px));
+  width: 0;
   padding: 24px 18px;
   border-right: 1px solid var(--border-subtle);
   opacity: 0;
@@ -2717,14 +2716,7 @@
 }
 
 .session-sidebar-scrim {
-  position: fixed;
-  z-index: 40;
-  inset: 0;
-  padding: 0;
-  border: 0;
-  background: var(--scrim);
-  cursor: pointer;
-  animation: yf-scrim-in 180ms var(--motion-ease);
+  display: none;
 }
 
 @keyframes yf-scrim-in {
@@ -2771,6 +2763,10 @@
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.session-overview__intro > .ant-btn {
+  margin-top: 30px;
 }
 
 .focus-panel--inline .focus-panel__body {
@@ -2882,15 +2878,34 @@
 }
 
 @media (max-width: 720px) {
+  .app-shell,
+  .app-shell--sidebar-collapsed {
+    display: block;
+  }
+
   .session-sidebar,
   .app-shell--sidebar-collapsed .session-sidebar {
     position: fixed;
+    z-index: 50;
     width: min(340px, calc(100vw - 24px));
     height: 100dvh;
     max-height: none;
     padding: 20px 14px;
     border-right: 1px solid var(--border-subtle);
     border-bottom: 0;
+    box-shadow: 20px 0 60px rgb(26 23 18 / 14%);
+  }
+
+  .session-sidebar-scrim {
+    position: fixed;
+    z-index: 40;
+    inset: 0;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: var(--scrim);
+    cursor: pointer;
+    animation: yf-scrim-in 180ms var(--motion-ease);
   }
 
   .session-main .workbench-header {

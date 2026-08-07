@@ -61,7 +61,8 @@ export function WorkbenchPage() {
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
-    resolveSidebarCollapsed(window.localStorage.getItem("yunfeng-sidebar-collapsed")),
+    window.matchMedia("(max-width: 720px)").matches ||
+      resolveSidebarCollapsed(window.localStorage.getItem("yunfeng-sidebar-collapsed")),
   );
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({ models: [], defaultModel: null, thinkingLevels: {}, thinkingLevelPins: {} });
   const [modelLoading, setModelLoading] = useState(false);
@@ -247,11 +248,11 @@ export function WorkbenchPage() {
     } else {
       dispatch(workbenchActions.selectTask(task.id));
     }
-    setSidebarCollapsed(true);
+    if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
   }
 
   function handleOpenNewTask() {
-    setSidebarCollapsed(true);
+    if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
     setNewTaskOpen(true);
   }
 

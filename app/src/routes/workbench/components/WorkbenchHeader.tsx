@@ -55,9 +55,11 @@ export function WorkbenchHeader({
           <span className="connection-state__dot" aria-hidden="true" />
           <span>{CONNECTION_LABELS[connectionState]}</span>
         </span>
-        <Button className="workbench-header__new-task" type="primary" icon={<Plus size={15} />} onClick={onNewTask}>
-          新对话
-        </Button>
+        {hasFocus ? (
+          <Button className="workbench-header__new-task" type="primary" icon={<Plus size={15} />} onClick={onNewTask}>
+            新对话
+          </Button>
+        ) : null}
         <button className="text-button" type="button" onClick={onOpenSettings} aria-label="打开设置">
           <span className="workbench-header__settings">
             <Settings size={15} aria-hidden="true" />
