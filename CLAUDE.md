@@ -25,14 +25,18 @@
 * 采用满足需求的最简单方案，不扩大范围，不为一次性需求或未来扩展增加抽象。
 * 只修改与任务直接相关的内容，不顺手重构、格式化或清理无关代码。
 * 遵循现有架构与代码风格；只清理本次改动产生的孤立代码。
+* 注释应解释原因、约束与风险，不重复翻译代码行为。
+* 默认使用单线程；仅按实际需求或测量结果引入有界并发，异步不等同于多线程。
 * 发现无关问题时可以汇报，但不得擅自修改。
 
 ### 根目录结构
 
 * `app/`：项目主体代码。
 * `docs/`：开发文档、开发日志和开发规范。
-* `tests/`：测试代码。
+* `docs/api/`：按需存放实际接口文档；没有接口时不创建空目录。
+* `tests/`：跨技术栈测试和验收测试；语言工具链约定的测试可放在对应 crate 或模块内，例如 Rust Cargo 集成测试放在 `app/src-tauri/tests/`。
 * 新增文件应按上述结构放置；迁移、重命名或删除现有目录前必须取得工程师同意。
+* 接口契约发生变化时，应在同一提交中同步更新实现、类型、测试和对应接口文档。
 
 ## 3. 工作区与已有改动保护
 
@@ -104,6 +108,7 @@
 * 不提交无关文件、敏感文件、构建产物、临时文件或未验证内容。
 * Git 提交遵循 Conventional Commits，使用简洁中文描述，不包含任何暗示由 AI 生成的字样。
 * 推送远程仓库必须取得工程师明确同意。
+* 涉及 GitHub 构建、推送、PR、发行时遵循 [GitHub 规范](docs/development/github.md)。
 
 详细规则见 [Git 工作流](docs/development/git-workflow.md)。
 
@@ -139,10 +144,16 @@
 ## 14. 专题规范
 
 * [前端开发](docs/development/frontend.md)
+* [Rust 开发](docs/development/rust.md)
+* [前后端热加载](docs/development/hot-reload.md)
 * [Python 开发](docs/development/python.md)
 * [CMake](docs/development/cmake.md)
 * [Git 工作流](docs/development/git-workflow.md)
+* [GitHub 规范](docs/development/github.md)
 * [验证](docs/development/verification.md)
+* [代码注释](docs/development/code-comments.md)
+* [并发与线程](docs/development/concurrency.md)
+* [接口文档](docs/development/api-documentation.md)
 
 命名优先遵循项目现有规范。JavaScript、TypeScript 使用 `camelCase` 与 `PascalCase`；Python 使用 `snake_case`、`PascalCase` 与 `UPPER_SNAKE_CASE`；C、C++ 无现成约定时，不在单次任务中自行建立新命名体系。
 
