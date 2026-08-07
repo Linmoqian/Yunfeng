@@ -1,6 +1,6 @@
 import { App, Button, Tag } from "antd";
 import { motion } from "motion/react";
-import { ChevronUp, X } from "lucide-react";
+import { ChevronUp, Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -12,11 +12,9 @@ import {
   type TaskState,
 } from "../../services/taskService";
 import { getProjectName } from "./taskPresentation";
+import { TaskDetailsDrawer } from "./TaskDetailsDrawer";
 import { Composer } from "./components/Composer";
 import { ConversationLog } from "./components/ConversationLog";
-import { GitChanges } from "./components/GitChanges";
-import { RunConfig } from "./components/RunConfig";
-import { RunControlBar } from "./components/RunControlBar";
 import { useTaskStream } from "./hooks/useTaskStream";
 
 interface TaskFocusPanelProps {
@@ -51,6 +49,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
   const { message } = App.useApp();
   const [sending, setSending] = useState(false);
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const conversationLogRef = useRef<HTMLDivElement>(null);
 
   const sessionId = task?.sessionId ?? legacySession?.id ?? "";
@@ -199,7 +198,19 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
               <p className="focus-panel__status focus-panel__status--legacy">旧会话 · 首次发送消息后接入任务</p>
             )}
           </div>
-          <Button type="text" className="icon-button-slim" onClick={onClose} aria-label="关闭任务" icon={<X size={18} />} />
+          <div className="focus-panel__header-actions">
+            {activeTask ? (
+              <Button
+                type="text"
+                className="focus-panel__details-button"
+                onClick={() => setDetailsOpen(true)}
+                icon={<Settings2 size={16} />}
+              >
+                任务详情
+              </Button>
+            ) : null}
+            <Button type="text" className="icon-button-slim" onClick={onClose} aria-label="关闭任务" icon={<X size={18} />} />
+          </div>
         </header>
 
         <section className="conversation-section" aria-labelledby="conversation-title">
@@ -233,20 +244,6 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
           />
         </section>
 
-        {activeTask ? <RunControlBar task={activeTask} /> : null}
-
-        {activeTask ? (
-          <div className="focus-panel__config">
-            <RunConfig task={activeTask} modelCatalog={modelCatalog} />
-          </div>
-        ) : null}
-
-        {activeTask ? (
-          <div className="focus-panel__git">
-            <GitChanges taskId={activeTask.id} />
-          </div>
-        ) : null}
-
         <Composer
           running={running}
           isLegacy={isLegacy}
@@ -255,6 +252,14 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
           onSubmit={(text, mode) => handleSubmit(text, mode)}
         />
       </div>
+      {activeTask ? (
+        <TaskDetailsDrawer
+          open={detailsOpen}
+          task={activeTask}
+          modelCatalog={modelCatalog}
+          onClose={() => setDetailsOpen(false)}
+        />
+      ) : null}
     </motion.section>
   );
 }

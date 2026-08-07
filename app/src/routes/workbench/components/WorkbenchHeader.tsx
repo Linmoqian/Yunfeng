@@ -1,4 +1,5 @@
-import { PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react";
+import { Button } from "antd";
+import { PanelLeftClose, PanelLeftOpen, Plus, Settings } from "lucide-react";
 
 import type { ConnectionState } from "../../../store/workbenchSlice";
 
@@ -6,7 +7,9 @@ interface WorkbenchHeaderProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   hasFocus: boolean;
+  contextTitle: string;
   connectionState: ConnectionState;
+  onNewTask: () => void;
   onOpenSettings: () => void;
 }
 
@@ -20,7 +23,9 @@ export function WorkbenchHeader({
   sidebarCollapsed,
   onToggleSidebar,
   hasFocus,
+  contextTitle,
   connectionState,
+  onNewTask,
   onOpenSettings,
 }: WorkbenchHeaderProps) {
   return (
@@ -30,9 +35,9 @@ export function WorkbenchHeader({
           className="icon-button sidebar-toggle"
           type="button"
           onClick={onToggleSidebar}
-          aria-label={sidebarCollapsed ? "显示会话侧栏" : "隐藏会话侧栏"}
+          aria-label={sidebarCollapsed ? "打开任务列表" : "关闭任务列表"}
           aria-expanded={!sidebarCollapsed}
-          title={sidebarCollapsed ? "显示会话侧栏" : "隐藏会话侧栏"}
+          title={sidebarCollapsed ? "打开任务列表" : "关闭任务列表"}
         >
           {sidebarCollapsed ? (
             <PanelLeftOpen size={18} aria-hidden="true" />
@@ -41,8 +46,8 @@ export function WorkbenchHeader({
           )}
         </button>
         <div>
-          <p className="eyebrow">Yunfeng 工作台</p>
-          <span>{hasFocus ? "当前任务" : "全部任务"}</span>
+          <p className="eyebrow">{hasFocus ? "当前对话" : "Yunfeng"}</p>
+          <span>{contextTitle}</span>
         </div>
       </div>
       <div className="workbench-header__actions">
@@ -50,6 +55,9 @@ export function WorkbenchHeader({
           <span className="connection-state__dot" aria-hidden="true" />
           <span>{CONNECTION_LABELS[connectionState]}</span>
         </span>
+        <Button className="workbench-header__new-task" type="primary" icon={<Plus size={15} />} onClick={onNewTask}>
+          新对话
+        </Button>
         <button className="text-button" type="button" onClick={onOpenSettings} aria-label="打开设置">
           <span className="workbench-header__settings">
             <Settings size={15} aria-hidden="true" />

@@ -1,5 +1,5 @@
 import { Input, Segmented, Button } from "antd";
-import { Plus, Search, FolderGit2 } from "lucide-react";
+import { Plus, Search, FolderGit2, X } from "lucide-react";
 
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 import { TaskRow } from "../../../features/workbench/TaskRow";
@@ -21,6 +21,7 @@ interface SessionSidebarProps {
   onArchivedFilter: (value: ArchivedFilter) => void;
   onOpenTask: (task: TaskSummary) => void;
   onNewTask: () => void;
+  onClose: () => void;
   onRename: (taskId: string, name: string) => Promise<void>;
   onArchive: (taskId: string) => Promise<void>;
   onReopen: (taskId: string) => Promise<void>;
@@ -41,6 +42,7 @@ export function SessionSidebar({
   onArchivedFilter,
   onOpenTask,
   onNewTask,
+  onClose,
   onRename,
   onArchive,
   onReopen,
@@ -49,10 +51,13 @@ export function SessionSidebar({
 
   return (
     <aside className="session-sidebar" aria-label="任务列表" aria-hidden={collapsed}>
-      <a className="wordmark session-sidebar__wordmark" href="/" aria-label="Yunfeng 工作台">
-        <MapleStatusMark />
-        <span>Yunfeng</span>
-      </a>
+      <div className="session-sidebar__top">
+        <a className="wordmark session-sidebar__wordmark" href="/" aria-label="Yunfeng 工作台">
+          <MapleStatusMark />
+          <span>Yunfeng</span>
+        </a>
+        <Button type="text" icon={<X size={17} />} onClick={onClose} aria-label="关闭任务列表" />
+      </div>
 
       <div className="session-sidebar__heading">
         <div>

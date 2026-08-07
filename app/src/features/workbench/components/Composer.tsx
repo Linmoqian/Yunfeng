@@ -51,7 +51,7 @@ export function Composer({ running, isLegacy, sending, streamStatus, onSubmit }:
           }
         }}
         placeholder={running ? "Agent 正在运行，将作为下一条指令" : "输入消息，按 Enter 发送；Shift + Enter 换行"}
-        rows={3}
+        rows={2}
         disabled={sending}
         maxLength={10000}
       />

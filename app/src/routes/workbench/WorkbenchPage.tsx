@@ -24,6 +24,7 @@ import {
   taskToSummary,
   type TaskSummary,
 } from "../../features/workbench/taskPresentation";
+import { resolveSidebarCollapsed } from "../../features/workbench/workbenchPreferences";
 import { useThemeMode } from "../../theme/ThemeProvider";
 import {
   getInitialSelection,
@@ -59,9 +60,9 @@ export function WorkbenchPage() {
 
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return window.localStorage.getItem("yunfeng-sidebar-collapsed") === "true";
-  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    resolveSidebarCollapsed(window.localStorage.getItem("yunfeng-sidebar-collapsed")),
+  );
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({ models: [], defaultModel: null, thinkingLevels: {}, thinkingLevelPins: {} });
   const [modelLoading, setModelLoading] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -189,11 +190,7 @@ export function WorkbenchPage() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (sidebarCollapsed) {
-      window.localStorage.setItem("yunfeng-sidebar-collapsed", "true");
-    } else {
-      window.localStorage.removeItem("yunfeng-sidebar-collapsed");
-    }
+    window.localStorage.setItem("yunfeng-sidebar-collapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
   // 模型目录
@@ -250,6 +247,12 @@ export function WorkbenchPage() {
     } else {
       dispatch(workbenchActions.selectTask(task.id));
     }
+    setSidebarCollapsed(true);
+  }
+
+  function handleOpenNewTask() {
+    setSidebarCollapsed(true);
+    setNewTaskOpen(true);
   }
 
   function handleModelChange(nextModel: ModelSelection | null) {
@@ -266,6 +269,14 @@ export function WorkbenchPage() {
   return (
     <Suspense fallback={null}>
       <div className={layoutClass}>
+        {!sidebarCollapsed ? (
+          <button
+            className="session-sidebar-scrim"
+            type="button"
+            onClick={() => setSidebarCollapsed(true)}
+            aria-label="关闭任务列表"
+          />
+        ) : null}
         <SessionSidebar
           sections={sections}
           taskCount={tasks.length}
@@ -280,7 +291,8 @@ export function WorkbenchPage() {
           archivedFilter={archivedFilter}
           onArchivedFilter={(value) => dispatch(workbenchActions.archived(value))}
           onOpenTask={handleOpenTask}
-          onNewTask={() => setNewTaskOpen(true)}
+          onNewTask={handleOpenNewTask}
+          onClose={() => setSidebarCollapsed(true)}
           onRename={handleRename}
           onArchive={handleArchive}
           onReopen={handleReopen}
@@ -291,7 +303,9 @@ export function WorkbenchPage() {
             sidebarCollapsed={sidebarCollapsed}
             onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
             hasFocus={Boolean(currentTask || currentSession)}
+            contextTitle={currentTask?.title ?? currentSession?.name ?? "全部任务"}
             connectionState={connectionState}
+            onNewTask={handleOpenNewTask}
             onOpenSettings={() => setSettingsOpen(true)}
           />
 
@@ -325,7 +339,7 @@ export function WorkbenchPage() {
               taskCount={tasks.length}
               attentionCount={attentionCount}
               hasAny={tasks.length > 0 || sessions.length > 0}
-              onNewTask={() => setNewTaskOpen(true)}
+              onNewTask={handleOpenNewTask}
             />
           )}
         </main>
