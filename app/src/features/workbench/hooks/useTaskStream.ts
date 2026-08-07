@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   loadTaskConversation,
+  loadSessionConversation,
   loadTaskInterventions,
   subscribeTaskEvents,
   type SessionSnapshot,
@@ -13,6 +14,7 @@ import {
 } from "../../../services/taskService";
 import {
   getTextDelta,
+  getThinkingDelta,
   mergeConversation,
   normalizeConversationMessage,
   STREAMING_MESSAGE_ID,
@@ -60,10 +62,14 @@ export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: Stre
   const [approvals, setApprovals] = useState<ApprovalInfo[]>([]);
   const [localTask, setLocalTask] = useState<TaskState | null>(task ?? null);
 
-  const activeTask = task ?? localTask;
+  const activeTask = localTask?.id === task?.id ? localTask : task ?? localTask;
   // 引用最新 activeTask 供事件处理器在闭包内读取，避免 effect 重复订阅。
   const activeTaskRef = useRef(activeTask);
   activeTaskRef.current = activeTask;
+
+  useEffect(() => {
+    setLocalTask(task ?? null);
+  }, [task?.id]);
 
   const resetForTask = useCallback(() => {
     setConversation([]);
@@ -79,8 +85,8 @@ export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: Stre
     const currentTask = activeTaskRef.current;
     if (event.type === "task_updated") {
       const data = event.data as Partial<TaskState> | undefined;
-      if (data && typeof data.status === "string" && currentTask) {
-        setLocalTask((current) => ({ ...(current ?? currentTask), ...data }) as TaskState);
+      if (data && typeof data === "object" && currentTask) {
+        setLocalTask((current) => ({ ...(current?.id === currentTask.id ? current : currentTask), ...data }) as TaskState);
       }
       return;
     }
@@ -94,6 +100,26 @@ export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: Stre
           return current.map((item) => item.id === STREAMING_MESSAGE_ID ? { ...item, text: item.text + delta } : item);
         }
         return [...current, { id: STREAMING_MESSAGE_ID, role: "assistant", text: delta, streaming: true }];
+      });
+    }
+
+    const thinkingDelta = getThinkingDelta(event);
+    if (thinkingDelta) {
+      setStreamStatus("streaming");
+      setConversation((current) => {
+        const streaming = current.find((item) => item.id === STREAMING_MESSAGE_ID);
+        if (streaming) {
+          return current.map((item) => item.id === STREAMING_MESSAGE_ID
+            ? { ...item, thinking: `${item.thinking ?? ""}${thinkingDelta}` }
+            : item);
+        }
+        return [...current, {
+          id: STREAMING_MESSAGE_ID,
+          role: "assistant",
+          text: "",
+          thinking: thinkingDelta,
+          streaming: true,
+        }];
       });
     }
 
@@ -174,7 +200,7 @@ export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: Stre
     const controller = new AbortController();
 
     if (isLegacy) {
-      void loadTaskConversation(sessionId, controller.signal)
+      void loadSessionConversation(sessionId, controller.signal)
         .then((messages) => {
           const loaded = messages.map(normalizeConversationMessage).filter((item): item is ConversationItem => item !== null);
           setConversation((current) => mergeConversation(current, loaded));

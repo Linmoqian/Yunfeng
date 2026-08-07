@@ -464,8 +464,8 @@ export async function handleSessionContext(id: string, query: URLSearchParams): 
   try {
     const filePath = await resolveSessionPath(id);
     if (!filePath) return jsonError("Session not found", 404);
-    const leafId = query.get("leafId") ?? undefined;
     const sm = SessionManager.open(filePath);
+    const leafId = query.get("leafId") ?? sm.getLeafId();
     const context = buildSessionContext(sm.getEntries() as never, leafId, {
       deferThinking: query.has("deferThinking"),
       deferToolResultImages: query.has("deferMedia"),

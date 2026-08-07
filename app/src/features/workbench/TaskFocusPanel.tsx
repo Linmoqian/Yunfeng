@@ -14,12 +14,14 @@ import {
 import { getProjectName } from "./taskPresentation";
 import { TaskDetailsDrawer } from "./TaskDetailsDrawer";
 import { Composer } from "./components/Composer";
+import { ConversationInfoCard } from "./components/ConversationInfoCard";
 import { ConversationLog } from "./components/ConversationLog";
 import { useTaskStream } from "./hooks/useTaskStream";
 
 interface TaskFocusPanelProps {
   task?: TaskState;
   legacySession?: SessionSnapshot;
+  sessions: SessionSnapshot[];
   onClose: () => void;
   onTaskUpdated: (task: TaskState) => void;
   modelCatalog?: ModelCatalog;
@@ -45,11 +47,12 @@ const PHASE_LABELS: Record<TaskState["phase"], string> = {
 };
 
 /** 单任务聚焦面板：编排会话流、工具、审批、运行控制、配置与 Git 改动。 */
-export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, modelCatalog }: TaskFocusPanelProps) {
+export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskUpdated, modelCatalog }: TaskFocusPanelProps) {
   const { message } = App.useApp();
   const [sending, setSending] = useState(false);
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [showThinking, setShowThinking] = useState(() => window.localStorage.getItem("yunfeng-show-thinking") === "true");
   const conversationLogRef = useRef<HTMLDivElement>(null);
 
   const sessionId = task?.sessionId ?? legacySession?.id ?? "";
@@ -76,6 +79,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
   });
 
   const statusInfo = activeTask ? STATUS_TEXT[activeTask.status] : null;
+  const currentTitle = activeTask?.title ?? (legacySession?.name?.trim() || legacySession?.firstMessage || "当前对话");
   const projectName = activeTask ? getProjectName(activeTask.cwd) : getProjectName(legacySession?.cwd);
   const running = activeTask?.status === "running" || activeTask?.status === "waiting_approval";
 
@@ -84,6 +88,10 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
     const log = conversationLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
   }, [conversation, toolActivity]);
+
+  useEffect(() => {
+    window.localStorage.setItem("yunfeng-show-thinking", String(showThinking));
+  }, [showThinking]);
 
   /** 旧会话首次发送：懒关联导入任务，再走领域命令。 */
   async function ensureTaskForLegacy(): Promise<TaskState> {
@@ -236,6 +244,7 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
             streamError={streamError}
             busyCommand={busyCommand}
             hasTask={Boolean(activeTask)}
+            showThinking={showThinking}
             onCopy={copyMessage}
             onFork={(entryId) => void handleFork(entryId)}
             onResend={(itemId, text) => void handleResend(itemId, text)}
@@ -253,6 +262,17 @@ export function TaskFocusPanel({ task, legacySession, onClose, onTaskUpdated, mo
           onStop={() => handleStop()}
         />
       </div>
+      <ConversationInfoCard
+        sessionId={sessionId}
+        currentTitle={currentTitle}
+        sessions={sessions}
+        task={activeTask}
+        modelCatalog={modelCatalog}
+        refreshKey={streamStatus}
+        showThinking={showThinking}
+        onShowThinkingChange={setShowThinking}
+        onTaskUpdated={onTaskUpdated}
+      />
       {activeTask ? (
         <TaskDetailsDrawer
           open={detailsOpen}

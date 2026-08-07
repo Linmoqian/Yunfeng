@@ -39,18 +39,20 @@ test("TaskStore 事件 seq 递增并在重载后恢复 lastEventSeq", async () =
     const state = ctx.store.create({ sessionId: "s2", cwd: "/tmp/proj", title: "事件测试", source: "task" });
     const a = await ctx.hub.emit(state.id, "task_updated", { status: "running" });
     const b = await ctx.hub.emit(state.id, "message_delta", { delta: "hello" });
+    const c = await ctx.hub.emit(state.id, "thinking_delta", { delta: "分析中" });
     assert.equal(a.taskId, state.id);
     // seq 应从 1 开始单调递增
     assert.ok(a.seq >= 1);
     assert.ok(b.seq > a.seq);
+    assert.ok(c.seq > b.seq);
 
     // 重载后 lastEventSeq 恢复
     const store2 = new TaskStore({ dataDir: ctx.dir });
-    assert.equal(store2.get(state.id)!.lastEventSeq, b.seq);
+    assert.equal(store2.get(state.id)!.lastEventSeq, c.seq);
     // 续写 seq 不回退
     const hub2 = new TaskEventHub(store2);
     await hub2.emit(state.id, "task_updated", { status: "completed" });
-    assert.ok(store2.get(state.id)!.lastEventSeq > b.seq);
+    assert.ok(store2.get(state.id)!.lastEventSeq > c.seq);
   } finally {
     ctx.cleanup();
   }

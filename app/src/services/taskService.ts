@@ -58,6 +58,43 @@ export interface SessionSnapshot {
   cwd: string | undefined;
   modified: string;
   messageCount: number;
+  parentSessionId?: string;
+}
+
+export interface SessionUsageSnapshot {
+  input?: number;
+  output?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  totalTokens?: number;
+}
+
+export interface SessionMessageSnapshot {
+  role?: string;
+  model?: string;
+  provider?: string;
+  usage?: SessionUsageSnapshot;
+}
+
+export interface SessionDetails {
+  context?: {
+    messages?: SessionMessageSnapshot[];
+    model?: TaskModelRef;
+    thinkingLevel?: string;
+  };
+}
+
+export interface SessionRuntimeState {
+  running: boolean;
+  state?: {
+    model?: { id: string; provider: string };
+    thinkingLevel?: string;
+    contextUsage?: {
+      percent: number;
+      contextWindow: number;
+      tokens: number;
+    } | null;
+  };
 }
 
 export interface TaskStreamEvent {
@@ -146,10 +183,34 @@ export async function loadLegacySessions(signal?: AbortSignal): Promise<SessionS
   return data.sessions ?? [];
 }
 
+export async function loadSessionDetails(sessionId: string, signal?: AbortSignal): Promise<SessionDetails> {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}?deferMedia&deferThinking`, { signal });
+  return readJson<SessionDetails>(response);
+}
+
+export async function loadSessionRuntimeState(sessionId: string, signal?: AbortSignal): Promise<SessionRuntimeState> {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/state`, { signal });
+  return readJson<SessionRuntimeState>(response);
+}
+
+async function readConversation(response: Response): Promise<unknown[]> {
+  const data = await readJson<{ context?: { messages?: unknown[]; entryIds?: string[] } }>(response);
+  const messages = Array.isArray(data.context?.messages) ? data.context.messages : [];
+  const entryIds = Array.isArray(data.context?.entryIds) ? data.context.entryIds : [];
+  return messages.map((message, index) => ({
+    ...(message && typeof message === "object" ? message : { content: message }),
+    id: entryIds[index] ?? `message-${index}`,
+  }));
+}
+
 export async function loadTaskConversation(taskId: string, signal?: AbortSignal): Promise<unknown[]> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/conversation?deferMedia&deferThinking`, { signal });
-  const data = await readJson<{ context?: { messages?: unknown[] } }>(response);
-  return Array.isArray(data.context?.messages) ? data.context.messages : [];
+  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/conversation?deferMedia`, { signal });
+  return readConversation(response);
+}
+
+export async function loadSessionConversation(sessionId: string, signal?: AbortSignal): Promise<unknown[]> {
+  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}?deferMedia`, { signal });
+  return readConversation(response);
 }
 
 // ---------------------------------------------------------------------------

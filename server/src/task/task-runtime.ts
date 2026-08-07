@@ -300,7 +300,11 @@ export class TaskRuntime {
     this.transition(state, failed ? "failed" : "waiting_input");
     state.attentionReason = action;
     await this.hub.emit(state.id, failed ? "run_failed" : "run_settled", { reason, action });
-    await this.hub.emit(state.id, "task_updated", { status: state.status, currentAction: action });
+    await this.hub.emit(state.id, "task_updated", {
+      status: state.status,
+      currentAction: action,
+      attentionReason: action,
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -344,6 +348,9 @@ export class TaskRuntime {
           const msg = event.assistantMessageEvent as { type?: string; delta?: unknown } | undefined;
           if (msg?.type === "text_delta" && typeof msg.delta === "string") {
             void this.hub.emit(taskId, "message_delta", { delta: msg.delta });
+          }
+          if (msg?.type === "thinking_delta" && typeof msg.delta === "string") {
+            void this.hub.emit(taskId, "thinking_delta", { delta: msg.delta });
           }
           // 消息完整到达时标记完成
           const messageEnd = event.assistantMessageEvent as { type?: string } | undefined;
@@ -611,4 +618,3 @@ export class TaskRuntime {
     });
   }
 }
-

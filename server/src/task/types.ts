@@ -70,6 +70,7 @@ export type TaskEventName =
   | "task_snapshot"
   | "task_updated"
   | "message_delta"
+  | "thinking_delta"
   | "message_completed"
   | "tool_started"
   | "tool_updated"

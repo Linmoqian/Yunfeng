@@ -47,11 +47,17 @@ function serializeTask(state: TaskState) {
 
 function ensureSessionForTask(sessionId: string): Promise<void> {
   // 已激活的会话直接用；否则按 pi session 路径再打开一个运行时包装器。
-  if (getRpcSession(sessionId)?.isAlive()) return Promise.resolve();
+  const activeSession = getRpcSession(sessionId);
+  if (activeSession?.isAlive()) {
+    getTaskContext().runtime.importSession(activeSession);
+    return Promise.resolve();
+  }
   return resolveSessionPath(sessionId).then((filePath) => {
     if (!filePath) throw new TaskNotFoundError("会话不存在");
     const cwd = readSessionHeader(filePath)?.cwd ?? process.cwd();
-    return startRpcSession(sessionId, filePath, cwd).then(() => undefined);
+    return startRpcSession(sessionId, filePath, cwd).then(({ session }) => {
+      getTaskContext().runtime.importSession(session);
+    });
   });
 }
 

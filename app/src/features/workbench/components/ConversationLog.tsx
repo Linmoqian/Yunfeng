@@ -10,6 +10,7 @@ export interface ConversationItem {
   id: string;
   role: ConversationRole;
   text: string;
+  thinking?: string;
   streaming?: boolean;
   status?: MessageStatus;
 }
@@ -47,6 +48,7 @@ interface ConversationLogProps {
   streamError: string | null;
   busyCommand: string | null;
   hasTask: boolean;
+  showThinking: boolean;
   onCopy: (text: string) => void;
   onFork: (entryId: string) => void;
   onResend: (itemId: string, text: string) => void;
@@ -78,27 +80,51 @@ function contentToText(content: unknown): string {
   return "";
 }
 
+function contentToThinking(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  return content.map((block) => {
+    if (!block || typeof block !== "object") return "";
+    const candidate = block as { type?: string; thinking?: string };
+    return candidate.type === "thinking" && typeof candidate.thinking === "string" ? candidate.thinking : "";
+  }).filter(Boolean).join("");
+}
+
 export function normalizeConversationMessage(message: unknown, index: number): ConversationItem | null {
   const candidate = message as { id?: string; role?: string; content?: unknown };
   const text = contentToText(candidate.content).trim();
-  if (!text) return null;
+  const thinking = contentToThinking(candidate.content).trim();
+  if (!text && !thinking) return null;
   const role: ConversationRole = candidate.role === "user" ? "user" : candidate.role === "assistant" ? "assistant" : "tool";
   return {
     id: candidate.id ?? `${role}-${index}`,
     role,
     text,
+    ...(thinking ? { thinking } : {}),
   };
 }
 
 export function mergeConversation(current: ConversationItem[], loaded: ConversationItem[]): ConversationItem[] {
   const loadedIds = new Set(loaded.map((message) => message.id));
-  return [...loaded, ...current.filter((message) => message.id === STREAMING_MESSAGE_ID || !loadedIds.has(message.id))];
+  const loadedContent = new Set(loaded.map((message) => `${message.role}\u0000${message.text}`));
+  return [
+    ...loaded,
+    ...current.filter((message) => (
+      message.id === STREAMING_MESSAGE_ID
+      || (!loadedIds.has(message.id) && !loadedContent.has(`${message.role}\u0000${message.text}`))
+    )),
+  ];
 }
 
 export const STREAMING_MESSAGE_ID = "__streaming_assistant__";
 
 export function getTextDelta(event: { type: string; data?: unknown }): string | null {
   if (event.type !== "message_delta") return null;
+  const data = event.data as { delta?: unknown } | undefined;
+  return data && typeof data.delta === "string" ? data.delta : null;
+}
+
+export function getThinkingDelta(event: { type: string; data?: unknown }): string | null {
+  if (event.type !== "thinking_delta") return null;
   const data = event.data as { delta?: unknown } | undefined;
   return data && typeof data.delta === "string" ? data.delta : null;
 }
@@ -217,7 +243,7 @@ function ApprovalCard({
 }
 
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
-  { items, loading, streamStatus, toolActivity, toolCalls, approvals, busyCommand, hasTask, onCopy, onFork, onResend, onApproval, streamError },
+  { items, loading, streamStatus, toolActivity, toolCalls, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
   ref,
 ) {
   return (
@@ -236,7 +262,13 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
             {item.status ? <span className={`message-dot message-dot--${item.status}`} aria-label={item.status === "failed" ? "发送失败" : item.status === "sending" ? "发送中" : "已发送"} /> : null}
           </span>
           <div className="conversation-message__content">
-            <ConversationMarkdown text={item.text} />
+            {showThinking && item.thinking ? (
+              <div className="conversation-message__thinking">
+                <span>思考过程</span>
+                <ConversationMarkdown text={item.thinking} />
+              </div>
+            ) : null}
+            {item.text ? <ConversationMarkdown text={item.text} /> : null}
           </div>
           <div className="conversation-message__actions">
             <button type="button" className="text-button" onClick={() => onCopy(item.text)}>
