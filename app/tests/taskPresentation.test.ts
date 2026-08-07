@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildTaskSections,
   formatRelativeTime,
+  selectMostRecentActiveTask,
   sessionToLegacySummary,
   taskToSummary,
   type TaskSummary,
@@ -120,6 +121,26 @@ test("buildTaskSections 在同一分组中把最近更新的任务放在前面",
   ]);
 
   assert.deepEqual(sections[0]?.tasks.map((item) => item.id), ["newer", "older"]);
+});
+
+test("selectMostRecentActiveTask 选择最近更新的未结束任务", () => {
+  const selected = selectMostRecentActiveTask([
+    taskState({ id: "completed", status: "completed", updatedAt: "2026-08-05T08:00:00.000Z" }),
+    taskState({ id: "archived", status: "archived", updatedAt: "2026-08-05T07:55:00.000Z" }),
+    taskState({ id: "older", status: "waiting_input", updatedAt: "2026-08-05T07:00:00.000Z" }),
+    taskState({ id: "newer", status: "running", updatedAt: "2026-08-05T07:30:00.000Z" }),
+  ]);
+
+  assert.equal(selected?.id, "newer");
+});
+
+test("selectMostRecentActiveTask 没有活跃任务时返回 null", () => {
+  const selected = selectMostRecentActiveTask([
+    taskState({ id: "completed", status: "completed" }),
+    taskState({ id: "archived", status: "archived" }),
+  ]);
+
+  assert.equal(selected, null);
 });
 
 test("formatRelativeTime 使用简洁的中文相对时间", () => {

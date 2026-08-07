@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createTask,
@@ -19,6 +19,7 @@ const SettingsDialog = lazy(() => import("../../features/workbench/SettingsDialo
 import {
   buildTaskSections,
   collectProjects,
+  selectMostRecentActiveTask,
   sessionToLegacySummary,
   taskToSummary,
   type TaskSummary,
@@ -43,6 +44,7 @@ function isTaskStateLike(value: unknown): value is TaskState {
 export function WorkbenchPage() {
   const dispatch = useAppDispatch();
   const { setMode, mode: themeMode } = useThemeMode();
+  const initialTaskResolved = useRef(false);
 
   const tasks = useAppSelector((state) => state.workbench.tasks);
   const sessions = useAppSelector((state) => state.workbench.sessions);
@@ -126,6 +128,14 @@ export function WorkbenchPage() {
         loadLegacySessions(),
       ]);
       dispatch(workbenchActions.snapshot({ tasks: taskResult.tasks, sessions: legacySessions }));
+      if (!initialTaskResolved.current) {
+        const initialSelection = getInitialSelection();
+        initialTaskResolved.current = true;
+        if (!initialSelection.taskId && !initialSelection.sessionId) {
+          const recentTask = selectMostRecentActiveTask(taskResult.tasks);
+          if (recentTask) dispatch(workbenchActions.selectTask(recentTask.id));
+        }
+      }
       dispatch(workbenchActions.connection({ state: "connected", error: null }));
     } catch (error) {
       dispatch(workbenchActions.connection({

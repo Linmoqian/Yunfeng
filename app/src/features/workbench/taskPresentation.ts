@@ -140,6 +140,16 @@ export function buildTaskSections(tasks: TaskSummary[], archivedVisible = false)
   });
 }
 
+export function selectMostRecentActiveTask(tasks: TaskState[]): TaskState | null {
+  const activeTasks = tasks.filter(
+    (task) => task.status !== "completed" && task.status !== "archived",
+  );
+  activeTasks.sort(
+    (left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt),
+  );
+  return activeTasks[0] ?? null;
+}
+
 export function getProjectName(cwd: string | undefined): string {
   if (!cwd) return "未指定项目";
   const normalizedPath = cwd.replace(/[\\/]+$/, "");
