@@ -11,8 +11,11 @@
     "test:ui": "python tests/frontend_smoke.py"
   },
   "dependencies": {
+    "@lobehub/icons-static-svg": "^1.94.0",
     "@reduxjs/toolkit": "^2.12.0",
+    "@xyflow/react": "^12.11.2",
     "antd": "^6.5.4",
+    "dhtmlx-gantt": "^10.0.1",
     "lucide-react": "^1.29.0",
     "motion": "^13.0.0",
     "react": "^19.1.0",

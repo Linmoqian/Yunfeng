@@ -1,0 +1,29 @@
+.backButton {
+  position: fixed;
+  z-index: 120;
+  top: 10px;
+  left: 228px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  box-shadow: var(--card-shadow);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.backButton:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+@media (max-width: 719px) {
+  .backButton {
+    left: 10px;
+  }
+}
