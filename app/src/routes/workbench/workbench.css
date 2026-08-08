@@ -3018,6 +3018,22 @@
   color: var(--text-primary) !important;
 }
 
+.session-sidebar__taskboard {
+  min-height: 38px;
+  margin: 0 0 18px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  text-align: left;
+}
+
+.session-sidebar__taskboard:hover {
+  border-color: var(--border-subtle) !important;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
 .session-sidebar__filters {
   gap: 7px;
   margin-bottom: 14px;

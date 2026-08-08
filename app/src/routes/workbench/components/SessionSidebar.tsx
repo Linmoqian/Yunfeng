@@ -1,5 +1,6 @@
 import { Input, Segmented, Button } from "antd";
-import { Plus, Search, FolderGit2, X } from "lucide-react";
+import { Columns3, Plus, Search, FolderGit2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 import { TaskRow } from "../../../features/workbench/TaskRow";
@@ -47,6 +48,7 @@ export function SessionSidebar({
   onArchive,
   onReopen,
 }: SessionSidebarProps) {
+  const navigate = useNavigate();
   const conversations = sections.flatMap((section) => section.tasks);
 
   return (
@@ -67,6 +69,14 @@ export function SessionSidebar({
         onClick={onNewTask}
       >
         新建任务
+      </Button>
+      <Button
+        block
+        className="session-sidebar__taskboard"
+        icon={<Columns3 size={16} />}
+        onClick={() => navigate("/taskboard")}
+      >
+        任务看板
       </Button>
 
       <div className="session-sidebar__filters">

@@ -1,6 +1,5 @@
 import { Button } from "antd";
-import { Columns3, PanelLeftClose, PanelLeftOpen, Plus, Settings } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { PanelLeftClose, PanelLeftOpen, Plus, Settings } from "lucide-react";
 
 import type { ConnectionState } from "../../../store/workbenchSlice";
 
@@ -29,8 +28,6 @@ export function WorkbenchHeader({
   onNewTask,
   onOpenSettings,
 }: WorkbenchHeaderProps) {
-  const navigate = useNavigate();
-
   return (
     <header className="workbench-header">
       <div className="session-main__context">
@@ -54,9 +51,6 @@ export function WorkbenchHeader({
         </div>
       </div>
       <div className="workbench-header__actions">
-        <Button icon={<Columns3 size={15} />} onClick={() => navigate("/taskboard")}>
-          任务看板
-        </Button>
         <span className={`connection-state connection-state--${connectionState}`}>
           <span className="connection-state__dot" aria-hidden="true" />
           <span>{CONNECTION_LABELS[connectionState]}</span>
