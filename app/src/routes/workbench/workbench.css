@@ -2834,6 +2834,28 @@
   color: var(--text-primary);
 }
 
+.session-sidebar__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.session-sidebar__taskboard {
+  min-height: 36px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  text-align: left;
+}
+
+.session-sidebar__taskboard:hover {
+  border-color: var(--border-strong) !important;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
 .session-main {
   width: 100%;
   min-height: 100dvh;

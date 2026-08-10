@@ -73,27 +73,28 @@ export function SessionSidebar({
           <MapleStatusMark />
           <span>Yunfeng</span>
         </a>
-        <button
-          type="button"
-          className="icon-button session-sidebar__icon-btn"
-          onClick={() => navigate("/taskboard")}
-          aria-label="任务看板"
-          title="任务看板"
-        >
-          <Columns3 size={16} aria-hidden="true" />
-        </button>
         <Button type="text" icon={<X size={17} />} onClick={onClose} aria-label="关闭任务列表" />
       </div>
 
-      <Button
-        type="primary"
-        block
-        className="session-sidebar__new-task"
-        icon={<Plus size={16} />}
-        onClick={onNewTask}
-      >
-        新建任务
-      </Button>
+      <div className="session-sidebar__actions">
+        <Button
+          type="primary"
+          block
+          className="session-sidebar__new-task"
+          icon={<Plus size={16} />}
+          onClick={onNewTask}
+        >
+          新建任务
+        </Button>
+        <Button
+          block
+          className="session-sidebar__taskboard"
+          icon={<Columns3 size={16} />}
+          onClick={() => navigate("/taskboard")}
+        >
+          任务看板
+        </Button>
+      </div>
       <div className="session-sidebar__search">
         <Search size={14} className="session-sidebar__search-icon" aria-hidden="true" />
         <Input
