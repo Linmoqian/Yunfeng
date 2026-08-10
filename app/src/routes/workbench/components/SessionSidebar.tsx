@@ -1,5 +1,6 @@
+import { useMemo, useState } from "react";
 import { Input, Segmented, Button } from "antd";
-import { Columns3, Plus, Search, FolderGit2, X } from "lucide-react";
+import { ChevronRight, Columns3, Plus, Search, FolderGit2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
@@ -50,6 +51,37 @@ export function SessionSidebar({
 }: SessionSidebarProps) {
   const navigate = useNavigate();
   const conversations = sections.flatMap((section) => section.tasks);
+
+  const regularSections = useMemo(
+    () => sections.filter((s) => s.id !== "legacy"),
+    [sections],
+  );
+  const legacySection = useMemo(
+    () => sections.find((s) => s.id === "legacy"),
+    [sections],
+  );
+  const legacyByProject = useMemo(() => {
+    if (!legacySection) return [] as Array<{ project: string; tasks: TaskSummary[] }>;
+    const map = new Map<string, TaskSummary[]>();
+    for (const task of legacySection.tasks) {
+      const arr = map.get(task.projectName) ?? [];
+      arr.push(task);
+      map.set(task.projectName, arr);
+    }
+    return [...map.entries()]
+      .map(([project, tasks]) => ({ project, tasks }))
+      .sort((a, b) => a.project.localeCompare(b.project));
+  }, [legacySection]);
+
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const toggleProject = (project: string) => {
+    setExpandedProjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(project)) next.delete(project);
+      else next.add(project);
+      return next;
+    });
+  };
 
   return (
     <aside className="session-sidebar" aria-label="任务列表" aria-hidden={collapsed}>
@@ -129,8 +161,8 @@ export function SessionSidebar({
 
       {conversations.length > 0 ? (
         <nav className="session-sidebar__sections" aria-label="最近任务">
-          <div className="session-sidebar__conversation-list">
-            {sections.map((section) => (
+         <div className="session-sidebar__conversation-list">
+           {regularSections.map((section) => (
               <section key={section.id} className={`session-sidebar__group session-sidebar__group--${section.id}`} aria-label={section.label}>
                 <div className="session-sidebar__group-heading">
                   <span>{section.label}</span>
@@ -149,6 +181,49 @@ export function SessionSidebar({
                 ))}
               </section>
             ))}
+            {legacySection ? (
+              <section className="session-sidebar__group session-sidebar__group--legacy" aria-label="旧会话">
+                <div className="session-sidebar__group-heading">
+                  <span>{legacySection.label}</span>
+                  <span className="session-sidebar__group-count">{legacySection.tasks.length}</span>
+                </div>
+                {legacyByProject.map(({ project, tasks }) => (
+                  <div key={project} className="session-sidebar__legacy-project">
+                    <button
+                      type="button"
+                      className="session-sidebar__legacy-project-toggle"
+                      onClick={() => toggleProject(project)}
+                      aria-expanded={expandedProjects.has(project)}
+                    >
+                      <ChevronRight
+                        size={13}
+                        className={expandedProjects.has(project)
+                          ? "session-sidebar__legacy-chevron session-sidebar__legacy-chevron--open"
+                          : "session-sidebar__legacy-chevron"}
+                      />
+                      <FolderGit2 size={13} />
+                      <span className="session-sidebar__legacy-project-name">{project}</span>
+                      <span className="session-sidebar__legacy-project-count">{tasks.length}</span>
+                    </button>
+                    {expandedProjects.has(project) ? (
+                      <div className="session-sidebar__legacy-project-items">
+                        {tasks.map((task) => (
+                          <TaskRow
+                            key={task.id}
+                            task={task}
+                            active={task.id === activeTaskId}
+                            onOpen={onOpenTask}
+                            onRename={onRename}
+                            onArchive={onArchive}
+                            onReopen={onReopen}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </section>
+            ) : null}
           </div>
         </nav>
       ) : (

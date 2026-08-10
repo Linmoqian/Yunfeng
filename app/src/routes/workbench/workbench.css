@@ -1659,6 +1659,58 @@
   font-size: 10px;
 }
 
+/* 旧会话：按项目折叠 */
+.session-sidebar__legacy-project {
+  margin-top: 2px;
+}
+
+.session-sidebar__legacy-project-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.session-sidebar__legacy-project-toggle:hover {
+  background: color-mix(in srgb, var(--fill) 50%, transparent);
+}
+
+.session-sidebar__legacy-chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  opacity: 0.5;
+}
+
+.session-sidebar__legacy-chevron--open {
+  transform: rotate(90deg);
+}
+
+.session-sidebar__legacy-project-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-sidebar__legacy-project-count {
+  flex-shrink: 0;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.session-sidebar__legacy-project-items {
+  margin-top: 2px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
