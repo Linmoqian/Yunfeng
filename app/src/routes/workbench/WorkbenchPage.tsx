@@ -18,7 +18,6 @@ const NewTaskDialog = lazy(() => import("../../features/workbench/NewTaskDialog"
 const SettingsDialog = lazy(() => import("../../features/workbench/SettingsDialog").then((module) => ({ default: module.SettingsDialog })));
 import {
   buildTaskSections,
-  collectProjects,
   selectMostRecentActiveTask,
   sessionToLegacySummary,
   taskToSummary,
@@ -56,8 +55,6 @@ export function WorkbenchPage() {
   const search = useAppSelector((state) => state.workbench.search);
   const projectFilter = useAppSelector((state) => state.workbench.projectFilter);
   const archivedFilter = useAppSelector((state) => state.workbench.archivedFilter);
-  const attentionCount = useAppSelector((state) => state.workbench.attentionCount);
-
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
@@ -118,7 +115,6 @@ export function WorkbenchPage() {
     () => buildTaskSections(filteredSummaries, archivedFilter === "all" || archivedFilter === "archived"),
     [filteredSummaries, archivedFilter],
   );
-  const projects = useMemo(() => collectProjects(allSummaries), [allSummaries]);
   const modelCwd = currentTask?.cwd || currentSession?.cwd || tasks.find((task) => task.cwd)?.cwd;
 
   const refreshSnapshot = useCallback(async () => {
@@ -278,17 +274,10 @@ export function WorkbenchPage() {
         ) : null}
         <SessionSidebar
           sections={sections}
-          taskCount={tasks.length}
-          attentionCount={attentionCount}
           activeTaskId={currentTask?.id ?? currentSession?.id}
           collapsed={sidebarCollapsed}
           search={search}
           onSearch={(value) => dispatch(workbenchActions.search(value))}
-          projectFilter={projectFilter}
-          projects={projects}
-          onProjectFilter={(value) => dispatch(workbenchActions.project(value))}
-          archivedFilter={archivedFilter}
-          onArchivedFilter={(value) => dispatch(workbenchActions.archived(value))}
           onOpenTask={handleOpenTask}
           onNewTask={handleOpenNewTask}
           onClose={() => setSidebarCollapsed(true)}

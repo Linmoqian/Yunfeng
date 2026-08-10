@@ -2806,12 +2806,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin: 0 6px 36px 10px;
+  gap: 4px;
+  margin: 0 0 16px;
 }
 
 .session-sidebar__top .session-sidebar__wordmark {
   margin: 0;
+}
+
+.session-sidebar__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.session-sidebar__icon-btn:hover {
+  background: color-mix(in srgb, var(--fill) 60%, transparent);
+  color: var(--text-primary);
 }
 
 .session-main {
@@ -3095,6 +3115,19 @@
 .session-sidebar__project-field {
   border-color: transparent;
   background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.session-sidebar__search {
+  margin-bottom: 12px;
+}
+
+.session-sidebar__search .ant-input-affix-wrapper {
+  padding: 4px 10px;
+}
+
+.session-sidebar__search .ant-input {
+  min-height: 28px;
+  font-size: 13px;
 }
 
 .session-sidebar__list-heading {

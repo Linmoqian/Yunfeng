@@ -1,26 +1,18 @@
 import { useMemo, useState } from "react";
-import { Input, Segmented, Button } from "antd";
+import { Input, Button } from "antd";
 import { ChevronRight, Columns3, Plus, Search, FolderGit2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 import { TaskRow } from "../../../features/workbench/TaskRow";
 import type { TaskSectionGroup, TaskSummary } from "../../../features/workbench/taskPresentation";
-import type { ArchivedFilter } from "../../../store/workbenchSlice";
 
 interface SessionSidebarProps {
   sections: TaskSectionGroup[];
-  taskCount: number;
-  attentionCount: number;
   activeTaskId?: string;
   collapsed: boolean;
   search: string;
   onSearch: (value: string) => void;
-  projectFilter: string;
-  projects: string[];
-  onProjectFilter: (value: string) => void;
-  archivedFilter: ArchivedFilter;
-  onArchivedFilter: (value: ArchivedFilter) => void;
   onOpenTask: (task: TaskSummary) => void;
   onNewTask: () => void;
   onClose: () => void;
@@ -31,17 +23,10 @@ interface SessionSidebarProps {
 
 export function SessionSidebar({
   sections,
-  taskCount,
-  attentionCount,
   activeTaskId,
   collapsed,
   search,
   onSearch,
-  projectFilter,
-  projects,
-  onProjectFilter,
-  archivedFilter,
-  onArchivedFilter,
   onOpenTask,
   onNewTask,
   onClose,
@@ -50,8 +35,6 @@ export function SessionSidebar({
   onReopen,
 }: SessionSidebarProps) {
   const navigate = useNavigate();
-  const conversations = sections.flatMap((section) => section.tasks);
-
   const regularSections = useMemo(
     () => sections.filter((s) => s.id !== "legacy"),
     [sections],
@@ -90,6 +73,15 @@ export function SessionSidebar({
           <MapleStatusMark />
           <span>Yunfeng</span>
         </a>
+        <button
+          type="button"
+          className="icon-button session-sidebar__icon-btn"
+          onClick={() => navigate("/taskboard")}
+          aria-label="任务看板"
+          title="任务看板"
+        >
+          <Columns3 size={16} aria-hidden="true" />
+        </button>
         <Button type="text" icon={<X size={17} />} onClick={onClose} aria-label="关闭任务列表" />
       </div>
 
@@ -102,64 +94,20 @@ export function SessionSidebar({
       >
         新建任务
       </Button>
-      <Button
-        block
-        className="session-sidebar__taskboard"
-        icon={<Columns3 size={16} />}
-        onClick={() => navigate("/taskboard")}
-      >
-        任务看板
-      </Button>
-
-      <div className="session-sidebar__filters">
-        <div className="session-sidebar__search">
-          <Search size={14} className="session-sidebar__search-icon" aria-hidden="true" />
-          <Input
-            type="search"
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-            placeholder="搜索任务…"
-            autoComplete="off"
-            allowClear
-            variant="borderless"
-          />
-        </div>
-        <div className="session-sidebar__filter-row">
-          <div className="session-sidebar__project-field">
-            <FolderGit2 size={13} className="session-sidebar__search-icon" aria-hidden="true" />
-            <select
-              className="session-sidebar__project-select"
-              value={projectFilter}
-              onChange={(event) => onProjectFilter(event.target.value)}
-              aria-label="按项目筛选"
-            >
-              <option value="">全部项目</option>
-              {projects.map((project) => (
-                <option key={project} value={project}>{project}</option>
-              ))}
-            </select>
-          </div>
-          <Segmented
-            size="small"
-            value={archivedFilter === "all" ? "all" : archivedFilter}
-            onChange={(value) => onArchivedFilter(value as ArchivedFilter)}
-            options={[
-              { label: "进行中", value: "active" },
-              { label: "已归档", value: "archived" },
-            ]}
-            className="session-sidebar__segmented"
-          />
-        </div>
+      <div className="session-sidebar__search">
+        <Search size={14} className="session-sidebar__search-icon" aria-hidden="true" />
+        <Input
+          type="search"
+          value={search}
+          onChange={(event) => onSearch(event.target.value)}
+          placeholder="搜索任务…"
+          autoComplete="off"
+          allowClear
+          variant="borderless"
+        />
       </div>
 
-      <div className="session-sidebar__list-heading">
-        <span>最近对话</span>
-        <span className="session-sidebar__count">
-          {taskCount}{attentionCount > 0 ? ` · ${attentionCount} 待处理` : ""}
-        </span>
-      </div>
-
-      {conversations.length > 0 ? (
+      {sections.length > 0 ? (
         <nav className="session-sidebar__sections" aria-label="最近任务">
          <div className="session-sidebar__conversation-list">
            {regularSections.map((section) => (
@@ -228,9 +176,9 @@ export function SessionSidebar({
         </nav>
       ) : (
         <div className="session-sidebar__empty">
-          <MapleStatusMark />
-          <p>{search || projectFilter || archivedFilter === "archived" ? "没有匹配的任务" : "还没有任务"}</p>
-          <span>{search || projectFilter || archivedFilter === "archived" ? "换个筛选条件试试。" : "从一个清晰的目标开始。"}</span>
+         <MapleStatusMark />
+          <p>{search ? "没有匹配的任务" : "还没有任务"}</p>
+          <span>{search ? "换个搜索词试试。" : "从一个清晰的目标开始。"}</span>
         </div>
       )}
     </aside>
