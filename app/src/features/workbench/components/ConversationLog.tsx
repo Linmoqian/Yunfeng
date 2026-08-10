@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, Check, Loader2, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
+import { Bot, Check, ChevronDown, Loader2, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState } from "react";
 
 export type ConversationRole = "user" | "assistant" | "tool";
@@ -242,6 +242,43 @@ function ApprovalCard({
   );
 }
 
+function ToolCallGroup({ calls }: { calls: ToolCallInfo[] }) {
+  const hasRunning = calls.some((c) => !c.finishedAt);
+  const hasError = calls.some((c) => c.isError);
+  const defaultOpen = calls.length <= 2 || hasRunning;
+  const [open, setOpen] = useState(defaultOpen);
+
+  const summaryTone = hasError ? "error" : hasRunning ? "running" : "done";
+  const summaryLabel = hasError
+    ? `${calls.length} 次工具调用 · 有失败`
+    : hasRunning
+      ? `${calls.length} 次工具调用 · 运行中`
+      : `${calls.length} 次工具调用`;
+
+  return (
+    <div className={`tool-group tool-group--${summaryTone}`}>
+      <button
+        type="button"
+        className="tool-group__toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <ChevronDown size={13} className={open ? "tool-group__chevron" : "tool-group__chevron tool-group__chevron--closed"} aria-hidden="true" />
+        <Wrench size={12} aria-hidden="true" />
+        <span className="tool-group__label">{summaryLabel}</span>
+        {hasRunning ? <Loader2 size={11} className="spin" aria-hidden="true" /> : null}
+      </button>
+      {open ? (
+        <div className="tool-group__items">
+          {calls.map((call) => (
+            <ToolCallCard key={call.callId} call={call} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
   { items, loading, streamStatus, toolActivity, toolCalls, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
   ref,
@@ -298,9 +335,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
         />
       ))}
 
-      {toolCalls.map((call) => (
-        <ToolCallCard key={call.callId} call={call} />
-      ))}
+      {toolCalls.length > 0 ? <ToolCallGroup calls={toolCalls} /> : null}
 
       {toolActivity ? <p className="conversation-tool-status" role="status">{toolActivity}</p> : null}
       {streamError ? <p className="conversation-error" role="alert">{streamError}</p> : null}

@@ -839,6 +839,80 @@
   font-size: 12px;
 }
 
+/* 工具调用折叠容器 */
+.tool-group {
+  align-self: flex-start;
+  min-width: min(76%, 650px);
+  max-width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.tool-group--running {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+}
+
+.tool-group--error {
+  border-color: color-mix(in srgb, var(--attention) 45%, var(--border-subtle));
+}
+
+.tool-group__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.tool-group__toggle:hover {
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.tool-group__chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.tool-group__chevron--closed {
+  transform: rotate(-90deg);
+}
+
+.tool-group__label {
+  flex: 1;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tool-group--running .tool-group__label {
+  color: var(--accent);
+}
+
+.tool-group--error .tool-group__label {
+  color: var(--attention);
+}
+
+.tool-group__items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 6px 6px;
+}
+
+.tool-group__items .tool-card {
+  min-width: 0;
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+
 /* 审批卡 */
 .approval-card {
   align-self: stretch;
