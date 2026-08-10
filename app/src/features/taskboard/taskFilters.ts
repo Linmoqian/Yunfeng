@@ -86,8 +86,8 @@ export function matchesTaskSearch(task: Task, search: string): boolean {
     task.identifier,
     task.title,
     task.description,
-    ...task.labels,
-    ...task.labels.map(labelDisplayName),
+    ...(task.labels ?? []),
+    ...(task.labels ?? []).map(labelDisplayName),
   ]
     .join(" ")
     .toLowerCase()
@@ -108,11 +108,11 @@ export function matchesTaskFilters(
   if (
     omit !== "labels"
     && filters.labels.length
-    && !filters.labels.some((label) => task.labels.includes(label))
+    && !(task.labels ?? []).some((label) => filters.labels.includes(label))
   ) {
     return false;
   }
-  const hasConversation = task.conversationRefs.length > 0;
+  const hasConversation = (task.conversationRefs ?? []).length > 0;
   if (omit !== "link" && filters.link === "linked" && !hasConversation) return false;
   if (omit !== "link" && filters.link === "unlinked" && hasConversation) return false;
 

@@ -341,7 +341,42 @@ export async function listDevelopmentContexts(
 export async function listTasks(projectId: string, signal?: AbortSignal): Promise<Task[]> {
   const params = new URLSearchParams({ projectId, archived: "false" });
   const data = await request<{ tasks: Task[] }>(`/api/tasks?${params}`, { signal });
-  return data.tasks;
+  return data.tasks.map(normalizeTask);
+}
+
+function normalizeTask(task: Partial<Task>): Task {
+  return {
+    id: task.id ?? "",
+    identifier: task.identifier ?? "",
+    projectId: task.projectId ?? "",
+    title: task.title ?? "",
+    description: task.description ?? "",
+    status: task.status ?? "todo",
+    priority: task.priority ?? "none",
+    labels: task.labels ?? [],
+    sortOrder: task.sortOrder ?? 0,
+    threadId: task.threadId ?? null,
+    conversationRefs: task.conversationRefs ?? [],
+    participants: task.participants ?? [],
+    previewImage: task.previewImage ?? null,
+    activityKey: task.activityKey ?? "",
+    activityUpdatedAt: task.activityUpdatedAt ?? "",
+    creatorType: task.creatorType ?? "user",
+    creatorId: task.creatorId ?? "",
+    creatorName: task.creatorName ?? "",
+    creatorAvatarUrl: task.creatorAvatarUrl ?? null,
+    assignee: task.assignee ?? DEFAULT_USER_ACTOR,
+    workflowId: task.workflowId ?? null,
+    developmentContext: task.developmentContext ?? null,
+    startDate: task.startDate ?? null,
+    dueDate: task.dueDate ?? null,
+    recurrence: task.recurrence ?? null,
+    archivedAt: task.archivedAt ?? null,
+    relations: task.relations ?? { parent: null, subIssues: [], blockedBy: [], blocks: [], related: [] },
+    version: task.version ?? 0,
+    createdAt: task.createdAt ?? "",
+    updatedAt: task.updatedAt ?? "",
+  };
 }
 
 export async function createTask(projectId: string, draft: TaskDraft, threadId?: string): Promise<Task> {
