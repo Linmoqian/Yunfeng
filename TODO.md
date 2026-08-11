@@ -29,3 +29,4 @@
 - [x] yunfeng-cli TUI P1：Scroll/Overlay/键位扩展/颜色降级/全局快捷键；P2 部分（visibleWidth 统一/测试/dispose）
 - [x] yunfeng-cli TUI P2-16：架构文档 + demo 冒烟脚本（仅 TUI，不涉及 agent/cli 包）
 - [x] yunfeng-cli CLI 入口：@yunfeng/cli 接入 TUI（createApp/main/bin）+ cli 架构文档
+- [x] yunfeng-cli TUI 参考 pi 补全：StdinBuffer 输入缓冲 / Markdown 渲染 / Editor 撤销与词跳 / fuzzy 过滤
