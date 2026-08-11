@@ -79,6 +79,11 @@ export class Mascot implements Component {
     }
   }
 
+  /** 组件销毁时停止动画 */
+  dispose(): void {
+    this.stop();
+  }
+
   render(width: number): string[] {
     // 浮动：奇数帧上浮 1 行（前导空行）
     const float = this.frame % 2 === 1 ? 1 : 0;

@@ -17,6 +17,8 @@ export interface Component {
 	handleInput?(data: string): boolean;
 	wantsKeyRelease?: boolean;
 	invalidate(): void;
+	/** 组件销毁时释放资源（定时器、订阅等）；由 TuiBase.stop 遍历调用 */
+	dispose?(): void;
 }
 
 /** 可聚焦组件：渲染时发射 CURSOR_MARKER 供 TUI 定位硬件光标 */
@@ -51,6 +53,15 @@ export class Container implements Component {
 	}
 	invalidate(): void {
 		for (const c of this.children) c.invalidate();
+	}
+	/** 递归调用所有子组件的 dispose（含嵌套容器） */
+	disposeChildren(): void {
+		for (const c of this.children) {
+			if (c instanceof Container) {
+				c.disposeChildren();
+			}
+			c.dispose?.();
+		}
 	}
 	render(width: number): string[] {
 		const lines: string[] = [];
@@ -284,6 +295,7 @@ export abstract class TuiBase extends Container {
 			clearTimeout(this.renderTimer);
 			this.renderTimer = null;
 		}
+		this.disposeChildren();
 		this.terminal.stop();
 	}
 

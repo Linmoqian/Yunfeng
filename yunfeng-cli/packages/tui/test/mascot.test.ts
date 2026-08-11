@@ -80,3 +80,15 @@ describe("Mascot", () => {
 		});
 	});
 });
+
+describe("dispose", () => {
+	it("dispose stops the animation timer", () => {
+		vi.useFakeTimers();
+		const onFrame = vi.fn();
+		const m = new Mascot({ animate: true, intervalMs: 500, onFrame });
+		m.dispose();
+		vi.advanceTimersByTime(2000);
+		expect(onFrame).not.toHaveBeenCalled();
+		vi.useRealTimers();
+	});
+});
