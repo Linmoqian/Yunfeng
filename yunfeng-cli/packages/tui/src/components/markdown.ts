@@ -1,27 +1,50 @@
 /**
  * Markdown：轻量 markdown 渲染组件（不依赖第三方解析器）。
  * 支持：标题、粗体/斜体/行内代码/链接、代码块、列表、引用、分割线、普通段落。
- * 输出带 ANSI 样式的行，供 Messages 等展示 agent 回复。
+ * 颜色通过 MarkdownTheme 配置（默认值与项目现有配色一致），可整体替换。
  *
- * 参考 pi 的 markdown 方案，按 yunfeng-cli 需求精简（不含表格/HTML/图片）。
+ * 参考 pi 的 markdown 方案（含 theme），按 yunfeng-cli 需求精简。
  */
 import { style } from '../terminal/ansi.js';
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from '../utils.js';
 import type { Component } from './component.js';
 
-const CODE_BG = '#161b22';
-const CODE_FG = '#e6edf3';
-const LINK_FG = '#58a6ff';
-const HEADING_FG = '#f0f6fc';
-const QUOTE_FG = '#8b949e';
-const LIST_MARK = '#58a6ff';
-const RULE_FG = '#30363d';
+/** 主题：每种元素一个着色函数（模仿 pi 的 MarkdownTheme） */
+export interface MarkdownTheme {
+	heading?: (text: string) => string;
+	bold?: (text: string) => string;
+	italic?: (text: string) => string;
+	code?: (text: string) => string;
+	codeBlock?: (text: string) => string;
+	link?: (text: string) => string;
+	quote?: (text: string) => string;
+	listBullet?: (text: string) => string;
+	hr?: (text: string) => string;
+}
+
+export const DEFAULT_MARKDOWN_THEME: MarkdownTheme = {
+	heading: (t) => style(t, { fg: '#f0f6fc', bold: true }),
+	bold: (t) => style(t, { bold: true }),
+	italic: (t) => style(t, { italic: true }),
+	code: (t) => style(t, { fg: '#e6edf3', bg: '#161b22' }),
+	codeBlock: (t) => style(t, { fg: '#e6edf3', bg: '#161b22' }),
+	link: (t) => style(t, { fg: '#58a6ff', underline: true }),
+	quote: (t) => style(t, { fg: '#8b949e' }),
+	listBullet: (t) => style(t, { fg: '#58a6ff' }),
+	hr: (t) => style(t, { fg: '#30363d' }),
+};
+
+export interface MarkdownOptions {
+	theme?: MarkdownTheme;
+}
 
 export class Markdown implements Component {
 	private text: string;
+	private theme: MarkdownTheme;
 
-	constructor(text = '') {
+	constructor(text = '', options: MarkdownOptions = {}) {
 		this.text = text;
+		this.theme = options.theme ?? DEFAULT_MARKDOWN_THEME;
 	}
 
 	invalidate(): void {}
@@ -31,12 +54,12 @@ export class Markdown implements Component {
 	}
 
 	render(width: number): string[] {
-		return renderMarkdown(this.text, width);
+		return renderMarkdown(this.text, width, this.theme);
 	}
 }
 
 /** 渲染 markdown 文本为带 ANSI 样式的行数组 */
-export function renderMarkdown(text: string, width: number): string[] {
+export function renderMarkdown(text: string, width: number, theme: MarkdownTheme = DEFAULT_MARKDOWN_THEME): string[] {
 	const lines = text.split(/\r\n|\r|\n/);
 	const blocks: string[] = [];
 	let i = 0;
@@ -52,25 +75,27 @@ export function renderMarkdown(text: string, width: number): string[] {
 				i++;
 			}
 			i++; // 跳过结束 fence
-			blocks.push(...renderCodeBlock(code, width));
+			blocks.push(...renderCodeBlock(code, width, theme));
 			continue;
 		}
 		// 标题：# ~ ######
 		const heading = /^(#{1,6})\s+(.*)$/.exec(line);
 		if (heading) {
-			blocks.push(style(heading[2]!, { fg: HEADING_FG, bold: true }));
+			blocks.push(theme.heading?.(heading[2]!) ?? heading[2]!);
 			i++;
 			continue;
 		}
 		// 分割线：--- / *** / ___
 		if (/^\s*[-*_]{3,}\s*$/.test(line)) {
-			blocks.push(style('─'.repeat(Math.max(1, width - 2)), { fg: RULE_FG }));
+			const rule = '─'.repeat(Math.max(1, width - 2));
+			blocks.push(theme.hr?.(rule) ?? rule);
 			i++;
 			continue;
 		}
 		// 引用：> text
 		if (line.trimStart().startsWith('>')) {
-			blocks.push(style('▌ ' + renderInline(line.trimStart().slice(1).trim()), { fg: QUOTE_FG }));
+			const body = '▌ ' + renderInline(line.trimStart().slice(1).trim(), theme);
+			blocks.push(theme.quote?.(body) ?? body);
 			i++;
 			continue;
 		}
@@ -78,12 +103,13 @@ export function renderMarkdown(text: string, width: number): string[] {
 		const list = /^\s*([-*+]|\d+\.)\s+(.*)$/.exec(line);
 		if (list) {
 			const marker = /^\d/.test(list[1]!) ? `${list[1]} ` : '• ';
-			blocks.push(style(marker, { fg: LIST_MARK }) + renderInline(list[2]!));
+			const mark = theme.listBullet?.(marker) ?? marker;
+			blocks.push(mark + renderInline(list[2]!, theme));
 			i++;
 			continue;
 		}
 		// 普通行
-		blocks.push(renderInline(line));
+		blocks.push(renderInline(line, theme));
 		i++;
 	}
 	// 逐行折行（wrapTextWithAnsi 保留 ANSI 样式）
@@ -95,7 +121,7 @@ export function renderMarkdown(text: string, width: number): string[] {
 }
 
 /** 行内样式：`code`、**bold**、*italic*、[text](url) */
-function renderInline(text: string): string {
+function renderInline(text: string, theme: MarkdownTheme): string {
 	let out = '';
 	let rest = text;
 	const tokenRe = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[[^\]]+\]\([^)]+\))/;
@@ -108,15 +134,15 @@ function renderInline(text: string): string {
 		out += rest.slice(0, m.index);
 		const tok = m[0]!;
 		if (tok.startsWith('`')) {
-			out += style(tok.slice(1, -1), { fg: CODE_FG, bg: CODE_BG });
+			out += theme.code?.(tok.slice(1, -1)) ?? tok;
 		} else if (tok.startsWith('**')) {
-			out += style(tok.slice(2, -2), { bold: true });
+			out += theme.bold?.(tok.slice(2, -2)) ?? tok;
 		} else if (tok.startsWith('*')) {
-			out += style(tok.slice(1, -1), { italic: true });
+			out += theme.italic?.(tok.slice(1, -1)) ?? tok;
 		} else if (tok.startsWith('[')) {
 			const mm = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(tok);
 			if (mm) {
-				out += style(mm[1]!, { fg: LINK_FG, underline: true });
+				out += theme.link?.(mm[1]!) ?? mm[1]!;
 			} else {
 				out += tok;
 			}
@@ -127,11 +153,12 @@ function renderInline(text: string): string {
 }
 
 /** 代码块：整行涂背景色 */
-function renderCodeBlock(code: string[], width: number): string[] {
+function renderCodeBlock(code: string[], width: number, theme: MarkdownTheme): string[] {
 	const inner = Math.max(1, width - 2);
 	return code.map((l) => {
 		const body = truncateToWidth(l, inner);
 		const pad = inner - visibleWidth(body);
-		return style(' ' + body + ' '.repeat(Math.max(0, pad)), { bg: CODE_BG, fg: CODE_FG });
+		const line = ' ' + body + ' '.repeat(Math.max(0, pad));
+		return theme.codeBlock?.(line) ?? line;
 	});
 }

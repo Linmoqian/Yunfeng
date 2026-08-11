@@ -209,3 +209,18 @@ describe('Editor submit mode', () => {
 		expect(e.value).toBe('a\n');
 	});
 });
+
+describe('Editor theme', () => {
+	it('applies custom prompt and text colors', () => {
+		const e = new Editor('hi', {
+			theme: {
+				prompt: (t) => `\x1b[31m${t}\x1b[0m`,
+				text: (t) => `\x1b[34m${t}\x1b[0m`,
+			},
+		});
+		e.focused = true;
+		const rows = e.render(40);
+		expect(rows[0]).toContain('\x1b[31m'); // prompt 红
+		expect(rows[0]).toContain('\x1b[34m'); // 文本蓝
+	});
+});

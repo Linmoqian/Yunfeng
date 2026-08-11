@@ -48,3 +48,18 @@ describe('Markdown', () => {
 		}
 	});
 });
+
+describe('Markdown theme', () => {
+	it('applies custom heading color', () => {
+		const rows = renderMarkdown('# 标题', 40, {
+			heading: (t) => `\x1b[35m${t}\x1b[0m`,
+		});
+		expect(rows[0]).toContain('\x1b[35m');
+		expect(stripTerminalSequences(rows[0])).toBe('标题');
+	});
+
+	it('keeps default theme when omitted', () => {
+		const rows = renderMarkdown('# 标题', 40);
+		expect(rows[0]).toMatch(/\x1b\[1;/); // 默认 bold
+	});
+});

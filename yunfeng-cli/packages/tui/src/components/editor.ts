@@ -35,9 +35,21 @@ function nextGraphemeEnd(text: string, pos: number): number {
 	return pos + 1;
 }
 
+/** 编辑器主题：提示符与文本着色函数（模仿 pi 的 EditorTheme） */
+export interface EditorTheme {
+	prompt?: (text: string) => string;
+	text?: (text: string) => string;
+}
+
+export const DEFAULT_EDITOR_THEME: EditorTheme = {
+	prompt: (t) => style(t, { fg: '#8b949e' }),
+	text: (t) => style(t, { fg: '#c9d1d9' }),
+};
+
 export interface EditorOptions {
 	/** Enter 提交（触发 onSubmit）而非插入换行（模仿 pi 聊天输入） */
 	submitOnEnter?: boolean;
+	theme?: EditorTheme;
 }
 
 export class Editor implements Component, Focusable {
@@ -49,6 +61,7 @@ export class Editor implements Component, Focusable {
 	/** 提交回调（submitOnEnter 模式下 Enter 触发，传入完整输入并清空编辑器） */
 	onSubmit?: (text: string) => void;
 	private submitOnEnter: boolean;
+	private theme: EditorTheme;
 
 	private invalidated = true;
 	/** 撤销栈（含光标）；上限 100 条 */
@@ -61,6 +74,7 @@ export class Editor implements Component, Focusable {
 		this.value = initial;
 		this.cursor = initial.length;
 		this.submitOnEnter = options.submitOnEnter ?? false;
+		this.theme = options.theme ?? DEFAULT_EDITOR_THEME;
 	}
 
 	invalidate(): void {
@@ -311,10 +325,11 @@ export class Editor implements Component, Focusable {
 				const prompt = i === lines.length - 1 ? '❯ ' : '  ';
 				// 在光标字符前插入 CURSOR_MARKER，并用 reverse 高亮光标字符
 				const cursorChar = at.length > 0 ? `${CURSOR_MARKER}\x1b[7m${at}\x1b[27m` : CURSOR_MARKER + '▌';
-				rows.push(style(prompt + before + cursorChar + after, { fg: '#c9d1d9' }));
+				const body = this.theme.text?.(before + cursorChar + after) ?? before + cursorChar + after;
+				rows.push((this.theme.prompt?.(prompt) ?? prompt) + body);
 			} else {
 				const prompt = i === lines.length - 1 ? '❯ ' : '· ';
-				rows.push(style(prompt + line, { fg: '#8b949e' }));
+				rows.push((this.theme.prompt?.(prompt) ?? prompt) + (this.theme.text?.(line) ?? line));
 			}
 		}
 		return rows;
