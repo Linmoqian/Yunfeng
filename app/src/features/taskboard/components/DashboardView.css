@@ -58,7 +58,7 @@
 
 .dashboard-view .dashboard-hero-value strong {
   flex: 0 0 auto;
-  background: linear-gradient(93.9348deg, #5e6ad2 1.6282%, #d767c9 48.065%, #ff7236 77.088%, #f0bf00 98.372%);
+  background: linear-gradient(93.9348deg, var(--accent) 1.6282%, #b8824e 48.065%, #c25541 77.088%, #b08236 98.372%);
   background-clip: text;
   color: transparent;
   font-size: 66px;
@@ -208,10 +208,10 @@
   border-left: 0;
 }
 
-.dashboard-view .dashboard-metric.tone-progress { --metric-color: #f0bf00; }
-.dashboard-view .dashboard-metric.tone-review { --metric-color: #43bc58; }
+.dashboard-view .dashboard-metric.tone-progress { --metric-color: var(--warning); }
+.dashboard-view .dashboard-metric.tone-review { --metric-color: var(--success); }
 .dashboard-view .dashboard-metric.tone-blocked,
-.dashboard-view .dashboard-metric.tone-overdue { --metric-color: #f34e52; }
+.dashboard-view .dashboard-metric.tone-overdue { --metric-color: var(--danger); }
 .dashboard-view .dashboard-metric.tone-backlog { --metric-color: #fe6c2e; }
 
 .dashboard-view .dashboard-metric-label {
@@ -659,7 +659,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #317cff;
+  background: var(--accent);
 }
 
 .dashboard-view .dashboard-attention-row strong,
@@ -771,7 +771,7 @@
 }
 
 .dashboard-view .dashboard-role-stack .tone-0,
-.dashboard-view .dashboard-role-share.tone-0 { --role-color: #5e6ad2; }
+.dashboard-view .dashboard-role-share.tone-0 { --role-color: var(--accent); }
 .dashboard-view .dashboard-role-stack .tone-1,
 .dashboard-view .dashboard-role-share.tone-1 { --role-color: #d25e5e; }
 .dashboard-view .dashboard-role-stack .tone-2,
