@@ -59,12 +59,14 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 		onFrame: () => tui.requestRender(),
 	});
 
+	// 状态栏作为独立 footer：永远固定屏幕底部，不参与内容区布局
+	tui.setFooter(status);
+
 	const layout = new VStack([
 		{ component: mascot },
 		{ component: messages, grow: 1 },
 		{ component: loader },
 		{ component: editor },
-		{ component: status },
 	]);
 	tui.addChild(layout);
 	tui.setFocus(editor);

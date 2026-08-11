@@ -106,6 +106,8 @@ export abstract class TuiBase extends Container {
 
 	/** 当前模态弹层；存在时只渲染弹层并接管渲染面 */
 	overlay: Component | null = null;
+	/** 底部固定栏（如状态栏）：永远渲染在屏幕最底行，不参与内容区布局 */
+	private footer: Component | null = null;
 	/** 是否在渲染后定位硬件光标（IME） */
 	protected showHardwareCursor = false;
 
@@ -211,6 +213,12 @@ export abstract class TuiBase extends Container {
 		return this.focusedComponent;
 	}
 
+	/** 设置底部固定栏（如状态栏）；始终渲染在屏幕最底行 */
+	setFooter(component: Component | null): void {
+		this.footer = component;
+		this.requestRender();
+	}
+
 	/** 打开模态弹层；可选把焦点移交给弹层内的目标组件 */
 	openOverlay(overlay: Component, focusTarget?: Component | null): void {
 		this.overlay = overlay;
@@ -309,13 +317,17 @@ export abstract class TuiBase extends Container {
 		const width = this.terminal.columns;
 		const height = this.terminal.rows;
 		const sources = this.overlay ? [this.overlay] : this.children;
+		// footer 固定底部：内容区高度 = 总高 - footer 行数
+		const footerLines = this.overlay ? [] : (this.footer?.render(width, height) ?? []);
+		const contentHeight = Math.max(1, height - footerLines.length);
 		const content: string[] = [];
 		sources.forEach((c) => {
-			content.push(...c.render(width, height));
+			content.push(...c.render(width, contentHeight));
 		});
-		const visible = content.slice(-height);
-		const cursorPos = this.extractCursorPosition(visible, height);
-		const lines = visible.map((l) => l.split(CURSOR_MARKER).join(''));
+		const visible = content.slice(-contentHeight);
+		const allLines = [...visible, ...footerLines];
+		const cursorPos = this.extractCursorPosition(allLines, height);
+		const lines = allLines.map((l) => l.split(CURSOR_MARKER).join(''));
 
 		const output = this.diffAndBuild(lines, width, height);
 		if (output !== null) {

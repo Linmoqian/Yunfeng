@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TuiMainScreen } from '../src/tui-main-screen.js';
 import type { Terminal } from '../src/tui.js';
 import { VStack } from '../src/layout/v-stack.js';
+import { Text } from '../src/layout/text.js';
 import { Editor } from '../src/components/editor.js';
 import { Messages } from '../src/components/messages.js';
 import { StatusBar } from '../src/components/status.js';
@@ -50,6 +51,69 @@ class FakeTerminal implements Terminal {
 		this.cols = cols;
 		this.rows = rows;
 		this.resizeHandler?.();
+	}
+}
+
+/** 带屏幕模拟的终端：解析定位/清行/SGR，可查询指定行 */
+class ScreenTerminal implements Terminal {
+	cells: string[][] = Array.from({ length: 12 }, () => Array(40).fill(' '));
+	private r = 0;
+	private c = 0;
+	output = '';
+	start(): void {}
+	stop(): void {}
+	write(data: string): void {
+		this.output += data;
+		let i = 0;
+		while (i < data.length) {
+			const rest = data.slice(i);
+			if (rest.startsWith('\x1b')) {
+				const pos = /^\x1b\[(\d+);(\d+)H/.exec(rest);
+				if (pos) {
+					this.r = +pos[1]! - 1;
+					this.c = +pos[2]! - 1;
+					i += pos[0].length;
+					continue;
+				}
+				const cl = /^\x1b\[2K/.exec(rest);
+				if (cl) {
+					this.cells[this.r]!.fill(' ');
+					i += cl[0].length;
+					continue;
+				}
+				const sgr = /^\x1b\[[0-9;]*m/.exec(rest);
+				if (sgr) {
+					i += sgr[0].length;
+					continue;
+				}
+				i++;
+				continue;
+			}
+			if (rest[0] === '\n') {
+				this.r++;
+				this.c = 0;
+				i++;
+				continue;
+			}
+			const ch = Array.from(rest)[0] ?? '';
+			if (this.r >= 0 && this.r < 12 && this.c < 40) {
+				for (let k = 0; k < ch.length; k++) this.cells[this.r]![this.c + k] = ch[k] ?? ' ';
+			}
+			this.c += ch.length;
+			i += ch.length;
+		}
+	}
+	get columns(): number {
+		return 40;
+	}
+	get rows(): number {
+		return 12;
+	}
+	hideCursor(): void {}
+	showCursor(): void {}
+	clearScreen(): void {}
+	line(n: number): string {
+		return this.cells[n]!.join('').replace(/\s+$/, '');
 	}
 }
 
@@ -212,5 +276,35 @@ describe('input listeners', () => {
 		term.emit('a');
 		tui.renderNow(true);
 		expect(editor.value).toBe('');
+	});
+});
+
+describe('footer', () => {
+	it('footer stays at bottom regardless of content growth', () => {
+		const term = new ScreenTerminal();
+		const messages = new Messages([{ role: 'system', from: 'yunfeng', content: 'boot' }]);
+		const editor = new Editor('');
+		const status = new StatusBar(() => ({ cwd: '/proj', sessionName: 't' }));
+		const tui = new TuiMainScreen({ terminal: term });
+		tui.addChild(new VStack([{ component: messages, grow: 1 }, { component: editor }]));
+		tui.setFocus(editor);
+		tui.setFooter(status);
+		tui.start();
+		tui.renderNow(true);
+		expect(term.line(11)).toContain('/proj'); // footer 在最后一行
+
+		// 大量消息后 footer 仍在最后一行
+		for (let i = 0; i < 40; i++) messages.add({ role: 'user', from: 'you', content: `消息 ${i}` });
+		tui.renderNow(true);
+		expect(term.line(11)).toContain('/proj');
+	});
+
+	it('clearing footer removes it', () => {
+		const { tui, term } = buildFresh();
+		tui.setFooter(new Text('⏺ STATUS'));
+		tui.setFooter(null);
+		tui.start();
+		tui.renderNow(true);
+		expect(stripTerminalSequences(term.output)).not.toContain('⏺ STATUS');
 	});
 });
