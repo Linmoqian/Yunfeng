@@ -43,6 +43,11 @@ export class Editor implements Component, Focusable {
 	focused = false;
 
 	private invalidated = true;
+	/** 撤销栈（含光标）；上限 100 条 */
+	private undoStack: Array<{ value: string; cursor: number }> = [];
+	private redoStack: Array<{ value: string; cursor: number }> = [];
+	/** 上次编辑类型：连续同类编辑合并为一次撤销步骤 */
+	private lastEditType: string | null = null;
 
 	constructor(initial = '') {
 		this.value = initial;
@@ -51,6 +56,60 @@ export class Editor implements Component, Focusable {
 
 	invalidate(): void {
 		this.invalidated = true;
+	}
+
+	/** 记录撤销快照；连续同类编辑合并，移动重置分组 */
+	private snapshotIfNew(type: string): void {
+		if (this.lastEditType !== type) {
+			this.undoStack.push({ value: this.value, cursor: this.cursor });
+			if (this.undoStack.length > 100) this.undoStack.shift();
+			this.redoStack = [];
+		}
+		this.lastEditType = type;
+	}
+
+	/** 撤销上一步编辑 */
+	undo(): void {
+		const prev = this.undoStack.pop();
+		if (!prev) return;
+		this.redoStack.push({ value: this.value, cursor: this.cursor });
+		this.value = prev.value;
+		this.cursor = prev.cursor;
+		this.invalidate();
+	}
+
+	/** 重做被撤销的编辑 */
+	redo(): void {
+		const next = this.redoStack.pop();
+		if (!next) return;
+		this.undoStack.push({ value: this.value, cursor: this.cursor });
+		this.value = next.value;
+		this.cursor = next.cursor;
+		this.invalidate();
+	}
+
+	/** 词边界：空白或常见标点 */
+	private static isWordBoundary(ch: string): boolean {
+		return /[\s，。；：、！？,.!?;:(){}"'`]/.test(ch);
+	}
+
+	/** 跳到前一个词首 */
+	private wordLeft(): void {
+		let i = this.clampedCursor();
+		while (i > 0 && Editor.isWordBoundary(this.value[i - 1]!)) i--;
+		while (i > 0 && !Editor.isWordBoundary(this.value[i - 1]!)) i--;
+		this.cursor = i;
+		this.lastEditType = null;
+	}
+
+	/** 跳到下一个词尾 */
+	private wordRight(): void {
+		const len = this.value.length;
+		let i = this.clampedCursor();
+		while (i < len && !Editor.isWordBoundary(this.value[i]!)) i++;
+		while (i < len && Editor.isWordBoundary(this.value[i]!)) i++;
+		this.cursor = i;
+		this.lastEditType = null;
 	}
 
 	private clampedCursor(): number {
@@ -74,6 +133,7 @@ export class Editor implements Component, Focusable {
 	}
 
 	private insertChar(ch: string): void {
+		this.snapshotIfNew('insert');
 		const c = this.clampedCursor();
 		this.value = this.value.slice(0, c) + ch + this.value.slice(c);
 		this.cursor = c + ch.length;
@@ -81,6 +141,7 @@ export class Editor implements Component, Focusable {
 	}
 
 	private deleteLeft(): void {
+		this.snapshotIfNew('delete');
 		const c = this.clampedCursor();
 		if (c <= 0) return;
 		// 若左侧是换行，删除换行合并当前行到上一行
@@ -96,6 +157,7 @@ export class Editor implements Component, Focusable {
 	}
 
 	private deleteForward(): void {
+		this.snapshotIfNew('delete');
 		const c = this.clampedCursor();
 		if (c >= this.value.length) return;
 		const end = nextGraphemeEnd(this.value, c);
@@ -105,10 +167,12 @@ export class Editor implements Component, Focusable {
 
 	private moveLeft(): void {
 		this.cursor = previousGraphemeStart(this.value, this.clampedCursor());
+		this.lastEditType = null;
 	}
 
 	private moveRight(): void {
 		this.cursor = nextGraphemeEnd(this.value, this.clampedCursor());
+		this.lastEditType = null;
 	}
 
 	private moveHome(): void {
@@ -146,7 +210,25 @@ export class Editor implements Component, Focusable {
 			case 'end':
 				this.moveEnd();
 				return true;
+			case 'ctrl':
+				if (key.value === 'z') {
+					this.undo();
+					return true;
+				}
+				if (key.value === 'y') {
+					this.redo();
+					return true;
+				}
+				return false;
 			case 'arrow':
+				if (key.direction === 'left' && key.ctrl) {
+					this.wordLeft();
+					return true;
+				}
+				if (key.direction === 'right' && key.ctrl) {
+					this.wordRight();
+					return true;
+				}
 				if (key.direction === 'left') this.moveLeft();
 				if (key.direction === 'right') this.moveRight();
 				if (key.direction === 'up') this.moveUp();

@@ -124,3 +124,60 @@ describe('Editor CJK input', () => {
 		expect(e.currentLineCol).toBe(2); // 两个 code unit
 	});
 });
+
+describe('Editor undo/redo', () => {
+	it('undo reverts grouped char insert, redo restores', () => {
+		const e = new Editor('');
+		keys(e, ['a', 'b', 'c']);
+		expect(e.value).toBe('abc');
+		// Ctrl+Z（0x1a）撤销整组连续输入
+		e.handleInput('\x1a');
+		expect(e.value).toBe('');
+		// Ctrl+Y（0x19）重做
+		e.handleInput('\x19');
+		expect(e.value).toBe('abc');
+	});
+
+	it('separate edit groups are separate undo steps', () => {
+		const e = new Editor('');
+		keys(e, ['a', '\x1b[D', 'b']); // 输入 a，左移（重置分组），输入 b
+		expect(e.value).toBe('ba');
+		e.handleInput('\x1a');
+		expect(e.value).toBe('a');
+		e.handleInput('\x1a');
+		expect(e.value).toBe('');
+	});
+
+	it('backspace group undoes deletion', () => {
+		const e = new Editor('hello');
+		keys(e, ['\x7f', '\x7f']); // 删两个（一组）
+		expect(e.value).toBe('hel');
+		e.handleInput('\x1a');
+		expect(e.value).toBe('hello');
+	});
+});
+
+describe('Editor word navigation', () => {
+	it('ctrl+left jumps to previous word start', () => {
+		const e = new Editor('hello world');
+		e.handleInput('\x1b[1;5D'); // Ctrl+Left
+		expect(e.cursor).toBe(6); // "world" 前
+		e.handleInput('\x1b[1;5D');
+		expect(e.cursor).toBe(0);
+	});
+
+	it('ctrl+right jumps to next word start', () => {
+		const e = new Editor('hello world');
+		e.cursor = 0; // 从行首开始
+		e.handleInput('\x1b[1;5C'); // Ctrl+Right
+		expect(e.cursor).toBe(6); // "world" 词首
+		e.handleInput('\x1b[1;5C');
+		expect(e.cursor).toBe(11); // 文末
+	});
+
+	it('CJK text treats punctuation as boundary', () => {
+		const e = new Editor('你好，世界');
+		e.handleInput('\x1b[1;5D'); // Ctrl+Left：跳过 世界 到逗号后
+		expect(e.cursor).toBe(3); // "你好，" 后
+	});
+});
