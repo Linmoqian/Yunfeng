@@ -49,9 +49,9 @@ export class TuiMainScreen extends TuiBase {
 		// 剥离 CURSOR_MARKER
 		lines = visible.map((l) => l.split(CURSOR_MARKER).join(""));
 
-		const changed = this.diff(lines, this.prevLines, this.prevWidth, this.prevHeight, width, height);
-		if (changed) {
-			this.terminal.write(this.buildOutput(lines, width, height));
+		const output = this.diffAndBuild(lines, this.prevLines, this.prevWidth, this.prevHeight, width, height);
+		if (output !== null) {
+			this.terminal.write(output);
 		}
 
 		this.prevLines = lines;
@@ -66,12 +66,43 @@ export class TuiMainScreen extends TuiBase {
 		}
 	}
 
-	private buildOutput(lines: string[], width: number, height: number): string {
-		// 移到起始，逐行清行后写
-		let out = "\x1b[H";
-		for (let i = 0; i < Math.min(lines.length, height); i++) {
-			const line = lines[i] ?? "";
-			out += "\x1b[2K" + line + "\x1b[0m\n";
+	/**
+	 * 逐行差分：对比当前与上一帧，返回需要输出的终端序列。
+	 * - 尺寸变化：全量重绘（移到原点逐行清行写）
+	 * - 行内容变化：仅对变化行做光标定位 + 清行 + 写入，保留其余区域
+	 * - 无变化：返回 null（不输出任何字节）
+	 */
+	private diffAndBuild(
+		current: string[],
+		previous: string[],
+		prevW: number,
+		prevH: number,
+		w: number,
+		h: number,
+	): string | null {
+		const full = w !== prevW || h !== prevH;
+		const dirty: number[] = [];
+		if (full) {
+			for (let i = 0; i < Math.min(current.length, h); i++) dirty.push(i);
+		} else {
+			const n = Math.max(current.length, previous.length);
+			for (let i = 0; i < n; i++) {
+				if ((current[i] ?? "") !== (previous[i] ?? "")) dirty.push(i);
+			}
+		}
+		if (dirty.length === 0) return null;
+
+		let out = "";
+		if (full) out += "\x1b[H";
+		for (const row of dirty) {
+			if (row >= h) break;
+			const line = current[row] ?? "";
+			if (full) {
+				out += "\x1b[2K" + line + "\x1b[0m\n";
+			} else {
+				// 定位到目标行（1-based）再清行写入
+				out += `\x1b[${row + 1};1H\x1b[2K${line}\x1b[0m`;
+			}
 		}
 		return out;
 	}
@@ -81,28 +112,6 @@ export class TuiMainScreen extends TuiBase {
 		const r = row + 1;
 		const c = col + 1;
 		this.terminal.write(`\x1b[${r};${c}H\x1b[?25h`);
-	}
-
-	/**
-	 * 判断是否需要重绘。v1 采用保守策略：
-	 * 只要行数/宽度变化，或任一已有行可见内容不同，就重绘对应部分。
-	 * @returns 是否发生任何变化
-	 */
-	private diff(
-		current: string[],
-		previous: string[],
-		prevW: number,
-		prevH: number,
-		w: number,
-		h: number,
-	): boolean {
-		if (w !== prevW || h !== prevH) return true;
-		if (current.length === 0 && previous.length === 0) return false;
-		const n = Math.max(current.length, previous.length);
-		for (let i = 0; i < n; i++) {
-			if ((current[i] ?? "") !== (previous[i] ?? "")) return true;
-		}
-		return false;
 	}
 
 	override stop(opts?: TuiStopOptions): void {
