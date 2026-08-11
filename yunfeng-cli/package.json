@@ -8,14 +8,15 @@
 		"packages/*"
 	],
 	"scripts": {
-		"build": "npm run build --workspaces --if-present",
-		"test": "npm run test --workspaces --if-present",
+		"build": "npm run build --workspace=@yunfeng/tui && npm run build --workspace=@yunfeng/cli",
+		"test": "npm run build --workspace=@yunfeng/tui && npm run test --workspace=@yunfeng/tui && npm run test --workspace=@yunfeng/cli",
 		"clean": "npm run clean --workspaces --if-present",
 		"demo": "tsx packages/tui/demo/cli.ts",
 		"lint": "eslint .",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"smoke": "tsx packages/tui/demo/smoke.ts"
+		"smoke": "tsx packages/tui/demo/smoke.ts",
+		"cli": "tsx packages/cli/src/index.ts"
 	},
 	"engines": {
 		"node": ">=22.19.0"

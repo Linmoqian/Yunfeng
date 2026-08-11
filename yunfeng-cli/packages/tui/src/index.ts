@@ -18,7 +18,7 @@ export {
 	getColorMode,
 	type ColorMode,
 } from './terminal/ansi.js';
-export { detectColorMode } from './terminal/process-terminal.js';
+export { ProcessTerminal, detectColorMode } from './terminal/process-terminal.js';
 export { parseKey, type Key, type ParseResult } from './terminal/input.js';
 
 // 渲染原语

@@ -1,0 +1,32 @@
+{
+	"name": "@yunfeng/cli",
+	"version": "0.0.0",
+	"description": "Yunfeng coding agent CLI entry",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"bin": {
+		"yunfeng": "./dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@yunfeng/tui": "0.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"typescript": "^5.9.0",
+		"vitest": "^4.0.0"
+	}
+}
