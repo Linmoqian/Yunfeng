@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type PointerEvent } from "react";
 import { attachmentContentUrl } from "../api";
 import {
   TASK_PRIORITIES,
@@ -314,6 +314,28 @@ export function TaskCard({
   onOpenConversation,
 }: TaskCardProps) {
   const [propertyMenu, setPropertyMenu] = useState<"priority" | "labels" | null>(null);
+
+  // 触屏/触控笔长按 ≈ 右键菜单（pointer 事件统一触屏与鼠标；mouse 保持原行为）
+  const suppressClickRef = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearLongPress() {
+    if (longPressTimer.current !== null) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function handlePointerDown(event: PointerEvent) {
+    if (event.pointerType === "mouse") return;
+    if (isDragging || isMoving) return;
+    clearLongPress();
+    longPressTimer.current = setTimeout(() => {
+      onContextMenu(task, { x: event.clientX, y: window.innerHeight - 80 });
+      suppressClickRef.current = true;
+      longPressTimer.current = null;
+    }, 480);
+  }
   const [savingProperty, setSavingProperty] = useState<"priority" | "labels" | "dueDate" | "assignee" | null>(null);
   const creator: ActorIdentity = {
     type: task.creatorType,
@@ -356,6 +378,11 @@ export function TaskCard({
         event.stopPropagation();
         onContextMenu(task, { x: event.clientX, y: event.clientY });
       }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={clearLongPress}
+      onPointerMove={clearLongPress}
+      onPointerLeave={clearLongPress}
+      onPointerCancel={clearLongPress}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", task.id);
@@ -368,7 +395,15 @@ export function TaskCard({
         className="task-card-open"
         type="button"
         aria-label={`打开 ${task.identifier}: ${task.title}`}
-        onClick={() => onEdit(task)}
+        onClick={(event) => {
+          if (suppressClickRef.current) {
+            event.preventDefault();
+            event.stopPropagation();
+            suppressClickRef.current = false;
+            return;
+          }
+          onEdit(task);
+        }}
       />
 
       <div className="card-topline">

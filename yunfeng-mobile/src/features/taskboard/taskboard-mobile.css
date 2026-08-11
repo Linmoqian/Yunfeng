@@ -26,6 +26,12 @@
   --success: #15803d;
 }
 
+/* ---- 修复：app-shell 使用 100vh 溢出容器，底部被应用 TabBar 遮挡 ---- */
+.taskboard-route .app-shell {
+  height: 100%;
+  max-height: 100%;
+}
+
 /* ---- 移动端布局（≤719px，与 Dashi 断点一致） ---- */
 @media (max-width: 719px) {
   /* 导航收敛：隐藏 app-nav 顶条，workspace 占满 */
@@ -102,5 +108,55 @@
   .taskboard-route .board-column button,
   .taskboard-route .icon-button {
     min-height: 44px;
+  }
+}
+
+/* ---- Phase 2：布局优化（390 视口实测后收敛） ---- */
+@media (max-width: 719px) {
+  /* 头部：更紧凑，隐藏低价值的自动化触发 */
+  .taskboard-route .workspace-header {
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .taskboard-route .header-project-button {
+    font-size: 15px;
+    gap: 4px;
+  }
+  .taskboard-route .project-automation-trigger {
+    display: none;
+  }
+
+  /* 工具栏：更紧凑，视图切换横向滚动保留 */
+  .taskboard-route .board-toolbar {
+    min-height: 40px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  /* 列头：紧凑 */
+  .taskboard-route .column-header {
+    min-height: 32px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  /* 列宽：单列 + 相邻列明显预览 */
+  .taskboard-route .board-column {
+    flex: 0 0 min(88vw, 360px);
+  }
+
+  /* 卡片：更大的触控与阅读密度 */
+  .taskboard-route .task-card {
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+  .taskboard-route .task-card h3 {
+    font-size: 15px;
+    line-height: 22px;
+  }
+  .taskboard-route .task-card .card-topline {
+    margin-bottom: 2px;
   }
 }
