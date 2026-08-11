@@ -16,12 +16,14 @@ export type Key =
   | { kind: "backspace" }
   | { kind: "tab" }
   | { kind: "escape" }
-  | { kind: "arrow"; direction: "up" | "down" | "left" | "right" }
+  | { kind: "arrow"; direction: "up" | "down" | "left" | "right"; ctrl?: boolean; alt?: boolean; shift?: boolean }
   | { kind: "home" }
   | { kind: "end" }
   | { kind: "delete" }
   | { kind: "pageup" }
   | { kind: "pagedown" }
+  | { kind: "function"; index: number; ctrl?: boolean; alt?: boolean; shift?: boolean }
+  | { kind: "alt"; value: string }
   | { kind: "ctrl"; value: string }
   | { kind: "unknown"; raw: string };
 
@@ -60,14 +62,45 @@ function parseByte(b: number): Key | null {
   return null;
 }
 
+/** 修饰码（xterm）：2=shift, 3=alt, 4=shift+alt, 5=ctrl, 6=ctrl+shift, 7=ctrl+alt, 8=ctrl+alt+shift */
+function modifiersFromCode(code: number | undefined): { ctrl?: boolean; alt?: boolean; shift?: boolean } {
+  const c = code ?? 1;
+  const mods: { ctrl?: boolean; alt?: boolean; shift?: boolean } = {};
+  if (c >= 5 && c <= 8) mods.ctrl = true;
+  if (c === 3 || c === 4 || c === 7 || c === 8) mods.alt = true;
+  if (c === 2 || c === 4 || c === 6 || c === 8) mods.shift = true;
+  return mods;
+}
+
+/** 从 CSI 参数中提取修饰码（仅当含分号时取最后一段，如 "1;5" -> 5；"15" -> undefined） */
+function modifierCodeFromParam(param: string): number | undefined {
+  if (!param.includes(";")) return undefined;
+  const parts = param.split(";");
+  const last = parts[parts.length - 1];
+  const n = Number(last);
+  return Number.isInteger(n) ? n : undefined;
+}
+
 /** CSI 序列解析返回的跳转映射 */
 const CSI_TABLE: Record<string, (pfx: string) => Key> = {
-  A: (pfx) => ({ kind: "arrow", direction: "up" }),
-  B: (pfx) => ({ kind: "arrow", direction: "down" }),
-  C: (pfx) => ({ kind: "arrow", direction: "right" }),
-  D: (pfx) => ({ kind: "arrow", direction: "left" }),
+  A: (pfx) => ({ kind: "arrow", direction: "up", ...modifiersFromCode(modifierCodeFromParam(pfx)) }),
+  B: (pfx) => ({ kind: "arrow", direction: "down", ...modifiersFromCode(modifierCodeFromParam(pfx)) }),
+  C: (pfx) => ({ kind: "arrow", direction: "right", ...modifiersFromCode(modifierCodeFromParam(pfx)) }),
+  D: (pfx) => ({ kind: "arrow", direction: "left", ...modifiersFromCode(modifierCodeFromParam(pfx)) }),
   H: (pfx) => ({ kind: "home" }),
   F: (pfx) => ({ kind: "end" }),
+};
+
+/** CSI ~ 的 F 键码（15= F5，17-21=F6-F10，23/24=F11/F12） */
+const CSI_FUNCTION_TABLE: Record<number, number> = {
+  15: 5,
+  17: 6,
+  18: 7,
+  19: 8,
+  20: 9,
+  21: 10,
+  23: 11,
+  24: 12,
 };
 
 /** CSI ~ 序列（如 [3~ Delete、[1~ Home、[4~ End） */
@@ -119,11 +152,16 @@ export function parseKey(data: string, pos = 0): ParseResult | null {
       if (j >= data.length) return null;
       const finalChar = data[j];
       if (finalChar === "~") {
-        const tildeKey = CSI_TILDE_TABLE[param];
-        return {
-          key: tildeKey ?? { kind: "unknown", raw: data.slice(pos, j + 1) },
-          consumed: j + 1 - pos,
-        };
+        const [codeStr] = param.split(";");
+        const tildeKey = CSI_TILDE_TABLE[codeStr ?? ""];
+        if (tildeKey) {
+          return { key: tildeKey, consumed: j + 1 - pos };
+        }
+        const fnIndex = CSI_FUNCTION_TABLE[Number(codeStr)];
+        if (fnIndex !== undefined) {
+          return { key: { kind: "function", index: fnIndex, ...modifiersFromCode(modifierCodeFromParam(param)) }, consumed: j + 1 - pos };
+        }
+        return { key: { kind: "unknown", raw: data.slice(pos, j + 1) }, consumed: j + 1 - pos };
       }
       const handler = finalChar != null ? CSI_TABLE[finalChar] : undefined;
       if (handler) {
@@ -131,7 +169,21 @@ export function parseKey(data: string, pos = 0): ParseResult | null {
       }
       return { key: { kind: "unknown", raw: data.slice(pos, j + 1) }, consumed: j + 1 - pos };
     }
-    // 其他 ESC 前缀（如 \x1bO 应用模式），v1 暂不支持，按 unknown 处理
+    // 应用模式 F1-F4：\x1bOP/Q/R/S
+    if (ch1 === 0x4f) {
+      const fnMap: Record<string, number> = { P: 1, Q: 2, R: 3, S: 4 };
+      const ch2 = data[pos + 2];
+      const fn = ch2 != null ? fnMap[ch2] : undefined;
+      if (fn !== undefined) {
+        return { key: { kind: "function", index: fn }, consumed: 3 };
+      }
+      return { key: { kind: "unknown", raw: data.slice(pos, pos + 3) }, consumed: 3 };
+    }
+    // Alt + 可打印字符：ESC 后跟一个普通字符
+    if (ch1 >= 0x20 && ch1 <= 0x7e) {
+      return { key: { kind: "alt", value: data[pos + 1] }, consumed: 2 };
+    }
+    // 其他 ESC 前缀，按 unknown 处理
     return { key: { kind: "unknown", raw: data.slice(pos, pos + 2) }, consumed: 2 };
   }
 
