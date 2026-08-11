@@ -75,6 +75,7 @@ export { Scroll } from './layout/scroll.js';
 // 基础组件
 export { Editor, type EditorOptions, type EditorTheme, DEFAULT_EDITOR_THEME } from './components/editor.js';
 export { Mascot, type MascotOptions } from './components/mascot.js';
+export { Loader, type LoaderOptions } from './components/loader.js';
 export { Messages, type Message, type MessageRole } from './components/messages.js';
 export { Selector, type SelectOption } from './components/selector.js';
 export { StatusBar, formatTokens, type StatusInfo, type ReasoningEffort } from './components/status.js';

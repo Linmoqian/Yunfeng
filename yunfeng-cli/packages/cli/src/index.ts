@@ -14,6 +14,7 @@ import {
 	Editor,
 	StatusBar,
 	Mascot,
+	Loader,
 	CombinedAutocompleteProvider,
 	CommandProvider,
 	FileProvider,
@@ -40,6 +41,7 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 		{ role: 'assistant', from: 'assistant', content: '在底部输入框打字，Ctrl+C 退出。' },
 	]);
 	const editor = new Editor('', { submitOnEnter: true });
+	const loader = new Loader('思考中...', { onFrame: () => tui.requestRender() });
 	const status = new StatusBar(() => ({
 		cwd: process.cwd(),
 		sessionName: 'yunfeng',
@@ -60,6 +62,7 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 	const layout = new VStack([
 		{ component: mascot },
 		{ component: messages, grow: 1 },
+		{ component: loader },
 		{ component: editor },
 		{ component: status },
 	]);
@@ -84,8 +87,15 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 		const line = text.trim();
 		if (line) {
 			messages.add({ role: 'user', from: 'you', content: line });
-			messages.add({ role: 'assistant', from: 'assistant', content: `收到：${line}` });
+			// 模拟 agent 响应：显示思考中 spinner，随后回执（接 agent 后由真实异步替换）
+			loader.setMessage(`思考中：${line}`);
+			loader.setActive(true);
 			tui.requestRender();
+			setTimeout(() => {
+				loader.setActive(false);
+				messages.add({ role: 'assistant', from: 'assistant', content: `收到：${line}` });
+				tui.requestRender();
+			}, 1200);
 		}
 	};
 
