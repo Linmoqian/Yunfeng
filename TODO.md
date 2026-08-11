@@ -25,7 +25,7 @@
 
 ## yunfeng-mobile 移动端前端（见 docs/design/yunfeng-mobile-roadmap.md）
 
-- [ ] P0-1 sidecar HTTP/SSE 数据层 + types.ts 协议镜像与契约测试
+- [x] P0-1 sidecar HTTP/SSE 数据层 + types.ts 协议镜像与契约测试
 - [ ] P0-2 流式对话（SSE 增量 / thinking / 停止 / 重试）
 - [ ] P0-3 工具调用生命周期卡片
 - [ ] P0-4 Markdown / 代码块渲染
