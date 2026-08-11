@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import ChatView from "@/components/ChatView";
 import { createSidecarClient } from "@/lib/client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
@@ -6,9 +7,10 @@ import { useSessionStore } from "@/hooks/useSessionStore";
 import HomeView from "@/components/HomeView";
 import SessionsView from "@/components/SessionsView";
 import SettingsView from "@/components/SettingsView";
+import { TaskboardView } from "@/components/TaskboardView";
 import TabBar from "@/components/TabBar";
 
-export type Tab = "home" | "sessions" | "settings";
+export type Tab = "home" | "taskboard" | "sessions" | "settings";
 
 export type ActiveChat = { id: string | null; title: string };
 
@@ -57,7 +59,7 @@ export default function App() {
 
   return (
     <div className="mx-auto flex h-dvh max-w-[430px] flex-col bg-background text-foreground">
-      <main className="no-scrollbar flex-1 overflow-y-auto">
+      <main className={cn("flex-1", tab === "taskboard" ? "overflow-hidden" : "no-scrollbar overflow-y-auto")}>
         {tab === "home" && (
           <HomeView
             onOpenSession={openSession}
@@ -65,6 +67,7 @@ export default function App() {
             agents={agentPanel.agents}
           />
         )}
+        {tab === "taskboard" && <TaskboardView />}
         {tab === "sessions" && (
           <SessionsView
             store={store}

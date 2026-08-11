@@ -187,6 +187,41 @@ function runDemoPrompt(session, prompt) {
   });
 }
 
+// ---- 演示任务（TaskState，供任务看板渲染） ----
+const now = Date.now();
+const iso = (ms) => new Date(ms).toISOString();
+function demoTask(partial) {
+  return {
+    schemaVersion: 1,
+    id: partial.id,
+    sessionId: partial.id,
+    cwd: "~/workspace/yunfeng-mobile",
+    source: "task",
+    status: partial.status,
+    phase: partial.phase ?? "unknown",
+    title: partial.title,
+    currentAction: partial.currentAction ?? "",
+    attentionReason: partial.attentionReason,
+    model: undefined,
+    thinkingLevel: undefined,
+    activeToolNames: [],
+    pendingApprovalIds: [],
+    createdAt: iso(now - 3600_000),
+    updatedAt: iso(now - 60_000),
+    completedAt: partial.completedAt,
+    archivedAt: undefined,
+    lastEventSeq: 1,
+  };
+}
+
+const demoTasks = [
+  demoTask({ id: "task-mobile-board", title: "实现移动端任务看板", status: "running", phase: "implementing", currentAction: "正在移植 Dashi 看板组件" }),
+  demoTask({ id: "task-home-ia", title: "设计首页信息架构", status: "waiting_input", phase: "planning", currentAction: "等待输入确认" }),
+  demoTask({ id: "task-theme", title: "审批移动端主题方案", status: "waiting_approval", phase: "verifying", currentAction: "等待审批", attentionReason: "需要确认浅色主题 token" }),
+  demoTask({ id: "task-sidecar", title: "接入 sidecar 数据层", status: "completed", phase: "done", currentAction: "", completedAt: iso(now - 1800_000) }),
+  demoTask({ id: "task-build", title: "修复生产构建失败", status: "failed", phase: "unknown", currentAction: "构建产物校验失败" }),
+];
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.pathname;
@@ -200,6 +235,24 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "GET" && path === "/api/health") {
     return json(res, 200, { ok: true, version: 1 });
+  }
+
+  if (req.method === "GET" && path === "/api/tasks") {
+    return json(res, 200, { tasks: demoTasks, total: demoTasks.length });
+  }
+
+  const taskDetailMatch = path.match(/^\/api\/tasks\/([^/]+)$/);
+  if (req.method === "GET" && taskDetailMatch) {
+    const task = demoTasks.find((t) => t.id === decodeURIComponent(taskDetailMatch[1]));
+    if (!task) return json(res, 404, { error: "Task not found" });
+    return json(res, 200, { task });
+  }
+
+  const taskCommandMatch = path.match(/^\/api\/tasks\/([^/]+)\/commands$/);
+  if (req.method === "POST" && taskCommandMatch) {
+    const task = demoTasks.find((t) => t.id === decodeURIComponent(taskCommandMatch[1]));
+    if (!task) return json(res, 404, { error: "Task not found" });
+    return json(res, 200, { ok: true });
   }
   if (req.method === "GET" && path === "/api/sessions") {
     return json(res, 200, { sessions: [] });

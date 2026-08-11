@@ -1,0 +1,23 @@
+/* 任务看板设计 token：对齐主应用 styles/tokens.css（浅色）。
+   作用域限定 .taskboard-route，避免覆盖移动端外壳的液态玻璃 token。 */
+.taskboard-route {
+  color-scheme: light;
+  --canvas: #f2f3ef;
+  --surface: #fbfaf6;
+  --surface-raised: #fffdf9;
+  --text-primary: #292720;
+  --text-secondary: #67675f;
+  --border-subtle: #dad8cf;
+  --border-strong: #b9b4a7;
+  --accent: #a35f3b;
+  --attention: #8b3e35;
+  --positive: #55705a;
+  --font-display: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  --font-body: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Noto Sans CJK SC", sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", monospace;
+  --shadow-attention: 0 12px 30px rgb(89 58 36 / 10%);
+  --focus-ring: 0 0 0 3px rgb(163 95 59 / 24%);
+  --scrim: rgb(41 39 32 / 30%);
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
