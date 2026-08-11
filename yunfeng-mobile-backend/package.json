@@ -1,0 +1,25 @@
+{
+  "name": "yunfeng-mobile-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node --watch src/index.ts",
+    "start": "node src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/*.test.ts\"",
+    "smoke": "node test/smoke.mjs",
+    "build:native": "bash scripts/build-native.sh"
+  },
+  "dependencies": {
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@types/ws": "^8.18.0",
+    "typescript": "^6.0.3"
+  }
+}

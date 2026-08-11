@@ -43,3 +43,13 @@
 - [ ] P2-16 无障碍（字体缩放 / 对比度 / 读屏）
 - [ ] 移动端 Rust cargo check / tauri 启动验证
 - [ ] Playwright 移动视口 e2e
+
+## yunfeng-mobile 后端（yunfeng-mobile-backend，见 docs/design/yunfeng-mobile-backend.md）
+
+- [x] 账号模块：配对码 / 设备注册 / token（node:sqlite）
+- [x] 远程通讯：WebSocket hub + sidecar HTTP/SSE 桥接
+- [x] 远程桌面：screencapture JPEG 帧流 + CGEvent 输入注入 helper
+- [x] 服务装配与冒烟（YF_MOBILE_READY 协议）
+- [ ] 真实 sidecar 联调（当前以 mock 验证）
+- [ ] 移动端接入后端协议（P2-12 设备协同 UI 已预留）
+- [ ] 屏幕录制 / 辅助功能权限下的真实帧率与输入验证
