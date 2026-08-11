@@ -37,7 +37,15 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 		{ role: 'assistant', from: 'assistant', content: '在底部输入框打字，Ctrl+C 退出。' },
 	]);
 	const editor = new Editor('');
-	const status = new StatusBar(() => ({ cwd: process.cwd(), sessionName: 'yunfeng' }));
+	const status = new StatusBar(() => ({
+		cwd: process.cwd(),
+		sessionName: 'yunfeng',
+		// 占位示例：接入 agent 后由真实运行数据覆盖
+		model: 'yunfeng-demo',
+		contextUsed: 12480,
+		contextLimit: 128000,
+		reasoning: 'medium',
+	}));
 
 	const tui = new TuiMainScreen({ terminal, showHardwareCursor: true });
 	const mascot = new Mascot({

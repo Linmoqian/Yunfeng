@@ -69,6 +69,6 @@ export { Editor } from './components/editor.js';
 export { Mascot, type MascotOptions } from './components/mascot.js';
 export { Messages, type Message, type MessageRole } from './components/messages.js';
 export { Selector, type SelectOption } from './components/selector.js';
-export { StatusBar, type StatusInfo } from './components/status.js';
+export { StatusBar, formatTokens, type StatusInfo, type ReasoningEffort } from './components/status.js';
 export { Overlay, type OverlayOptions } from './components/overlay.js';
 export { Markdown, renderMarkdown } from './components/markdown.js';
