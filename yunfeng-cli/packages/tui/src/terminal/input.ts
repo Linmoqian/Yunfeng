@@ -20,6 +20,8 @@ export type Key =
   | { kind: "home" }
   | { kind: "end" }
   | { kind: "delete" }
+  | { kind: "pageup" }
+  | { kind: "pagedown" }
   | { kind: "ctrl"; value: string }
   | { kind: "unknown"; raw: string };
 
@@ -73,6 +75,8 @@ const CSI_TILDE_TABLE: Record<string, Key> = {
   "1": { kind: "home" },
   "3": { kind: "delete" },
   "4": { kind: "end" },
+  "5": { kind: "pageup" },
+  "6": { kind: "pagedown" },
 };
 
 /**

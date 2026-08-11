@@ -57,6 +57,7 @@ export { HStack } from "./layout/h-stack.js";
 export { Box } from "./layout/box.js";
 export { Spacer } from "./layout/spacer.js";
 export { Text } from "./layout/text.js";
+export { Scroll } from "./layout/scroll.js";
 
 // 基础组件
 export { Editor } from "./components/editor.js";
