@@ -198,3 +198,25 @@ describe("global shortcuts", () => {
 		expect(fired).toBe(0);
 	});
 });
+
+describe("input listeners", () => {
+	it("listener can rewrite input data", () => {
+		const { tui, term, editor } = buildFresh();
+		tui.start();
+		tui.renderNow(true);
+		tui.addInputListener(() => ({ data: "X" }));
+		term.emit("a");
+		tui.renderNow(true);
+		expect(editor.value).toBe("X");
+	});
+
+	it("listener consuming input blocks component", () => {
+		const { tui, term, editor } = buildFresh();
+		tui.start();
+		tui.renderNow(true);
+		tui.addInputListener(() => ({ consume: true }));
+		term.emit("a");
+		tui.renderNow(true);
+		expect(editor.value).toBe("");
+	});
+});

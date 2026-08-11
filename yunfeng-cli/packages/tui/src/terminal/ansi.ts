@@ -206,11 +206,4 @@ export function cursorHome(): string {
 export const hideCursor = "\x1b[?25l";
 export const showCursor = "\x1b[?25h";
 
-/**
- * 可见宽度估算：去掉 ANSI 转义序列后统计字符数。
- * 注意：CJK 宽字符按 1 计（简化处理），适合行数统计与对齐。
- */
-export function visibleWidth(text: string): number {
-  // 去除所有 \x1b[...m 之外的控制序列（光标移动等）
-  return text.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "").length;
-}
+

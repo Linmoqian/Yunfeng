@@ -14,7 +14,6 @@ export {
 	cursorHome,
 	hideCursor,
 	showCursor,
-	visibleWidth,
 	setColorMode,
 	getColorMode,
 	type ColorMode,
@@ -27,7 +26,7 @@ export {
 	applyBackgroundToLine,
 	stripTerminalSequences,
 	truncateToWidth,
-	visibleWidth as textVisibleWidth,
+	visibleWidth,
 	wrapTextWithAnsi,
 } from "./utils.js";
 

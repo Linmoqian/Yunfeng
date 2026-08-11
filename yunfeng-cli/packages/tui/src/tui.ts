@@ -253,13 +253,19 @@ export abstract class TuiBase extends Container {
 			if (key && this.dispatchGlobalShortcut(key)) continue;
 			// 让监听器有机会改写/消费
 			let message = keyData;
+			let consumed = false;
 			for (const listener of this.inputListeners) {
 				const res = listener(message);
 				if (res) {
 					if (res.data !== undefined) message = res.data;
-					if (res.consume) break;
+					if (res.consume) {
+						consumed = true;
+						break;
+					}
 				}
 			}
+			// 消费后不再转发给焦点组件
+			if (consumed) continue;
 			const target = this.focusedComponent;
 			if (target?.handleInput?.(message)) {
 				this.requestRender();
