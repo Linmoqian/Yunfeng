@@ -158,3 +158,87 @@ button:not(:disabled):active {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Markdown 消息体（移动端阅读优化） ---------- */
+.md-body {
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.md-body > *:first-child {
+  margin-top: 0;
+}
+.md-body > *:last-child {
+  margin-bottom: 0;
+}
+.md-body p {
+  margin: 0 0 0.5em;
+}
+.md-body ul,
+.md-body ol {
+  margin: 0 0 0.5em;
+  padding-left: 1.25em;
+}
+.md-body li {
+  margin: 0.15em 0;
+}
+.md-body code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface-muted);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+.md-body pre {
+  margin: 0 0 0.6em;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-solid);
+  overflow-x: auto;
+}
+.md-body pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+}
+.md-body a {
+  color: color-mix(in srgb, var(--accent) 45%, var(--foreground));
+}
+.md-body blockquote {
+  margin: 0 0 0.5em;
+  padding-left: 0.8em;
+  border-left: 2px solid var(--border);
+  color: var(--muted-foreground);
+}
+.md-body table {
+  margin: 0 0 0.6em;
+  border-collapse: collapse;
+}
+.md-body th,
+.md-body td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+/* ---------- 流式光标 ---------- */
+.cursor-blink {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--accent);
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}

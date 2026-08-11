@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ChatView from "@/components/ChatView";
+import { createSidecarClient } from "@/lib/client";
 import HomeView from "@/components/HomeView";
 import SessionsView from "@/components/SessionsView";
 import SettingsView from "@/components/SettingsView";
@@ -10,6 +11,7 @@ export type Tab = "home" | "sessions" | "settings";
 export type ActiveChat = { id: string | null; title: string };
 
 export default function App() {
+  const client = useMemo(() => createSidecarClient(), []);
   const [tab, setTab] = useState<Tab>("home");
   const [chat, setChat] = useState<ActiveChat | null>(null);
 
@@ -20,7 +22,7 @@ export default function App() {
   if (chat) {
     return (
       <div className="mx-auto h-dvh max-w-[430px] bg-background text-foreground">
-        <ChatView id={chat.id} title={chat.title} onBack={() => setChat(null)} />
+        <ChatView id={chat.id} title={chat.title} onBack={() => setChat(null)} client={client} />
       </div>
     );
   }

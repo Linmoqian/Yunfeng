@@ -26,9 +26,9 @@
 ## yunfeng-mobile 移动端前端（见 docs/design/yunfeng-mobile-roadmap.md）
 
 - [x] P0-1 sidecar HTTP/SSE 数据层 + types.ts 协议镜像与契约测试
-- [ ] P0-2 流式对话（SSE 增量 / thinking / 停止 / 重试）
+- [x] P0-2 流式对话（SSE 增量 / thinking / 停止 / 重试）
 - [ ] P0-3 工具调用生命周期卡片
-- [ ] P0-4 Markdown / 代码块渲染
+- [x] P0-4 Markdown / 代码块渲染（基础版）
 - [ ] P0-5 会话管理（重命名 / 删除 / 归档 / 搜索 / 空态）
 - [ ] P1-6 Agent 实时状态面板（订阅 AgentEvent）
 - [ ] P1-7 任务拆解视图（子任务进度）
