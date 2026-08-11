@@ -8,3 +8,4 @@
 - 前端无测试框架；sidecar 验证手段是 `smoke.mjs` 集成脚本（Windows 下硬编码 bun 绝对路径）。
 - 项目规则维护在 `RULES.md`（简约、模块化、行数阈值、契约同步）。
 - yunfeng-mobile（仓库根目录，与 app/ 独立）：Tauri 2 + Vite + React + Tailwind v4 移动端工程，暗色 Marvis 风格首页（对话入口 / 快捷指令 / Agent 协作），前端当前用静态数据，sidecar 接入待做。
+- yunfeng-mobile-backend（仓库根目录，与 app/、yunfeng-mobile/ 独立）：桌面端移动后端，Node 24 + ws + node:sqlite；账号=配对码+设备 token（sha256 落库）；通讯=WS hub 桥接 pi sidecar HTTP/SSE；远程桌面=screencapture JPEG 帧 + bin/yf-input（CGEvent 注入）；启动输出 YF_MOBILE_READY。v1 局域网直连，云端中继/WebRTC/完整账号为扩展位。

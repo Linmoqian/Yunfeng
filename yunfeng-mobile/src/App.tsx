@@ -1,14 +1,17 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import ChatView from "@/components/ChatView";
+import RemoteChatView from "@/components/RemoteChatView";
 import { createSidecarClient } from "@/lib/client";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { useSessionStore } from "@/hooks/useSessionStore";
 import HomeView from "@/components/HomeView";
+import RemoteDesktopView from "@/components/RemoteDesktopView";
 import SessionsView from "@/components/SessionsView";
 import SettingsView from "@/components/SettingsView";
 import { TaskboardView } from "@/components/TaskboardView";
 import TabBar from "@/components/TabBar";
+import { loadConnection, saveConnection, type RemoteConnection } from "@/lib/remote";
 
 export type Tab = "home" | "taskboard" | "sessions" | "settings";
 
@@ -20,6 +23,13 @@ export default function App() {
   const agentPanel = useAgentStatus();
   const [tab, setTab] = useState<Tab>("home");
   const [chat, setChat] = useState<ActiveChat | null>(null);
+  const [conn, setConn] = useState<RemoteConnection | null>(() => loadConnection());
+  const [desktopOpen, setDesktopOpen] = useState(false);
+
+  function onConnected(next: RemoteConnection | null) {
+    setConn(next);
+    saveConnection(next);
+  }
 
   function openSession(id: string | null, title: string) {
     setChat({ id, title });
@@ -42,17 +52,29 @@ export default function App() {
     return newId;
   }
 
+  if (desktopOpen && conn) {
+    return (
+      <div className="mx-auto h-dvh max-w-[430px] bg-black text-foreground">
+        <RemoteDesktopView conn={conn} onBack={() => setDesktopOpen(false)} />
+      </div>
+    );
+  }
+
   if (chat) {
     return (
       <div className="mx-auto h-dvh max-w-[430px] bg-background text-foreground">
-        <ChatView
-          id={chat.id}
-          title={chat.title}
-          onBack={() => setChat(null)}
-          client={client}
-          onActivity={onActivity}
-          onAgentEvent={agentPanel.applyEvent}
-        />
+        {conn ? (
+          <RemoteChatView id={chat.id} title={chat.title} conn={conn} onBack={() => setChat(null)} />
+        ) : (
+          <ChatView
+            id={chat.id}
+            title={chat.title}
+            onBack={() => setChat(null)}
+            client={client}
+            onActivity={onActivity}
+            onAgentEvent={agentPanel.applyEvent}
+          />
+        )}
       </div>
     );
   }
@@ -65,6 +87,8 @@ export default function App() {
             onOpenSession={openSession}
             recent={store.active}
             agents={agentPanel.agents}
+            connected={conn !== null}
+            onOpenDesktop={conn ? () => setDesktopOpen(true) : undefined}
           />
         )}
         {tab === "taskboard" && <TaskboardView />}
@@ -75,7 +99,13 @@ export default function App() {
             onNewChat={() => openSession(null, "新对话")}
           />
         )}
-        {tab === "settings" && <SettingsView />}
+        {tab === "settings" && (
+          <SettingsView
+            conn={conn}
+            onConnected={onConnected}
+            onOpenDesktop={conn ? () => setDesktopOpen(true) : undefined}
+          />
+        )}
       </main>
       <TabBar tab={tab} onChange={setTab} />
     </div>

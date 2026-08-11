@@ -56,3 +56,16 @@
 - [ ] TB-P3 动效/安全区/真机验证
 - [ ] 移动端 Rust cargo check / tauri 启动验证
 - [ ] Playwright 移动视口 e2e
+
+## yunfeng-mobile 后端（yunfeng-mobile-backend，见 docs/design/yunfeng-mobile-backend.md）
+
+- [x] 账号模块：配对码 / 设备注册 / token（node:sqlite）
+- [x] 远程通讯：WebSocket hub + sidecar HTTP/SSE 桥接
+- [x] 远程桌面：screencapture JPEG 帧流 + CGEvent 输入注入 helper
+- [x] 服务装配与冒烟（YF_MOBILE_READY 协议）
+- [x] 调试 CLI（yf-cli）：配对 / 对话事件流 / 远程桌面帧 / 设备管理
+- [x] 移动端协议客户端 remote.ts + 配对/对话/远程桌面 UI 接入
+- [x] CLI 端到端通讯验证（移动端协议 → 后端 → demo sidecar → 回执）
+- [ ] 真实 sidecar 联调（当前以 demo/mock 验证）
+- [ ] 屏幕录制 / 辅助功能权限下的真实帧率与输入验证
+- [ ] 移动端浏览器端到端回归（当前以 CLI 协议验证替代）
