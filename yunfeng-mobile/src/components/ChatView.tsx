@@ -47,17 +47,17 @@ export default function ChatView({ id, title, onBack }: Props) {
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="flex items-center gap-3 border-b border-edge bg-surface/80 px-3 py-3 backdrop-blur-xl">
+      <header className="flex items-center gap-3 border-b border-border bg-surface px-3 py-3 backdrop-blur-xl">
         <button
           onClick={onBack}
-          className="grid size-9 place-items-center rounded-full text-ink-dim transition active:scale-95"
+          className="grid size-9 place-items-center rounded-full text-muted-foreground transition active:scale-95"
           aria-label="返回"
         >
           <ArrowLeft className="size-5" />
         </button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-medium">{title}</p>
-          <p className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+          <p className="flex items-center gap-1.5 text-[11px] text-faint">
             <span className="size-1.5 rounded-full bg-emerald-400" />
             Agent 在线
           </p>
@@ -71,7 +71,7 @@ export default function ChatView({ id, title, onBack }: Props) {
               <Sparkles className="size-6" />
             </span>
             <p className="mt-2 text-[15px] font-medium">开始新的对话</p>
-            <p className="text-sm text-ink-dim">向 Yunfeng 描述你想做的事</p>
+            <p className="text-sm text-muted-foreground">向 Yunfeng 描述你想做的事</p>
           </div>
         )}
         {messages.map((m) => (
@@ -82,21 +82,21 @@ export default function ChatView({ id, title, onBack }: Props) {
 
       <form
         onSubmit={onSubmit}
-        className="shrink-0 border-t border-edge bg-surface/80 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur-xl"
+        className="shrink-0 border-t border-border bg-surface px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur-xl"
       >
-        <div className="flex items-end gap-2 rounded-2xl border border-edge bg-white/[0.05] px-3 py-2 focus-within:border-edge-strong">
+        <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 py-2 focus-within:border-accent">
           <textarea
             rows={1}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="输入指令或提问…"
-            className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-snug outline-none placeholder:text-ink-faint"
+            className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-snug outline-none placeholder:text-faint"
           />
           <button
             type="submit"
             disabled={!draft.trim()}
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-surface transition active:scale-95 disabled:opacity-40"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground transition active:scale-95 disabled:opacity-40"
             aria-label="发送"
           >
             <Send className="size-4" />
@@ -111,7 +111,7 @@ function Bubble({ message }: { message: Message }) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[82%] rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-[15px] leading-snug text-surface">
+        <div className="max-w-[82%] rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-[15px] leading-snug text-accent-foreground">
           {message.text}
         </div>
       </div>
@@ -119,10 +119,10 @@ function Bubble({ message }: { message: Message }) {
   }
   return (
     <div className="flex items-start gap-2.5">
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/[0.07] text-accent">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-accent">
         <Sparkles className="size-4" />
       </span>
-      <div className="max-w-[82%] rounded-2xl rounded-bl-md border border-edge bg-white/[0.05] px-4 py-2.5 text-[15px] leading-snug">
+      <div className="max-w-[82%] rounded-2xl rounded-bl-md border border-border bg-surface px-4 py-2.5 text-[15px] leading-snug">
         {message.text}
       </div>
     </div>

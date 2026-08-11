@@ -52,7 +52,7 @@ export const agents: Agent[] = [
     role: "理解需求、拆解任务",
     status: "working",
     activity: "正在拆解「移动端接入」任务",
-    accent: "bg-cyan-400/20 text-cyan-300",
+    accent: "bg-amber-400/15 text-amber-700 dark:bg-amber-400/20 dark:text-amber-300",
   },
   {
     id: "code",
@@ -60,7 +60,7 @@ export const agents: Agent[] = [
     role: "编写与修改代码",
     status: "working",
     activity: "生成 yunfeng-mobile 脚手架",
-    accent: "bg-blue-400/20 text-blue-300",
+    accent: "bg-blue-400/15 text-blue-700 dark:bg-blue-400/20 dark:text-blue-300",
   },
   {
     id: "test",
@@ -68,7 +68,7 @@ export const agents: Agent[] = [
     role: "补充与运行测试",
     status: "online",
     activity: "等待任务分配",
-    accent: "bg-emerald-400/20 text-emerald-300",
+    accent: "bg-emerald-400/15 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-300",
   },
   {
     id: "doc",
@@ -76,7 +76,7 @@ export const agents: Agent[] = [
     role: "整理技术文档",
     status: "idle",
     activity: "空闲",
-    accent: "bg-amber-400/20 text-amber-300",
+    accent: "bg-orange-400/15 text-orange-700 dark:bg-orange-400/20 dark:text-orange-300",
   },
   {
     id: "file",
@@ -84,7 +84,7 @@ export const agents: Agent[] = [
     role: "管理本地文件",
     status: "idle",
     activity: "空闲",
-    accent: "bg-violet-400/20 text-violet-300",
+    accent: "bg-violet-400/15 text-violet-700 dark:bg-violet-400/20 dark:text-violet-300",
   },
   {
     id: "search",
@@ -92,7 +92,7 @@ export const agents: Agent[] = [
     role: "检索信息与知识库",
     status: "idle",
     activity: "空闲",
-    accent: "bg-pink-400/20 text-pink-300",
+    accent: "bg-pink-400/15 text-pink-700 dark:bg-pink-400/20 dark:text-pink-300",
   },
 ];
 

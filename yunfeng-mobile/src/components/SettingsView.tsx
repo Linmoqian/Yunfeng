@@ -15,11 +15,11 @@ export default function SettingsView() {
 
       <Section label="设备协同" icon={<Wifi className="size-4" />}>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 text-xs text-ink-dim">
+          <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
             <Monitor className="size-3.5" />
             本机
           </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 text-xs text-ink-dim">
+          <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
             <Smartphone className="size-3.5" />
             远程设备
           </span>
@@ -27,11 +27,11 @@ export default function SettingsView() {
       </Section>
 
       <Section label="数据与安全" icon={<ShieldCheck className="size-4" />}>
-        <p className="text-xs leading-relaxed text-ink-dim">本地优先，文件与知识库不出设备。</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">本地优先，文件与知识库不出设备。</p>
       </Section>
 
       <Section label="关于" icon={<Info className="size-4" />}>
-        <p className="text-xs text-ink-dim">Yunfeng Mobile v0.1.0</p>
+        <p className="text-xs text-muted-foreground">Yunfeng Mobile v0.1.0</p>
       </Section>
     </div>
   );
@@ -47,7 +47,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-edge bg-white/[0.04]">
+    <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface">
       <div className="flex items-center justify-between px-4 py-3.5">
         <div className="flex items-center gap-2.5 text-sm font-medium">
           <span className={cn("text-accent")}>{icon}</span>

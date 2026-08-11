@@ -10,7 +10,7 @@ const TABS = [
 
 export default function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   return (
-    <nav className="shrink-0 border-t border-edge bg-surface/85 px-6 pb-[max(env(safe-area-inset-bottom),10px)] pt-2 backdrop-blur-xl">
+    <nav className="shrink-0 border-t border-border bg-surface px-6 pb-[max(env(safe-area-inset-bottom),10px)] pt-2 backdrop-blur-xl">
       <div className="flex items-center justify-around">
         {TABS.map((t) => {
           const Icon = t.icon;
@@ -21,9 +21,9 @@ export default function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab)
               onClick={() => onChange(t.id)}
               className="flex w-20 flex-col items-center gap-1 py-1 transition active:scale-95"
             >
-              <Icon className={cn("size-5 transition", active ? "text-accent" : "text-ink-faint")} />
+              <Icon className={cn("size-5 transition", active ? "text-accent" : "text-faint")} />
               <span
-                className={cn("text-[11px]", active ? "font-medium text-accent" : "text-ink-faint")}
+                className={cn("text-[11px]", active ? "font-medium text-accent" : "text-faint")}
               >
                 {t.label}
               </span>
