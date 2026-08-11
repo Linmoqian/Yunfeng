@@ -2,6 +2,7 @@
 import { App as TaskboardApp } from "@/features/taskboard/App";
 import "@/features/taskboard/tokens.css";
 import "@/features/taskboard/styles.css";
+import "@/features/taskboard/taskboard-mobile.css";
 
 export function TaskboardView() {
   return (
