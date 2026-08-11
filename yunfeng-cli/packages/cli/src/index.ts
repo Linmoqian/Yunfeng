@@ -14,6 +14,9 @@ import {
 	Editor,
 	StatusBar,
 	Mascot,
+	CombinedAutocompleteProvider,
+	CommandProvider,
+	FileProvider,
 	type Terminal,
 } from '@yunfeng/tui';
 
@@ -62,6 +65,19 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 	]);
 	tui.addChild(layout);
 	tui.setFocus(editor);
+
+	// 自动补全：斜杠命令 + 当前目录文件（模仿 pi）
+	editor.setAutocompleteProvider(
+		new CombinedAutocompleteProvider([
+			new CommandProvider([
+				{ name: 'help', description: '显示帮助' },
+				{ name: 'clear', description: '清屏' },
+				{ name: 'quit', description: '退出' },
+				{ name: 'model', description: '选择模型' },
+			]),
+			new FileProvider(process.cwd()),
+		]),
+	);
 
 	// 提交：Editor Enter 触发 onSubmit（模仿 pi 聊天输入），写入消息流
 	editor.onSubmit = (text) => {

@@ -224,3 +224,53 @@ describe('Editor theme', () => {
 		expect(rows[0]).toContain('\x1b[34m'); // 文本蓝
 	});
 });
+
+describe('Editor autocomplete', () => {
+	const cmd = {
+		getSuggestions(input: string) {
+			if (!input.startsWith('/')) return [];
+			return [{ label: '/help', description: '帮助' }, { label: '/model' }];
+		},
+	};
+
+	it('typing slash shows suggestions', () => {
+		const e = new Editor('');
+		e.setAutocompleteProvider(cmd);
+		e.handleInput('/');
+		const rows = e.render(40);
+		expect(rows.some((r) => r.includes('/help'))).toBe(true);
+	});
+
+	it('tab accepts current suggestion', () => {
+		const e = new Editor('');
+		e.setAutocompleteProvider(cmd);
+		e.handleInput('/');
+		e.handleInput('\t');
+		expect(e.value).toBe('/help');
+	});
+
+	it('arrow down moves selection, tab accepts second', () => {
+		const e = new Editor('');
+		e.setAutocompleteProvider(cmd);
+		e.handleInput('/');
+		e.handleInput('\x1b[B'); // 下移
+		e.handleInput('\t');
+		expect(e.value).toBe('/model');
+	});
+
+	it('escape closes suggestions', () => {
+		const e = new Editor('');
+		e.setAutocompleteProvider(cmd);
+		e.handleInput('/');
+		expect(e.render(40).some((r) => r.includes('/help'))).toBe(true);
+		expect(e.handleInput('\x1b')).toBe(true);
+		expect(e.render(40).some((r) => r.includes('/help'))).toBe(false);
+	});
+
+	it('no suggestions when input does not match', () => {
+		const e = new Editor('');
+		e.setAutocompleteProvider(cmd);
+		e.handleInput('a');
+		expect(e.render(40).some((r) => r.includes('/help'))).toBe(false);
+	});
+});

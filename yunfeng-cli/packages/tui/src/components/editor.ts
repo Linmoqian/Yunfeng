@@ -4,7 +4,9 @@
  * 通过 CURSOR_MARKER 将硬件光标定位到当前字符，支持 IME。
  */
 import { style } from '../terminal/ansi.js';
+import { truncateToWidth } from '../utils.js';
 import { parseKey } from '../terminal/input.js';
+import type { AutocompleteProvider, Suggestion } from '../autocomplete.js';
 import { CURSOR_MARKER, type Component, type Focusable } from './component.js';
 
 let graphemeSegmenter: Intl.Segmenter | null = null;
@@ -69,6 +71,11 @@ export class Editor implements Component, Focusable {
 	private redoStack: Array<{ value: string; cursor: number }> = [];
 	/** 上次编辑类型：连续同类编辑合并为一次撤销步骤 */
 	private lastEditType: string | null = null;
+	/** 自动补全 Provider 与建议状态 */
+	private autocompleteProvider?: AutocompleteProvider;
+	private suggestions: Suggestion[] = [];
+	private selectedSuggestion = 0;
+	private showSuggestions = false;
 
 	constructor(initial = '', options: EditorOptions = {}) {
 		this.value = initial;
@@ -89,6 +96,40 @@ export class Editor implements Component, Focusable {
 			this.redoStack = [];
 		}
 		this.lastEditType = type;
+	}
+
+	/** 设置自动补全 Provider */
+	setAutocompleteProvider(provider: AutocompleteProvider): void {
+		this.autocompleteProvider = provider;
+	}
+
+	private updateSuggestions(): void {
+		if (!this.autocompleteProvider) {
+			this.showSuggestions = false;
+			return;
+		}
+		const s = this.autocompleteProvider.getSuggestions(this.value);
+		this.suggestions = Array.isArray(s) ? s : [];
+		this.showSuggestions = this.suggestions.length > 0;
+		this.selectedSuggestion = 0;
+	}
+
+	private acceptSuggestion(): void {
+		const s = this.suggestions[this.selectedSuggestion];
+		if (!s) return;
+		this.snapshotIfNew('suggestion');
+		this.value = s.label;
+		this.cursor = s.label.length;
+		this.showSuggestions = false;
+		this.invalidate();
+	}
+
+	private moveSuggestion(delta: number): boolean {
+		if (!this.showSuggestions) return false;
+		const len = this.suggestions.length;
+		this.selectedSuggestion = (this.selectedSuggestion + delta + len) % len;
+		this.invalidate();
+		return true;
 	}
 
 	/** 撤销上一步编辑 */
@@ -160,6 +201,7 @@ export class Editor implements Component, Focusable {
 		const c = this.clampedCursor();
 		this.value = this.value.slice(0, c) + ch + this.value.slice(c);
 		this.cursor = c + ch.length;
+		this.updateSuggestions();
 		this.invalidate();
 	}
 
@@ -185,6 +227,7 @@ export class Editor implements Component, Focusable {
 		if (c >= this.value.length) return;
 		const end = nextGraphemeEnd(this.value, c);
 		this.value = this.value.slice(0, c) + this.value.slice(end);
+		this.updateSuggestions();
 		this.invalidate();
 	}
 
@@ -211,9 +254,34 @@ export class Editor implements Component, Focusable {
 	}
 
 	handleInput(data: string): boolean {
+		// 单个 ESC（parseKey 视为等待更多字节）：关闭建议列表
+		if (data === '\x1b') {
+			if (this.showSuggestions) {
+				this.showSuggestions = false;
+				this.invalidate();
+				return true;
+			}
+			return false;
+		}
 		const parsed = parseKey(data);
 		if (!parsed) return false;
 		const key = parsed.key;
+		// 自动补全交互：Tab 接受、上下选择、Esc 关闭
+		if (key.kind === 'tab' && this.showSuggestions) {
+			this.acceptSuggestion();
+			return true;
+		}
+		if (key.kind === 'arrow' && (key.direction === 'up' || key.direction === 'down')) {
+			if (this.moveSuggestion(key.direction === 'up' ? -1 : 1)) return true;
+		}
+		if (key.kind === 'escape') {
+			if (this.showSuggestions) {
+				this.showSuggestions = false;
+				this.invalidate();
+				return true;
+			}
+			return false;
+		}
 		switch (key.kind) {
 			case 'char':
 				this.insertChar(key.value);
@@ -310,10 +378,23 @@ export class Editor implements Component, Focusable {
 		this.cursor = nextStart + downCol;
 	}
 
-	render(_width: number): string[] {
+	render(width: number): string[] {
 		this.invalidated = false;
-		const lines = this.value.split('\n');
 		const rows: string[] = [];
+		// 建议列表（编辑器上方，最多 5 条）
+		if (this.showSuggestions && this.suggestions.length > 0) {
+			const max = Math.min(5, this.suggestions.length);
+			for (let i = 0; i < max; i++) {
+				const s = this.suggestions[i]!;
+				const label = truncateToWidth(s.label, Math.max(1, width - 4));
+				if (i === this.selectedSuggestion) {
+					rows.push(style('❯ ' + label, { fg: '#22c55e', bold: true }));
+				} else {
+					rows.push(style('  ' + label, { fg: '#c9d1d9' }));
+				}
+			}
+		}
+		const lines = this.value.split('\n');
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i] ?? '';
 			if (this.focused && i === this.currentLine) {
