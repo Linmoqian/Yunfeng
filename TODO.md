@@ -13,6 +13,9 @@
 - [x] 引入 vitest 前端单测（api.ts SSE 解析 / sessionActions / 契约镜像测试）
 - [x] sidecar 用 bun test 补充纯逻辑单测（命令分发 / JSONL 映射 / fs 路径校验）
 - [x] 接入 lin-workflow 工程规范与 project-engineering skill
+- [x] 建立 yunfeng-mobile Tauri 2 + Vite + React 工程骨架
+- [x] 实现 Marvis 风格移动端首页（对话入口 / 快捷指令 / Agent 协作 / 模式切换）
+- [x] 移动端浅色主题对齐 app 设计 token
 - [ ] 锁定 UI 主题并沉淀设计规范文档
 - [ ] 前端调试信息总线（AGENTS.md 要求）
 - [ ] sidecar 打包单文件二进制（bun compile）并验证
@@ -20,11 +23,23 @@
 - [ ] skills 工作流集成（内置 SKILL.md 包 + 管理界面）
 - [ ] 端到端 tauri dev 交互验证
 
-## yunfeng-mobile 移动端前端
+## yunfeng-mobile 移动端前端（见 docs/design/yunfeng-mobile-roadmap.md）
 
-- [x] 建立 yunfeng-mobile Tauri 2 + Vite + React 工程骨架
-- [x] 实现 Marvis 风格移动端首页（对话入口 / 快捷指令 / Agent 协作 / 模式切换）
-- [x] 前端构建与单测通过（tsc + vite build + vitest）
-- [ ] Rust 侧 cargo check / tauri 启动验证
-- [ ] 移动端接入 sidecar 数据（当前为本地占位回复）
-- [ ] 真机 / Tauri mobile 目标验证
+- [ ] P0-1 sidecar HTTP/SSE 数据层 + types.ts 协议镜像与契约测试
+- [ ] P0-2 流式对话（SSE 增量 / thinking / 停止 / 重试）
+- [ ] P0-3 工具调用生命周期卡片
+- [ ] P0-4 Markdown / 代码块渲染
+- [ ] P0-5 会话管理（重命名 / 删除 / 归档 / 搜索 / 空态）
+- [ ] P1-6 Agent 实时状态面板（订阅 AgentEvent）
+- [ ] P1-7 任务拆解视图（子任务进度）
+- [ ] P1-8 快捷指令 / 技能真实化（接 registry）
+- [ ] P1-9 本地 / 效率模式生效
+- [ ] P1-10 授权确认 UI（human-in-the-loop）
+- [ ] P2-11 语音输入
+- [ ] P2-12 设备协同入口 UI
+- [ ] P2-13 人设管理入口
+- [ ] P2-14 移动端动效 / 触感打磨
+- [ ] P2-15 离线 / 低资源模式提示
+- [ ] P2-16 无障碍（字体缩放 / 对比度 / 读屏）
+- [ ] 移动端 Rust cargo check / tauri 启动验证
+- [ ] Playwright 移动视口 e2e
