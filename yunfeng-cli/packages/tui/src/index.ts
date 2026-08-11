@@ -21,6 +21,7 @@ export {
 export { ProcessTerminal, detectColorMode } from './terminal/process-terminal.js';
 export { parseKey, type Key, type ParseResult } from './terminal/input.js';
 export { StdinBuffer } from './terminal/stdin-buffer.js';
+export { fuzzyMatch, fuzzyFilter, type FuzzyMatch } from './fuzzy.js';
 
 // 渲染原语
 export {
