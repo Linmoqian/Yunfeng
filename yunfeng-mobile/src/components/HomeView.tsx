@@ -1,13 +1,17 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { ChevronRight, Cloud, Cpu, MessageSquare, Sparkles } from "lucide-react";
-import { agents, quickCommands, sessions, type AgentStatus } from "@/lib/data";
+import { agents, quickCommands, type AgentStatus } from "@/lib/data";
+import { formatRelativeTime, type MobileSession } from "@/lib/sessionStore";
 import { cn } from "@/lib/utils";
 
-type Props = { onOpenSession: (id: string | null, title: string) => void };
+type Props = {
+  onOpenSession: (id: string | null, title: string) => void;
+  recent: MobileSession[];
+};
 type RunMode = "local" | "cloud";
 
-export default function HomeView({ onOpenSession }: Props) {
+export default function HomeView({ onOpenSession, recent }: Props) {
   const [mode, setMode] = useState<RunMode>("local");
 
   return (
@@ -78,7 +82,7 @@ export default function HomeView({ onOpenSession }: Props) {
 
         <SectionTitle>最近会话</SectionTitle>
         <div className="space-y-2">
-          {sessions.slice(0, 2).map((s) => (
+          {recent.slice(0, 2).map((s) => (
             <button
               key={s.id}
               onClick={() => onOpenSession(s.id, s.title)}
@@ -91,7 +95,7 @@ export default function HomeView({ onOpenSession }: Props) {
                 <span className="block truncate text-sm font-medium">{s.title}</span>
                 <span className="block truncate text-xs text-muted-foreground">{s.snippet}</span>
               </span>
-              <span className="shrink-0 text-[11px] text-faint">{s.updatedAt}</span>
+              <span className="shrink-0 text-[11px] text-faint">{formatRelativeTime(s.updatedAt)}</span>
             </button>
           ))}
         </div>

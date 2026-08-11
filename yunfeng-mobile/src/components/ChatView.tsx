@@ -12,13 +12,15 @@ type Props = {
   title: string;
   onBack: () => void;
   client: SidecarClient | null;
+  onActivity: (id: string | null, prompt: string) => string | null;
 };
 
-export default function ChatView({ id, title, onBack, client }: Props) {
+export default function ChatView({ id, title, onBack, client, onActivity }: Props) {
   const chat = useChat(client);
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
+  const sessionIdRef = useRef<string | null>(id);
 
   const seed = useMemo(() => {
     const s = id ? sessions.find((x) => x.id === id) : undefined;
@@ -48,6 +50,8 @@ export default function ChatView({ id, title, onBack, client }: Props) {
     const t = draft.trim();
     if (!t || chat.isStreaming) return;
     setDraft("");
+    const newId = onActivity(sessionIdRef.current, t);
+    if (newId) sessionIdRef.current = newId;
     void chat.sendPrompt(t);
   }
 
