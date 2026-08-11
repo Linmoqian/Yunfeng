@@ -42,5 +42,17 @@
 - [ ] P2-15 离线 / 低资源模式提示
 - [ ] P2-16 无障碍（字体缩放 / 对比度 / 读屏）
 - [x] 引入主应用同款任务看板（Dashi）至移动端标签页
+
+## 看板移动端适配（见 docs/design/yunfeng-mobile-taskboard-mobile.md）
+
+- [ ] 确认设计方向（A 液态玻璃统一 / B 保留 Dashi 风）
+- [ ] TB-P1 看板内导航收敛（项目/视图切换移动化）
+- [ ] TB-P1 看板列横向滑动吸附 + 卡片触控密度
+- [ ] TB-P1 任务详情改底部抽屉/全屏
+- [ ] TB-P2 长按 Action Sheet 替代右键菜单
+- [ ] TB-P2 属性/标签/关系选择器改底部弹层
+- [ ] TB-P2 列表视图与 Dashboard 移动适配
+- [ ] TB-P3 甘特/工作流触控能力评估
+- [ ] TB-P3 动效/安全区/真机验证
 - [ ] 移动端 Rust cargo check / tauri 启动验证
 - [ ] Playwright 移动视口 e2e
