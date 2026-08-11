@@ -95,3 +95,32 @@ describe('Editor grapheme safety', () => {
 		expect(line).toContain('\x1b[7m');
 	});
 });
+
+describe('Editor CJK input', () => {
+	it('inserts CJK chars at cursor', () => {
+		const e = new Editor('');
+		keys(e, ['你', '好']);
+		expect(e.value).toBe('你好');
+		expect(e.cursor).toBe(2);
+	});
+
+	it('backspace removes full CJK char', () => {
+		const e = new Editor('你好');
+		e.handleInput('\x7f');
+		expect(e.value).toBe('你');
+		expect(e.cursor).toBe(1);
+	});
+
+	it('left arrow moves over CJK char as one unit', () => {
+		const e = new Editor('你x');
+		e.handleInput('\x1b[D'); // 移到 x 前
+		e.handleInput('\x1b[D'); // 移到 你 前
+		expect(e.cursor).toBe(0);
+	});
+
+	it('currentLineCol counts code units correctly for cursor marker', () => {
+		const e = new Editor('你好x');
+		e.handleInput('\x1b[D'); // x 前
+		expect(e.currentLineCol).toBe(2); // 两个 code unit
+	});
+});

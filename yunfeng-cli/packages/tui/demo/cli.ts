@@ -23,11 +23,7 @@ const status = new StatusBar(() => ({
 }));
 
 // 吉祥物：白云，浮动动画（500ms 一帧）
-const mascot = new Mascot({
-	animate: true,
-	intervalMs: 500,
-	onFrame: () => tui.requestRender(),
-});
+const mascot = new Mascot();
 
 const tui = new TuiMainScreen({
 	terminal: new ProcessTerminal(),

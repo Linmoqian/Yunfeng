@@ -70,3 +70,21 @@ describe('parseKey extended', () => {
 		expect(parseKey('\x1bm')!.key).toEqual({ kind: 'alt', value: 'm' });
 	});
 });
+
+describe('parseKey unicode', () => {
+	it('parses CJK char as single char', () => {
+		expect(parseKey('中')!.key).toEqual({ kind: 'char', value: '中' });
+		expect(parseKey('文')!.key).toEqual({ kind: 'char', value: '文' });
+	});
+
+	it('parses emoji surrogate pair as one char', () => {
+		const r = parseKey('😀')!;
+		expect(r.key).toEqual({ kind: 'char', value: '😀' });
+		expect(r.consumed).toBe(2);
+	});
+
+	it('parses CJK among ascii buffer', () => {
+		const r = parseKey('a中b')!;
+		expect(r.key).toEqual({ kind: 'char', value: 'a' });
+	});
+});

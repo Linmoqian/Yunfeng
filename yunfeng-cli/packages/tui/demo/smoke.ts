@@ -58,7 +58,7 @@ const term = new MemoryTerminal();
 const messages = new Messages([{ role: 'system', from: 'yunfeng', content: '欢迎使用 yunfeng-cli TUI' }]);
 const editor = new Editor('');
 const status = new StatusBar(() => ({ cwd: process.cwd(), sessionName: 'smoke' }));
-const mascot = new Mascot({ animate: true, intervalMs: 100000, onFrame: () => tui.requestRender() });
+const mascot = new Mascot();
 
 const tui = new TuiMainScreen({ terminal: term });
 const layout = new VStack([

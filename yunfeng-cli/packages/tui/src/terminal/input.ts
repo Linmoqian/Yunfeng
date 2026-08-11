@@ -190,5 +190,13 @@ export function parseKey(data: string, pos = 0): ParseResult | null {
 	}
 
 	const key = parseByte(ch0);
-	return key ? { key, consumed: 1 } : null;
+	if (key) return { key, consumed: 1 };
+	// 非 ASCII（中文/emoji 等）：按完整 code point 分发。
+	// Node 的 utf8 流已按字符边界切分，Array.from 可合成代理对。
+	if (ch0 >= 0x80) {
+		const first = Array.from(data.slice(pos))[0];
+		if (first === undefined) return null;
+		return { key: { kind: 'char', value: first }, consumed: first.length };
+	}
+	return null;
 }

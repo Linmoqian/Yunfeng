@@ -95,7 +95,7 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 /** 使用真实终端启动 */
 export function main(): void {
 	const terminal = new ProcessTerminal();
-	const { tui } = createApp(terminal, { animate: true });
+	const { tui } = createApp(terminal);
 	tui.start();
 }
 
