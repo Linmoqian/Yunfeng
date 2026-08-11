@@ -7,6 +7,7 @@
  */
 import { style } from '../terminal/ansi.js';
 import { parseKey } from '../terminal/input.js';
+import { renderMarkdown } from './markdown.js';
 import type { Component, Focusable } from './component.js';
 
 export type MessageRole = 'user' | 'assistant' | 'tool' | 'system' | 'error';
@@ -79,12 +80,13 @@ export class Messages implements Component, Focusable {
 		return false;
 	}
 
-	private renderMessage(msg: Message, _width: number): string[] {
+	private renderMessage(msg: Message, width: number): string[] {
 		const { fg, icon } = ROLE_STYLE[msg.role];
 		const header = style(`${icon} ${msg.from}`, { fg });
 		const lines: string[] = [`${header}`];
-		for (const raw of (msg.content || '').split('\n')) {
-			lines.push(style(`  ${raw}`, { fg: '#c9d1d9' }));
+		// 消息内容按 markdown 渲染（支持标题/粗体/代码块/列表等）
+		for (const raw of renderMarkdown(msg.content || '', Math.max(1, width - 2))) {
+			lines.push(`  ${raw}`);
 		}
 		if (msg.meta) {
 			lines.push(style(`  ${msg.meta}`, { fg: '#6e7681', dim: true }));

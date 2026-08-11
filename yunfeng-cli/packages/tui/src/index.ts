@@ -70,3 +70,4 @@ export { Messages, type Message, type MessageRole } from './components/messages.
 export { Selector, type SelectOption } from './components/selector.js';
 export { StatusBar, type StatusInfo } from './components/status.js';
 export { Overlay, type OverlayOptions } from './components/overlay.js';
+export { Markdown, renderMarkdown } from './components/markdown.js';
