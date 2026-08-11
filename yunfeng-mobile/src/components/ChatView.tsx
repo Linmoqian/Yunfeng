@@ -5,6 +5,7 @@ import { useChat } from "@/hooks/useChat";
 import { sessions } from "@/lib/data";
 import type { AgentEvent, SessionMessage } from "@/lib/types";
 import { AssistantBubble, UserBubble } from "./MessageBubble";
+import { TaskBreakdown } from "./TaskBreakdown";
 import { ToolCard } from "./ToolCard";
 
 type Props = {
@@ -112,8 +113,9 @@ export default function ChatView({ id, title, onBack, client, onActivity, onAgen
           const isLastAssistant = i === allMessages.length - 1;
           return (
             <div key={`${m.timestamp ?? "a"}-${i}`} className="space-y-2">
-              {isLastAssistant && chat.tools.length > 0 && (
+              {isLastAssistant && (chat.tools.length > 0 || chat.tasks.length > 0) && (
                 <div className="space-y-2">
+                  {chat.tasks.length > 0 && <TaskBreakdown tasks={chat.tasks} />}
                   {chat.tools.map((t) => (
                     <ToolCard key={t.id} tool={t} />
                   ))}

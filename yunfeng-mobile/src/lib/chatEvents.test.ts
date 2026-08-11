@@ -49,6 +49,27 @@ describe("chatReducer", () => {
     expect(s2.isStreaming).toBe(false);
   });
 
+  it("任务拆解：task_plan 初始化，task_update 推进状态", () => {
+    let s = chatReducer(initialChatState, {
+      type: "task_plan",
+      tasks: [
+        { id: "t1", title: "分析需求" },
+        { id: "t2", title: "制定方案" },
+      ],
+    });
+    expect(s.tasks).toEqual([
+      { id: "t1", title: "分析需求", status: "pending", detail: undefined },
+      { id: "t2", title: "制定方案", status: "pending", detail: undefined },
+    ]);
+
+    s = chatReducer(s, { type: "task_update", taskId: "t1", status: "running", detail: "执行中…" });
+    expect(s.tasks[0]).toMatchObject({ status: "running", detail: "执行中…" });
+
+    s = chatReducer(s, { type: "task_update", taskId: "t1", status: "done" });
+    expect(s.tasks[0].status).toBe("done");
+    expect(s.tasks[1].status).toBe("pending");
+  });
+
   it("agent_end / prompt_done 停止流式", () => {
     const s1 = chatReducer(initialChatState, ev("message_update", { message: { role: "assistant", content: "x" } }));
     expect(chatReducer(s1, ev("agent_end")).isStreaming).toBe(false);

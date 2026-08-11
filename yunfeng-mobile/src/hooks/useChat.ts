@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { SidecarClient } from "@/lib/api";
-import { chatReducer, initialChatState, type ToolCall } from "@/lib/chatEvents";
+import { chatReducer, initialChatState, type TaskItem, type ToolCall } from "@/lib/chatEvents";
 import type { AgentEvent, SessionMessage, SessionState } from "@/lib/types";
 
 export interface UseChatResult {
@@ -11,6 +11,7 @@ export interface UseChatResult {
   messages: SessionMessage[];
   streamingMessage: SessionMessage | null;
   tools: ToolCall[];
+  tasks: TaskItem[];
   isStreaming: boolean;
   error: string | null;
   state: SessionState | null;
@@ -113,6 +114,7 @@ export function useChat(
     messages: state.messages,
     streamingMessage: state.streamingMessage,
     tools: state.tools,
+    tasks: state.tasks,
     isStreaming: state.isStreaming,
     error: state.error,
     state: rpcState,

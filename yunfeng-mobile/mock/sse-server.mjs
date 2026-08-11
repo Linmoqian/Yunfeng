@@ -149,6 +149,36 @@ function runDemoPrompt(session, prompt) {
       },
     }),
   );
+  schedule(session, 150, () =>
+    sseSend(session, {
+      type: "task_plan",
+      tasks: [
+        { id: "task-1", title: "分析需求与上下文" },
+        { id: "task-2", title: "制定执行方案" },
+        { id: "task-3", title: "调用工具执行" },
+        { id: "task-4", title: "汇总结果" },
+      ],
+    }),
+  );
+  schedule(session, 500, () =>
+    sseSend(session, { type: "task_update", taskId: "task-1", status: "done" }),
+  );
+  schedule(session, 900, () =>
+    sseSend(session, { type: "task_update", taskId: "task-2", status: "running", detail: "执行中…" }),
+  );
+  schedule(session, 1300, () =>
+    sseSend(session, { type: "task_update", taskId: "task-2", status: "done" }),
+  );
+  schedule(session, 1600, () =>
+    sseSend(session, { type: "task_update", taskId: "task-3", status: "running", detail: "执行中…" }),
+  );
+  schedule(session, 2000, () => {
+    sseSend(session, { type: "task_update", taskId: "task-3", status: "done" });
+    sseSend(session, { type: "task_update", taskId: "task-4", status: "running", detail: "执行中…" });
+  });
+  schedule(session, 2150, () =>
+    sseSend(session, { type: "task_update", taskId: "task-4", status: "done" }),
+  );
   schedule(session, 2200, () => {
     sseSend(session, { type: "agent_end" });
     sseSend(session, { type: "agent_update", agentId: "lead", status: "idle", activity: "空闲" });

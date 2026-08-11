@@ -4,6 +4,16 @@ import type { AgentEvent, SessionMessage } from "./types";
 
 export type ToolStatus = "running" | "done" | "failed";
 
+export type TaskStatus = "pending" | "running" | "done" | "failed";
+
+/** 任务拆解子任务（主管拆解后的执行单元）。 */
+export interface TaskItem {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  detail?: string;
+}
+
 export interface ToolCall {
   id: string;
   name: string;
@@ -20,6 +30,7 @@ export interface ChatState {
   messages: SessionMessage[];
   streamingMessage: SessionMessage | null;
   tools: ToolCall[];
+  tasks: TaskItem[];
   isStreaming: boolean;
   error: string | null;
 }
@@ -33,6 +44,7 @@ export const initialChatState: ChatState = {
   messages: [],
   streamingMessage: null,
   tools: [],
+  tasks: [],
   isStreaming: false,
   error: null,
 };
@@ -86,6 +98,36 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         tools: state.tools.map((t) => (t.id === id ? { ...t, status: "failed", error } : t)),
+      };
+    }
+    case "task_plan": {
+      const tasks = action.tasks as TaskItem[] | undefined;
+      if (!Array.isArray(tasks)) return state;
+      return {
+        ...state,
+        tasks: tasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status ?? "pending",
+          detail: t.detail,
+        })),
+      };
+    }
+    case "task_update": {
+      const id = action.taskId as string;
+      const status = action.status as TaskStatus | undefined;
+      const detail = action.detail as string | undefined;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                status: status ?? t.status,
+                detail: detail ?? t.detail,
+              }
+            : t,
+        ),
       };
     }
     case "agent_end":
