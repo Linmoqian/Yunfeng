@@ -59,8 +59,9 @@ export class Container implements Component {
 		for (const c of this.children) {
 			if (c instanceof Container) {
 				c.disposeChildren();
+			} else {
+				c.dispose?.();
 			}
-			c.dispose?.();
 		}
 	}
 	render(width: number): string[] {
