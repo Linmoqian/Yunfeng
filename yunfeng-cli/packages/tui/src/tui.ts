@@ -9,7 +9,8 @@
  * v1 不接 agent/LLM，只做交互底座。
  */
 import { visibleWidth, stripTerminalSequences } from './utils.js';
-import { parseKey, type Key } from './terminal/input.js';
+import { type Key } from './terminal/input.js';
+import { StdinBuffer } from './terminal/stdin-buffer.js';
 
 /** 组件接口：渲染成行 + 可选输入处理。height 为可用高度（主轴为纵向的布局组件使用） */
 export interface Component {
@@ -110,6 +111,8 @@ export abstract class TuiBase extends Container {
 
 	protected focusedComponent: Component | null = null;
 	private inputListeners: TuiInputListener[] = [];
+	/** 流式输入缓冲（跨事件半包合并） */
+	private stdinBuffer = new StdinBuffer();
 	/** 全局快捷键：优先于组件输入处理；handler 返回 true 表示消费 */
 	private globalShortcuts = new Map<string, (key: Key) => boolean>();
 	private renderRequested = false;
@@ -247,44 +250,33 @@ export abstract class TuiBase extends Container {
 	}
 
 	private handleTerminalInput(data: string): void {
-		// 拆分为单个键事件逐个分发（终端可能批量送达多键）
-		let buffer = data;
-		while (buffer.length > 0) {
-			let keyData: string;
-			let key: Key | null = null;
-			const parsed = parseKey(buffer);
-			if (parsed) {
-				keyData = buffer.slice(0, parsed.consumed);
-				key = parsed.key;
-				buffer = buffer.slice(parsed.consumed);
-			} else {
-				keyData = buffer.slice(0, 1);
-				buffer = buffer.slice(1);
-			}
-			// 全局快捷键优先于组件
-			if (key && this.dispatchGlobalShortcut(key)) continue;
-			// 让监听器有机会改写/消费
-			let message = keyData;
-			let consumed = false;
-			for (const listener of this.inputListeners) {
-				const res = listener(message);
-				if (res) {
-					if (res.data !== undefined) message = res.data;
-					if (res.consume) {
-						consumed = true;
-						break;
-					}
-				}
-			}
-			// 消费后不再转发给焦点组件
-			if (consumed) continue;
-			const target = this.focusedComponent;
-			if (target?.handleInput?.(message)) {
-				this.requestRender();
-			}
-		}
+		// 经 StdinBuffer 合并跨事件半包后，按完整按键逐个分发
+		this.stdinBuffer.feed(data, (chunk, key) => this.dispatchKey(chunk, key));
 	}
 
+	private dispatchKey(keyData: string, key: Key): void {
+		// 全局快捷键优先于组件
+		if (this.dispatchGlobalShortcut(key)) return;
+		// 让监听器有机会改写/消费
+		let message = keyData;
+		let consumed = false;
+		for (const listener of this.inputListeners) {
+			const res = listener(message);
+			if (res) {
+				if (res.data !== undefined) message = res.data;
+				if (res.consume) {
+					consumed = true;
+					break;
+				}
+			}
+		}
+		// 消费后不再转发给焦点组件
+		if (consumed) return;
+		const target = this.focusedComponent;
+		if (target?.handleInput?.(message)) {
+			this.requestRender();
+		}
+	}
 	start(): void {
 		this.terminal.start(
 			(d) => this.handleTerminalInput(d),
@@ -296,6 +288,7 @@ export abstract class TuiBase extends Container {
 	stop(opts?: TuiStopOptions): void {
 		void opts;
 		this.stopped = true;
+		this.stdinBuffer.clear();
 		if (this.renderTimer) {
 			clearTimeout(this.renderTimer);
 			this.renderTimer = null;
