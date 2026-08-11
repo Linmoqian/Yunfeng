@@ -91,6 +91,11 @@ export abstract class TuiBase extends Container {
 	readonly abstract mode: TuiMode;
 	abstract terminal: Terminal;
 
+	/** 当前模态弹层；存在时只渲染弹层并接管渲染面 */
+	overlay: Component | null = null;
+	/** 是否在渲染后定位硬件光标（IME） */
+	protected showHardwareCursor = false;
+
 	protected focusedComponent: Component | null = null;
 	private inputListeners: TuiInputListener[] = [];
 	private renderRequested = false;
@@ -189,6 +194,19 @@ export abstract class TuiBase extends Container {
 		return this.focusedComponent;
 	}
 
+	/** 打开模态弹层；可选把焦点移交给弹层内的目标组件 */
+	openOverlay(overlay: Component, focusTarget?: Component | null): void {
+		this.overlay = overlay;
+		if (focusTarget) this.setFocus(focusTarget);
+		this.requestRender();
+	}
+
+	/** 关闭模态弹层 */
+	closeOverlay(): void {
+		this.overlay = null;
+		this.requestRender();
+	}
+
 	addInputListener(listener: TuiInputListener): () => void {
 		this.inputListeners.push(listener);
 		return () => {
@@ -241,6 +259,35 @@ export abstract class TuiBase extends Container {
 
 	protected onResize(): void {
 		this.requestRender();
+	}
+
+	/**
+	 * 公共渲染帧：装配内容（弹层存在时只渲染弹层）、逐行差分输出、光标定位。
+	 * 子类 doRender 直接调用。
+	 */
+	protected renderFrame(): void {
+		const width = this.terminal.columns;
+		const height = this.terminal.rows;
+		const sources = this.overlay ? [this.overlay] : this.children;
+		const content: string[] = [];
+		sources.forEach((c) => {
+			content.push(...c.render(width, height));
+		});
+		const visible = content.slice(-height);
+		const cursorPos = this.extractCursorPosition(visible, height);
+		const lines = visible.map((l) => l.split(CURSOR_MARKER).join(""));
+
+		const output = this.diffAndBuild(lines, width, height);
+		if (output !== null) {
+			this.terminal.write(output);
+		}
+
+		// 定位硬件光标（IME）
+		if (this.showHardwareCursor && cursorPos) {
+			this.positionCursor(cursorPos.row, cursorPos.col, height);
+		} else {
+			this.terminal.hideCursor();
+		}
 	}
 
 	protected abstract doRender(): void;

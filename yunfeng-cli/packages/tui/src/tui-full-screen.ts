@@ -13,7 +13,6 @@ export interface TuiFullScreenOptions {
 export class TuiFullScreen extends TuiBase {
 	readonly mode: TuiMode = "fullscreen";
 	terminal: Terminal;
-	private showHardwareCursor: boolean;
 
 	constructor(opts: TuiFullScreenOptions) {
 		super();
@@ -29,29 +28,7 @@ export class TuiFullScreen extends TuiBase {
 	}
 
 	protected doRender(): void {
-		const width = this.terminal.columns;
-		const height = this.terminal.rows;
-
-		// 装配子组件行（含 CURSOR_MARKER），传入可用高度
-		const content: string[] = [];
-		this.children.forEach((c) => {
-			content.push(...c.render(width, height));
-		});
-		const visible = content.slice(-height);
-		const cursorPos = this.extractCursorPosition(visible, height);
-		const lines = visible.map((l) => l.split(CURSOR_MARKER).join(""));
-
-		const output = this.diffAndBuild(lines, width, height);
-		if (output !== null) {
-			this.terminal.write(output);
-		}
-
-		// 定位硬件光标（IME）
-		if (this.showHardwareCursor && cursorPos) {
-			this.positionCursor(cursorPos.row, cursorPos.col, height);
-		} else {
-			this.terminal.hideCursor();
-		}
+		this.renderFrame();
 	}
 
 	override stop(opts?: TuiStopOptions): void {
