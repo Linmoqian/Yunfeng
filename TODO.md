@@ -27,3 +27,4 @@
 - [x] yunfeng-cli TUI：新增云朵吉祥物组件（Mascot + 浮动动画 + demo）
 - [x] yunfeng-cli TUI P0：flex 布局、逐行差分、消息滚动、选择器交互、编辑器键位、全屏模式
 - [x] yunfeng-cli TUI P1：Scroll/Overlay/键位扩展/颜色降级/全局快捷键；P2 部分（visibleWidth 统一/测试/dispose）
+- [x] yunfeng-cli TUI P2-16：架构文档 + demo 冒烟脚本（仅 TUI，不涉及 agent/cli 包）

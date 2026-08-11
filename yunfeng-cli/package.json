@@ -14,7 +14,8 @@
 		"demo": "tsx packages/tui/demo/cli.ts",
 		"lint": "eslint .",
 		"format": "prettier --write .",
-		"format:check": "prettier --check ."
+		"format:check": "prettier --check .",
+		"smoke": "tsx packages/tui/demo/smoke.ts"
 	},
 	"engines": {
 		"node": ">=22.19.0"
