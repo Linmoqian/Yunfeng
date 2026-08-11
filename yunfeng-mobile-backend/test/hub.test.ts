@@ -90,7 +90,7 @@ describe("backend integration", () => {
   before(async () => {
     mock = await MockSidecar.start();
     backend = createBackend(makeConfig(mock.baseUrl), {
-      captureOnce: async () => Buffer.from("FAKEJPEG"),
+      captureOnce: async () => ({ mime: "image/jpeg", data: Buffer.from("FAKEJPEG") }),
       inputSender: async (input) => {
         recordedInputs.push(input);
       },

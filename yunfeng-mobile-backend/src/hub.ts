@@ -100,12 +100,12 @@ class Connection {
     this.desktop?.stop("restart");
     const effectiveFps = fps ?? this.deps.defaultFps;
     const session = new DesktopSession({
-      onFrame: (seq, jpeg) => {
+      onFrame: (seq, frame) => {
         this.send({
           type: "desktop.frame",
           seq,
-          mime: "image/jpeg",
-          data: jpeg.toString("base64"),
+          mime: frame.mime,
+          data: frame.data.toString("base64"),
         });
       },
       onStop: (reason) => {

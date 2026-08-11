@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/*.test.ts\"",
     "smoke": "node test/smoke.mjs",
-    "build:native": "bash scripts/build-native.sh"
+    "build:native": "bash scripts/build-native.sh",
+    "cli": "node scripts/yf-cli.mjs"
   },
   "dependencies": {
     "ws": "^8.18.1"

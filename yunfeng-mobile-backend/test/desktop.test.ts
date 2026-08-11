@@ -33,24 +33,25 @@ describe("desktop", () => {
   });
 
   test("DesktopSession 按 fps 输出连续帧", async () => {
-    const frames: Buffer[] = [];
+    const frames: { mime: string; data: Buffer }[] = [];
     const stopped: string[] = [];
     const session = new DesktopSession({
       onFrame: (_seq, jpeg) => frames.push(jpeg),
       onStop: (reason) => stopped.push(reason ?? "none"),
     });
-    session.start(10, async () => Buffer.from("JPEG1"));
+    session.start(10, async () => ({ mime: "image/jpeg", data: Buffer.from("JPEG1") }));
     await sleep(280);
     session.stop("test");
     assert.ok(frames.length >= 2, `frames=${frames.length}`);
-    assert.ok(frames.every((f) => f.toString() === "JPEG1"));
+    assert.ok(frames.every((f) => f.data.toString() === "JPEG1"));
+    assert.equal(frames[0].mime, "image/jpeg");
     assert.equal(session.running, false);
     assert.deepEqual(stopped, ["test"]);
   });
 
   test("单帧失败忽略，后续帧继续", async () => {
     let attempts = 0;
-    const frames: Buffer[] = [];
+    const frames: { mime: string; data: Buffer }[] = [];
     const session = new DesktopSession({
       onFrame: (_seq, jpeg) => frames.push(jpeg),
       onStop: () => {},
@@ -58,7 +59,7 @@ describe("desktop", () => {
     session.start(10, async () => {
       attempts += 1;
       if (attempts === 1) throw new Error("boom");
-      return Buffer.from("OK");
+      return { mime: "image/jpeg", data: Buffer.from("OK") };
     });
     await sleep(280);
     session.stop();

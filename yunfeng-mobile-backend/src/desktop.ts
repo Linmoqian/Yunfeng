@@ -5,7 +5,12 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { DesktopInput } from "./types.ts";
 
-export type CaptureOnce = () => Promise<Buffer>;
+export interface CapturedFrame {
+  mime: string;
+  data: Buffer;
+}
+
+export type CaptureOnce = () => Promise<CapturedFrame>;
 export type InputSender = (input: DesktopInput) => Promise<void>;
 
 function run(cmd: string, args: string[]): Promise<void> {
@@ -27,7 +32,7 @@ export function screencaptureCaptureOnce(tmpDir: string): CaptureOnce {
     await run("screencapture", ["-x", "-t", "jpg", file]);
     const buf = readFileSync(file);
     rmSync(file, { force: true });
-    return buf;
+    return { mime: "image/jpeg", data: buf };
   };
 }
 
@@ -56,7 +61,7 @@ export function swiftInputSender(helperPath: string): InputSender {
 }
 
 export interface DesktopCallbacks {
-  onFrame: (seq: number, jpeg: Buffer) => void;
+  onFrame: (seq: number, frame: CapturedFrame) => void;
   onStop: (reason?: string) => void;
 }
 
@@ -84,9 +89,9 @@ export class DesktopSession {
     const tick = async () => {
       if (this.stopped) return;
       try {
-        const jpeg = await capture();
+        const frame = await capture();
         if (this.stopped) return;
-        this.callbacks.onFrame(++this.seq, jpeg);
+        this.callbacks.onFrame(++this.seq, frame);
       } catch {
         // 单帧失败忽略（权限/瞬时错误），下一帧重试
       }
