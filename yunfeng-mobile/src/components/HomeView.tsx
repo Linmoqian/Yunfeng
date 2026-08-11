@@ -1,13 +1,17 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { ChevronRight, Cloud, Cpu, MessageSquare, Sparkles } from "lucide-react";
+import { ChevronRight, Cloud, Cpu, MessageSquare, MonitorUp, Sparkles } from "lucide-react";
 import { agents, quickCommands, sessions, type AgentStatus } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
-type Props = { onOpenSession: (id: string | null, title: string) => void };
+type Props = {
+  onOpenSession: (id: string | null, title: string) => void;
+  connected: boolean;
+  onOpenDesktop?: () => void;
+};
 type RunMode = "local" | "cloud";
 
-export default function HomeView({ onOpenSession }: Props) {
+export default function HomeView({ onOpenSession, connected, onOpenDesktop }: Props) {
   const [mode, setMode] = useState<RunMode>("local");
 
   return (
@@ -75,6 +79,27 @@ export default function HomeView({ onOpenSession }: Props) {
             </div>
           ))}
         </div>
+
+        <SectionTitle>设备协同</SectionTitle>
+        {connected && onOpenDesktop ? (
+          <button
+            onClick={onOpenDesktop}
+            className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-left transition active:scale-[0.99]"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-accent">
+              <MonitorUp className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">远程桌面</span>
+              <span className="block truncate text-xs text-muted-foreground">查看并控制桌面画面</span>
+            </span>
+            <ChevronRight className="size-4 text-faint" />
+          </button>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-surface px-4 py-3 text-xs text-muted-foreground">
+            尚未连接桌面，到「我的」页输入配对码后可用远程对话与远程桌面。
+          </div>
+        )}
 
         <SectionTitle>最近会话</SectionTitle>
         <div className="space-y-2">
