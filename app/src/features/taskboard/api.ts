@@ -1,3 +1,7 @@
+// Yunfeng 后端适配层：将 Yunfeng 的 TaskState 映射为 Dashi 看板数据模型。
+// 已对接 Yunfeng 后端的 API 委托给 yunfengAdapter；
+// 后端不支持的能力（评论、附件、关系、标签、AI 聊天等）保留签名但返回空数据或抛出。
+
 import type {
   ActorIdentity,
   AiChatCatalog,
@@ -22,17 +26,34 @@ import type {
   WorkflowWorkspaceRecord,
 } from "./types";
 
-const DEFAULT_USER_ACTOR: ActorIdentity = {
-  type: "user",
-  id: "local-user",
-  name: "本地用户",
-  avatarUrl: null,
-};
+import {
+  adapterArchiveTask,
+  adapterCreateTask,
+  adapterGetCodexThreadProgress,
+  adapterGetHostRuntime,
+  adapterGetProjectSummary,
+  adapterGetTaskboardMetadata,
+  adapterGetTaskboardRevision,
+  adapterGetWorkflowWorkspace,
+  adapterListAttachments,
+  adapterListComments,
+  adapterListDevelopmentContexts,
+  adapterListDeviceWorkspaces,
+  adapterListProjects,
+  adapterListTaskActivities,
+  adapterListTasks,
+  adapterListWorkflowCapabilities,
+  adapterMoveTask,
+  adapterPublishHostRuntime,
+  adapterRestoreTask,
+  adapterUpdateTask,
+} from "./yunfengAdapter";
 
-let currentUserActor = DEFAULT_USER_ACTOR;
 
-export function setCurrentUserActor(actor?: ActorIdentity) {
-  currentUserActor = actor?.type === "user" ? actor : DEFAULT_USER_ACTOR;
+
+
+export function setCurrentUserActor(_actor?: ActorIdentity) {
+  
 }
 
 interface ApiErrorBody {
@@ -57,116 +78,138 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const method = (init?.method ?? "GET").toUpperCase();
-  if (method !== "GET" && method !== "HEAD") {
-    headers.set("X-Taskboard-User-Id", currentUserActor.id);
-    headers.set("X-Taskboard-User-Name", encodeURIComponent(currentUserActor.name));
-    if (currentUserActor.avatarUrl) {
-      headers.set("X-Taskboard-User-Avatar", currentUserActor.avatarUrl);
-    }
-  }
+// ---- 已对接 Yunfeng 后端 ----
 
-  let response: Response;
-  try {
-    response = await fetch(path, { ...init, headers });
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") throw error;
-    throw new ApiError(0, {
-      error: {
-        code: "SERVICE_UNAVAILABLE",
-        message: "无法连接本地 Taskboard 服务，请重新通过 Taskboard 启动 Codex。",
-      },
-    });
-  }
-  const body = (await response.json().catch(() => ({}))) as T & ApiErrorBody;
-
-  if (!response.ok) throw new ApiError(response.status, body);
-  return body;
+export function listProjects(signal?: AbortSignal): Promise<Project[]> {
+  return adapterListProjects(signal);
 }
 
-export async function listProjects(signal?: AbortSignal): Promise<Project[]> {
-  const data = await request<{ projects: Project[] }>("/api/projects", { signal });
-  return data.projects;
+export function getProjectSummary(projectId: string, signal?: AbortSignal): Promise<ProjectSummary> {
+  return adapterGetProjectSummary(projectId, signal);
 }
 
-export async function getProjectSummary(
-  projectId: string,
-  signal?: AbortSignal,
-): Promise<ProjectSummary> {
-  return request<ProjectSummary>(
-    `/api/local/projects/${encodeURIComponent(projectId)}/summary`,
-    { signal },
-  );
+export function getTaskboardMetadata(signal?: AbortSignal): Promise<TaskboardMetadata> {
+  return adapterGetTaskboardMetadata(signal);
 }
 
-export async function getTaskboardMetadata(signal?: AbortSignal): Promise<TaskboardMetadata> {
-  return request<TaskboardMetadata>("/api/meta", { signal });
-}
-
-export async function getTaskboardRevision(
+export function getTaskboardRevision(
   since: number,
   signal?: AbortSignal,
 ): Promise<{ changed: boolean; revision: number }> {
-  const query = new URLSearchParams({ since: String(since) });
-  return request<{ changed: boolean; revision: number }>(`/api/revisions?${query}`, { signal });
+  return adapterGetTaskboardRevision(since, signal);
 }
 
-export async function getHostRuntime(signal?: AbortSignal): Promise<HostContext | null> {
-  const data = await request<{
-    runtime: (Pick<HostContext, "threadId" | "threadRunning" | "threadTodoProgress"> & {
-      updatedAt: number;
-    }) | null;
-  }>("/api/local/host-runtime", { signal });
-  return data.runtime;
+export function getHostRuntime(signal?: AbortSignal): Promise<HostContext | null> {
+  return adapterGetHostRuntime(signal);
 }
 
-export async function getCodexThreadProgress(
+export function getCodexThreadProgress(
   threadIds: string[],
   signal?: AbortSignal,
 ): Promise<Record<string, { completed: number | null; total: number | null; running: boolean } | null>> {
-  const query = new URLSearchParams();
-  for (const threadId of threadIds) query.append("threadId", threadId);
-  const data = await request<{
-    progress: Record<string, {
-      completed: number | null;
-      total: number | null;
-      running: boolean;
-    } | null>;
-  }>(`/api/local/codex-thread-progress?${query}`, { signal });
-  return data.progress;
+  return adapterGetCodexThreadProgress(threadIds, signal);
 }
 
-export async function publishHostRuntime(context: HostContext): Promise<void> {
-  if (!context.threadId || context.threadRunning === undefined) return;
-  await request("/api/local/host-runtime", {
-    method: "PUT",
-    body: JSON.stringify({
-      threadId: context.threadId,
-      threadRunning: context.threadRunning,
-      threadTodoProgress: context.threadTodoProgress ?? null,
-    }),
-  });
+export function publishHostRuntime(context: HostContext): Promise<void> {
+  return adapterPublishHostRuntime(context);
 }
 
-export async function getAiChatCatalog(
+export function listDeviceWorkspaces(signal?: AbortSignal): Promise<Record<string, string>> {
+  return adapterListDeviceWorkspaces(signal);
+}
+
+export function listWorkflowCapabilities(
+  workspacePath?: string,
+  signal?: AbortSignal,
+): Promise<WorkflowCapabilities> {
+  return adapterListWorkflowCapabilities(workspacePath, signal);
+}
+
+export function getWorkflowWorkspace<T>(
   projectId: string,
   signal?: AbortSignal,
+): Promise<WorkflowWorkspaceRecord<T>> {
+  return adapterGetWorkflowWorkspace<T>(projectId, signal);
+}
+
+export function listDevelopmentContexts(
+  projectId: string,
+  codexProjectId?: string,
+  codexThreadId?: string,
+  signal?: AbortSignal,
+  workspacePath?: string,
+): Promise<DevelopmentScan> {
+  return adapterListDevelopmentContexts(projectId, codexProjectId, codexThreadId, signal, workspacePath);
+}
+
+export function listTasks(projectId: string, signal?: AbortSignal): Promise<Task[]> {
+  return adapterListTasks(projectId, signal);
+}
+
+export function listComments(taskId: string, signal?: AbortSignal): Promise<Comment[]> {
+  return adapterListComments(taskId, signal);
+}
+
+export function listAttachments(taskId: string, signal?: AbortSignal): Promise<Attachment[]> {
+  return adapterListAttachments(taskId, signal);
+}
+
+export function listTaskActivities(
+  taskId: string,
+  signal?: AbortSignal,
+): Promise<TaskChangeActivity[]> {
+  return adapterListTaskActivities(taskId, signal);
+}
+
+export function createTask(projectId: string, draft: TaskDraft, threadId?: string): Promise<Task> {
+  return adapterCreateTask(projectId, draft, threadId);
+}
+
+export function updateTask(task: Task, draft: TaskDraft, threadId?: string): Promise<Task> {
+  return adapterUpdateTask(task, draft, threadId);
+}
+
+export function moveTask(
+  task: Task,
+  status: TaskStatus,
+  sortOrder: number,
+  threadId?: string,
+): Promise<Task> {
+  return adapterMoveTask(task, status, sortOrder, threadId);
+}
+
+export function archiveTask(task: Task, threadId?: string): Promise<Task> {
+  return adapterArchiveTask(task, threadId);
+}
+
+export function restoreTask(task: Task, threadId?: string): Promise<Task> {
+  return adapterRestoreTask(task, threadId);
+}
+
+// ---- 后端不支持的能力，保留签名返回空数据或抛出 ----
+
+export async function createProject(input: {
+  id: string;
+  name: string;
+  workspacePath: string | null;
+}): Promise<Project> {
+  return { ...input, issueCount: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+}
+
+export async function deleteProject(_projectId: string): Promise<void> {}
+
+export async function getAiChatCatalog(
+  _projectId: string,
+  _signal?: AbortSignal,
 ): Promise<AiChatCatalog> {
-  return request<AiChatCatalog>(
-    `/api/local/ai/catalog?projectId=${encodeURIComponent(projectId)}`,
-    { signal },
-  );
+  return { models: [], skills: [], sandboxes: [] };
 }
 
-export async function listAiChatThreads(signal?: AbortSignal): Promise<AiChatThread[]> {
-  const data = await request<{ threads: AiChatThread[] }>("/api/local/ai/threads", { signal });
-  return data.threads;
+export async function listAiChatThreads(_signal?: AbortSignal): Promise<AiChatThread[]> {
+  return [];
 }
 
-export async function createAiChatThread(input: {
+export async function createAiChatThread(_input: {
   projectId: string;
   issueId?: string;
   title?: string;
@@ -174,386 +217,113 @@ export async function createAiChatThread(input: {
   reasoningEffort?: string;
   sandbox?: AiChatSandbox;
 }): Promise<AiChatThread> {
-  const data = await request<{ thread: AiChatThread }>("/api/local/ai/threads", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-  return data.thread;
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "AI 聊天尚未对接" } });
 }
 
 export async function getAiChatThread(
-  threadId: string,
-  signal?: AbortSignal,
+  _threadId: string,
+  _signal?: AbortSignal,
 ): Promise<AiChatThreadSnapshot> {
-  return request<AiChatThreadSnapshot>(
-    `/api/local/ai/threads/${encodeURIComponent(threadId)}`,
-    { signal },
-  );
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "AI 聊天尚未对接" } });
 }
 
 export async function updateAiChatThread(
-  threadId: string,
-  input: {
+  _threadId: string,
+  _input: {
     title?: string;
     model?: string;
     reasoningEffort?: string;
     sandbox?: AiChatSandbox;
   },
 ): Promise<AiChatThread> {
-  const data = await request<{ thread: AiChatThread }>(
-    `/api/local/ai/threads/${encodeURIComponent(threadId)}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(input),
-    },
-  );
-  return data.thread;
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "AI 聊天尚未对接" } });
 }
 
-export async function deleteAiChatThread(threadId: string): Promise<void> {
-  await request<void>(
-    `/api/local/ai/threads/${encodeURIComponent(threadId)}`,
-    { method: "DELETE" },
-  );
-}
+export async function deleteAiChatThread(_threadId: string): Promise<void> {}
 
 export async function startAiChatTurn(
-  threadId: string,
-  input: {
+  _threadId: string,
+  _input: {
     message: string;
     skillIds?: string[];
     attachments?: AiChatAttachmentInput[];
     dangerFullAccessConfirmed?: boolean;
   },
 ): Promise<AiChatRun> {
-  const data = await request<{ run: AiChatRun }>(
-    `/api/local/ai/threads/${encodeURIComponent(threadId)}/turns`,
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    },
-  );
-  return data.run;
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "AI 聊天尚未对接" } });
 }
 
-export async function interruptAiChatRun(runId: string): Promise<AiChatRun> {
-  const data = await request<{ run: AiChatRun }>(
-    `/api/local/ai/runs/${encodeURIComponent(runId)}/interrupt`,
-    { method: "POST" },
-  );
-  return data.run;
+export async function interruptAiChatRun(_runId: string): Promise<AiChatRun> {
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "AI 聊天尚未对接" } });
 }
 
 export function subscribeAiChatThread(
-  threadId: string,
-  onHint: (type: "ai.event" | "ai.run") => void,
-  onError?: () => void,
+  _threadId: string,
+  _onHint: (type: "ai.event" | "ai.run") => void,
+  _onError?: () => void,
 ): () => void {
-  const source = new EventSource(`/api/local/ai/threads/${encodeURIComponent(threadId)}/events`);
-  source.addEventListener("ai.event", () => onHint("ai.event"));
-  source.addEventListener("ai.run", () => onHint("ai.run"));
-  if (onError) source.addEventListener("error", onError);
-  return () => source.close();
-}
-
-export async function listDeviceWorkspaces(signal?: AbortSignal): Promise<Record<string, string>> {
-  try {
-    const data = await request<{ workspaces: Record<string, string> }>("/api/device-workspaces", { signal });
-    return data.workspaces;
-  } catch (error) {
-    if (error instanceof ApiError && error.code === "LOCAL_COMPANION_REQUIRED") return {};
-    throw error;
-  }
-}
-
-export async function listWorkflowCapabilities(
-  workspacePath?: string,
-  signal?: AbortSignal,
-): Promise<WorkflowCapabilities> {
-  const query = new URLSearchParams();
-  if (workspacePath) query.set("workspacePath", workspacePath);
-  const suffix = query.size > 0 ? `?${query}` : "";
-  return request<WorkflowCapabilities>(`/api/workflow-capabilities${suffix}`, { signal });
-}
-
-export async function getWorkflowWorkspace<T>(
-  projectId: string,
-  signal?: AbortSignal,
-): Promise<WorkflowWorkspaceRecord<T>> {
-  const data = await request<{ workflow: WorkflowWorkspaceRecord<T> }>(
-    `/api/projects/${encodeURIComponent(projectId)}/workflow-workspace`,
-    { signal },
-  );
-  return data.workflow;
+  return () => {};
 }
 
 export async function saveWorkflowWorkspace<T>(
-  projectId: string,
+  _projectId: string,
   workspace: T,
-  version: number,
+  _version: number,
 ): Promise<WorkflowWorkspaceRecord<T>> {
-  const data = await request<{ workflow: WorkflowWorkspaceRecord<T> }>(
-    `/api/projects/${encodeURIComponent(projectId)}/workflow-workspace`,
-    {
-      method: "PUT",
-      body: JSON.stringify({ version, workspace }),
-    },
-  );
-  return data.workflow;
-}
-
-export async function createProject(input: {
-  id: string;
-  name: string;
-  workspacePath: string | null;
-}): Promise<Project> {
-  const data = await request<{ project: Project }>("/api/projects", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-  return data.project;
-}
-
-export async function deleteProject(projectId: string): Promise<void> {
-  await request(`/api/projects/${encodeURIComponent(projectId)}`, {
-    method: "DELETE",
-  });
-}
-
-export async function listDevelopmentContexts(
-  projectId: string,
-  codexProjectId?: string,
-  codexThreadId?: string,
-  signal?: AbortSignal,
-  workspacePath?: string,
-): Promise<DevelopmentScan> {
-  const query = new URLSearchParams();
-  if (codexProjectId) query.set("codexProjectId", codexProjectId);
-  if (codexThreadId) query.set("codexThreadId", codexThreadId);
-  if (workspacePath) query.set("workspacePath", workspacePath);
-  const suffix = query.size > 0 ? `?${query}` : "";
-  return request<DevelopmentScan>(
-    `/api/projects/${encodeURIComponent(projectId)}/development-contexts${suffix}`,
-    { signal },
-  );
-}
-
-export async function listTasks(projectId: string, signal?: AbortSignal): Promise<Task[]> {
-  const params = new URLSearchParams({ projectId, archived: "false" });
-  const data = await request<{ tasks: Task[] }>(`/api/tasks?${params}`, { signal });
-  return data.tasks.map(normalizeTask);
-}
-
-function normalizeTask(task: Partial<Task>): Task {
-  return {
-    id: task.id ?? "",
-    identifier: task.identifier ?? "",
-    projectId: task.projectId ?? "",
-    title: task.title ?? "",
-    description: task.description ?? "",
-    status: task.status ?? "todo",
-    priority: task.priority ?? "none",
-    labels: task.labels ?? [],
-    sortOrder: task.sortOrder ?? 0,
-    threadId: task.threadId ?? null,
-    conversationRefs: task.conversationRefs ?? [],
-    participants: task.participants ?? [],
-    previewImage: task.previewImage ?? null,
-    activityKey: task.activityKey ?? "",
-    activityUpdatedAt: task.activityUpdatedAt ?? "",
-    creatorType: task.creatorType ?? "user",
-    creatorId: task.creatorId ?? "",
-    creatorName: task.creatorName ?? "",
-    creatorAvatarUrl: task.creatorAvatarUrl ?? null,
-    assignee: task.assignee ?? DEFAULT_USER_ACTOR,
-    workflowId: task.workflowId ?? null,
-    developmentContext: task.developmentContext ?? null,
-    startDate: task.startDate ?? null,
-    dueDate: task.dueDate ?? null,
-    recurrence: task.recurrence ?? null,
-    archivedAt: task.archivedAt ?? null,
-    relations: task.relations ?? { parent: null, subIssues: [], blockedBy: [], blocks: [], related: [] },
-    version: task.version ?? 0,
-    createdAt: task.createdAt ?? "",
-    updatedAt: task.updatedAt ?? "",
-  };
-}
-
-export async function createTask(projectId: string, draft: TaskDraft, threadId?: string): Promise<Task> {
-  const data = await request<{ task: Task }>("/api/tasks", {
-    method: "POST",
-    body: JSON.stringify({ projectId, ...draft, ...(threadId ? { threadId } : {}) }),
-  });
-  return data.task;
-}
-
-export async function updateTask(task: Task, draft: TaskDraft, threadId?: string): Promise<Task> {
-  const data = await request<{ task: Task }>(`/api/tasks/${encodeURIComponent(task.id)}`, {
-    method: "PATCH",
-    body: JSON.stringify({ version: task.version, ...draft, ...(threadId ? { threadId } : {}) }),
-  });
-  return data.task;
-}
-
-export async function moveTask(
-  task: Task,
-  status: TaskStatus,
-  sortOrder: number,
-  threadId?: string,
-): Promise<Task> {
-  const data = await request<{ task: Task }>(
-    `/api/tasks/${encodeURIComponent(task.id)}/move`,
-    {
-      method: "POST",
-      body: JSON.stringify({ version: task.version, status, sortOrder, ...(threadId ? { threadId } : {}) }),
-    },
-  );
-  return data.task;
-}
-
-export async function archiveTask(task: Task, threadId?: string): Promise<Task> {
-  const data = await request<{ task: Task }>(
-    `/api/tasks/${encodeURIComponent(task.id)}/archive`,
-    {
-      method: "POST",
-      body: JSON.stringify({ version: task.version, ...(threadId ? { threadId } : {}) }),
-    },
-  );
-  return data.task;
-}
-
-export async function restoreTask(task: Task, threadId?: string): Promise<Task> {
-  const data = await request<{ task: Task }>(
-    `/api/tasks/${encodeURIComponent(task.id)}/restore`,
-    {
-      method: "POST",
-      body: JSON.stringify({ version: task.version, ...(threadId ? { threadId } : {}) }),
-    },
-  );
-  return data.task;
+  return { projectId: _projectId, workspace, version: 0, updatedAt: null };
 }
 
 export async function addTaskRelation(
-  task: Task,
-  type: IssueRelationType,
-  relatedTaskId: string,
-  threadId?: string,
+  _task: Task,
+  _type: IssueRelationType,
+  _relatedTaskId: string,
+  _threadId?: string,
 ): Promise<{ task: Task; relatedTask: Task }> {
-  return request<{ task: Task; relatedTask: Task }>(
-    `/api/tasks/${encodeURIComponent(task.id)}/relations/${type}/${encodeURIComponent(relatedTaskId)}`,
-    {
-      method: "POST",
-      body: JSON.stringify({ version: task.version, ...(threadId ? { threadId } : {}) }),
-    },
-  );
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "任务关系尚未对接" } });
 }
 
 export async function removeTaskRelation(
-  task: Task,
-  type: IssueRelationType,
-  relatedTaskId: string,
-  threadId?: string,
+  _task: Task,
+  _type: IssueRelationType,
+  _relatedTaskId: string,
+  _threadId?: string,
 ): Promise<{ task: Task; relatedTask: Task }> {
-  return request<{ task: Task; relatedTask: Task }>(
-    `/api/tasks/${encodeURIComponent(task.id)}/relations/${type}/${encodeURIComponent(relatedTaskId)}`,
-    {
-      method: "DELETE",
-      body: JSON.stringify({ version: task.version, ...(threadId ? { threadId } : {}) }),
-    },
-  );
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "任务关系尚未对接" } });
 }
 
-export async function listComments(taskId: string, signal?: AbortSignal): Promise<Comment[]> {
-  const data = await request<{ comments: Comment[] }>(
-    `/api/tasks/${encodeURIComponent(taskId)}/comments`,
-    { signal },
-  );
-  return data.comments;
+export async function createComment(
+  _taskId: string,
+  _body: string,
+  _threadId?: string,
+): Promise<Comment> {
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "评论尚未对接" } });
 }
 
-export async function listTaskActivities(
-  taskId: string,
-  signal?: AbortSignal,
-): Promise<TaskChangeActivity[]> {
-  const data = await request<{ activities: TaskChangeActivity[] }>(
-    `/api/tasks/${encodeURIComponent(taskId)}/activities`,
-    { signal },
-  );
-  return data.activities;
+export async function updateComment(
+  _comment: Comment,
+  _body: string,
+  _threadId?: string,
+): Promise<Comment> {
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "评论尚未对接" } });
 }
 
-export async function createComment(taskId: string, body: string, threadId?: string): Promise<Comment> {
-  const data = await request<{ comment: Comment }>(
-    `/api/tasks/${encodeURIComponent(taskId)}/comments`,
-    {
-      method: "POST",
-      body: JSON.stringify({ body, ...(threadId ? { threadId } : {}) }),
-    },
-  );
-  return data.comment;
+export async function deleteComment(_comment: Comment, _threadId?: string): Promise<void> {}
+
+export async function uploadAttachment(
+  _taskId: string,
+  _file: File,
+): Promise<Attachment> {
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "附件尚未对接" } });
 }
 
-export async function updateComment(comment: Comment, body: string, threadId?: string): Promise<Comment> {
-  const data = await request<{ comment: Comment }>(
-    `/api/comments/${encodeURIComponent(comment.id)}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ version: comment.version, body, ...(threadId ? { threadId } : {}) }),
-    },
-  );
-  return data.comment;
+export async function uploadCommentAttachment(
+  _commentId: string,
+  _file: File,
+): Promise<Attachment> {
+  throw new ApiError(501, { error: { code: "NOT_SUPPORTED", message: "附件尚未对接" } });
 }
 
-export async function deleteComment(comment: Comment, threadId?: string): Promise<void> {
-  await request(`/api/comments/${encodeURIComponent(comment.id)}`, {
-    method: "DELETE",
-    body: JSON.stringify({ version: comment.version, ...(threadId ? { threadId } : {}) }),
-  });
-}
-
-export async function listAttachments(taskId: string, signal?: AbortSignal): Promise<Attachment[]> {
-  const data = await request<{ attachments: Attachment[] }>(
-    `/api/tasks/${encodeURIComponent(taskId)}/attachments`,
-    { signal },
-  );
-  return data.attachments;
-}
-
-export async function uploadAttachment(taskId: string, file: File): Promise<Attachment> {
-  const data = await request<{ attachment: Attachment }>(
-    `/api/tasks/${encodeURIComponent(taskId)}/attachments`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": file.type || "application/octet-stream",
-        "X-Taskboard-Filename": encodeURIComponent(file.name),
-      },
-      body: file,
-    },
-  );
-  return data.attachment;
-}
-
-export async function uploadCommentAttachment(commentId: string, file: File): Promise<Attachment> {
-  const data = await request<{ attachment: Attachment }>(
-    `/api/comments/${encodeURIComponent(commentId)}/attachments`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": file.type || "application/octet-stream",
-        "X-Taskboard-Filename": encodeURIComponent(file.name),
-      },
-      body: file,
-    },
-  );
-  return data.attachment;
-}
-
-export async function deleteAttachment(attachment: Attachment): Promise<void> {
-  await request(`/api/attachments/${encodeURIComponent(attachment.id)}`, {
-    method: "DELETE",
-  });
-}
+export async function deleteAttachment(_attachment: Attachment): Promise<void> {}
 
 export function attachmentContentUrl(attachment: Attachment): string {
   return `/api/attachments/${encodeURIComponent(attachment.id)}/content`;
