@@ -3,14 +3,14 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { SidecarClient } from "@/lib/api";
-import { chatReducer, initialChatState } from "@/lib/chatEvents";
+import { chatReducer, initialChatState, type ToolCall } from "@/lib/chatEvents";
 import type { SessionMessage, SessionState } from "@/lib/types";
 
 export interface UseChatResult {
   sessionId: string | null;
   messages: SessionMessage[];
   streamingMessage: SessionMessage | null;
-  runningTools: { id: string; name: string }[];
+  tools: ToolCall[];
   isStreaming: boolean;
   error: string | null;
   state: SessionState | null;
@@ -104,7 +104,7 @@ export function useChat(client: SidecarClient | null): UseChatResult {
     sessionId,
     messages: state.messages,
     streamingMessage: state.streamingMessage,
-    runningTools: state.runningTools,
+    tools: state.tools,
     isStreaming: state.isStreaming,
     error: state.error,
     state: rpcState,

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowLeft, Loader2, RotateCcw, Send, Sparkles, Square } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type UIEvent } from "react";
+import { ArrowLeft, RotateCcw, Send, Sparkles, Square } from "lucide-react";
 import type { SidecarClient } from "@/lib/api";
 import { useChat } from "@/hooks/useChat";
 import { sessions } from "@/lib/data";
 import type { SessionMessage } from "@/lib/types";
 import { AssistantBubble, UserBubble } from "./MessageBubble";
+import { ToolCard } from "./ToolCard";
 
 type Props = {
   id: string | null;
@@ -17,6 +18,7 @@ export default function ChatView({ id, title, onBack, client }: Props) {
   const chat = useChat(client);
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const nearBottomRef = useRef(true);
 
   const seed = useMemo(() => {
     const s = id ? sessions.find((x) => x.id === id) : undefined;
@@ -30,9 +32,17 @@ export default function ChatView({ id, title, onBack, client }: Props) {
     [seed, chat.messages, chat.streamingMessage],
   );
 
+  // 仅在接近底部时自动滚动，避免打断上滑阅读
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [allMessages.length]);
+    if (nearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [allMessages.length, chat.tools.length]);
+
+  function onScroll(e: UIEvent<HTMLElement>) {
+    const el = e.currentTarget;
+    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }
 
   function send() {
     const t = draft.trim();
@@ -51,6 +61,12 @@ export default function ChatView({ id, title, onBack, client }: Props) {
       e.preventDefault();
       send();
     }
+  }
+
+  function onInput(e: FormEvent<HTMLTextAreaElement>) {
+    const el = e.currentTarget;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
   }
 
   return (
@@ -73,7 +89,7 @@ export default function ChatView({ id, title, onBack, client }: Props) {
         </div>
       </header>
 
-      <main className="no-scrollbar flex-1 space-y-4 overflow-y-auto px-4 py-4">
+      <main onScroll={onScroll} className="no-scrollbar flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {allMessages.length === 0 && !chat.isStreaming && (
           <div className="flex flex-col items-center gap-2 pt-16 text-center">
             <span className="grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent">
@@ -84,31 +100,27 @@ export default function ChatView({ id, title, onBack, client }: Props) {
           </div>
         )}
 
-        {chat.isStreaming && chat.runningTools.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {chat.runningTools.map((t) => (
-              <span
-                key={t.id}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-muted-foreground"
-              >
-                <Loader2 className="size-3 animate-spin text-accent" />
-                {t.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {allMessages.map((m, i) =>
-          m.role === "user" ? (
-            <UserBubble key={`${m.timestamp ?? "u"}-${i}`} message={m} />
-          ) : (
-            <AssistantBubble
-              key={`${m.timestamp ?? "a"}-${i}`}
-              message={m}
-              streaming={chat.isStreaming && i === allMessages.length - 1}
-            />
-          ),
-        )}
+        {allMessages.map((m, i) => {
+          if (m.role === "user") {
+            return <UserBubble key={`${m.timestamp ?? "u"}-${i}`} message={m} />;
+          }
+          const isLastAssistant = i === allMessages.length - 1;
+          return (
+            <div key={`${m.timestamp ?? "a"}-${i}`} className="space-y-2">
+              {isLastAssistant && chat.tools.length > 0 && (
+                <div className="space-y-2">
+                  {chat.tools.map((t) => (
+                    <ToolCard key={t.id} tool={t} />
+                  ))}
+                </div>
+              )}
+              <AssistantBubble
+                message={m}
+                streaming={chat.isStreaming && isLastAssistant}
+              />
+            </div>
+          );
+        })}
 
         {chat.error && (
           <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
@@ -133,7 +145,10 @@ export default function ChatView({ id, title, onBack, client }: Props) {
           <textarea
             rows={1}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              onInput(e);
+            }}
             onKeyDown={onKeyDown}
             placeholder="输入指令或提问…"
             className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-snug outline-none placeholder:text-faint"

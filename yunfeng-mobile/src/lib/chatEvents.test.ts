@@ -22,13 +22,24 @@ describe("chatReducer", () => {
     expect(s2.messages).toHaveLength(1);
   });
 
-  it("工具事件维护运行中列表", () => {
-    const s1 = chatReducer(initialChatState, ev("tool_execution_start", { toolCallId: "t1", toolName: "代码审查" }));
-    expect(s1.runningTools).toEqual([{ id: "t1", name: "代码审查" }]);
-    const s2 = chatReducer(s1, ev("tool_execution_start", { toolCallId: "t1", toolName: "代码审查" }));
-    expect(s2.runningTools).toHaveLength(1);
-    const s3 = chatReducer(s2, ev("tool_execution_end", { toolCallId: "t1" }));
-    expect(s3.runningTools).toHaveLength(0);
+  it("工具生命周期：start -> update -> end(done)", () => {
+    let s = chatReducer(initialChatState, ev("tool_execution_start", { toolCallId: "t1", toolName: "任务拆解" }));
+    expect(s.tools).toEqual([{ id: "t1", name: "任务拆解", status: "running" }]);
+
+    s = chatReducer(s, ev("tool_execution_update", { toolCallId: "t1", message: "拆解中…" }));
+    expect(s.tools[0].message).toBe("拆解中…");
+
+    s = chatReducer(s, ev("tool_execution_start", { toolCallId: "t1", toolName: "任务拆解" }));
+    expect(s.tools).toHaveLength(1);
+
+    s = chatReducer(s, ev("tool_execution_end", { toolCallId: "t1", result: "3 个子任务" }));
+    expect(s.tools[0]).toMatchObject({ status: "done", result: "3 个子任务" });
+  });
+
+  it("工具失败：tool_execution_error -> failed", () => {
+    let s = chatReducer(initialChatState, ev("tool_execution_start", { toolCallId: "t2", toolName: "代码审查" }));
+    s = chatReducer(s, ev("tool_execution_error", { toolCallId: "t2", errorMessage: "权限不足" }));
+    expect(s.tools[0]).toMatchObject({ status: "failed", error: "权限不足" });
   });
 
   it("prompt_error 记录错误并停止流式", () => {

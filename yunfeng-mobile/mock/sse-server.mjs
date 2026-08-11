@@ -57,83 +57,85 @@ function clearTimers(session) {
   session.timers.clear();
 }
 
-// 演示 prompt 的完整事件序列
+// 演示 prompt 的完整事件序列（两个工具：一个成功、一个失败）
 function runDemoPrompt(session, prompt) {
   const text = `已收到「${prompt}」。
 
-已按协议完成一次流式演示：
-- 流式增量渲染正常
-- thinking 区块可折叠
-- 工具调用状态可见
+演示内容：
+- 工具「任务拆解」执行成功
+- 工具「代码审查」因未提交改动而失败
+- thinking 区块在流式生成时自动展开
 
 接入真实 sidecar 后，这里会返回真实执行结果。`;
   const half = Math.ceil(text.length / 2);
+  const thinking = "先理解需求，再拆解为可执行步骤：1) 建立会话；2) 订阅事件流；3) 渲染增量内容。";
 
-  schedule(session, 200, () =>
-    sseSend(session, { type: "tool_execution_start", toolCallId: "t-demo", toolName: "任务拆解" }),
+  schedule(session, 150, () =>
+    sseSend(session, { type: "tool_execution_start", toolCallId: "t-decompose", toolName: "任务拆解" }),
+  );
+  schedule(session, 300, () =>
+    sseSend(session, { type: "tool_execution_update", toolCallId: "t-decompose", message: "正在拆解为 3 个子任务…" }),
   );
   schedule(session, 450, () =>
     sseSend(session, {
       type: "message_update",
-      message: {
-        role: "assistant",
-        content: [
-          {
-            type: "thinking",
-            thinking: "先理解需求，再拆解为可执行步骤：1) 建立会话；2) 订阅事件流；3) 渲染增量内容。",
-          },
-        ],
-      },
+      message: { role: "assistant", content: [{ type: "thinking", thinking }] },
     }),
   );
-  schedule(session, 800, () =>
+  schedule(session, 700, () =>
+    sseSend(session, { type: "tool_execution_start", toolCallId: "t-review", toolName: "代码审查" }),
+  );
+  schedule(session, 900, () =>
+    sseSend(session, { type: "tool_execution_update", toolCallId: "t-review", message: "扫描变更文件…" }),
+  );
+  schedule(session, 1100, () =>
     sseSend(session, {
       type: "message_update",
       message: {
         role: "assistant",
         content: [
-          {
-            type: "thinking",
-            thinking: "先理解需求，再拆解为可执行步骤：1) 建立会话；2) 订阅事件流；3) 渲染增量内容。",
-          },
+          { type: "thinking", thinking },
           { type: "text", text: text.slice(0, half) },
         ],
       },
     }),
   );
-  schedule(session, 1400, () =>
+  schedule(session, 1500, () =>
     sseSend(session, {
       type: "message_update",
       message: {
         role: "assistant",
         content: [
-          {
-            type: "thinking",
-            thinking: "先理解需求，再拆解为可执行步骤：1) 建立会话；2) 订阅事件流；3) 渲染增量内容。",
-          },
+          { type: "thinking", thinking },
           { type: "text", text },
         ],
       },
     }),
   );
-  schedule(session, 1700, () => sseSend(session, { type: "tool_execution_end", toolCallId: "t-demo" }));
+  schedule(session, 1700, () =>
+    sseSend(session, { type: "tool_execution_end", toolCallId: "t-decompose", result: "已拆解 3 个子任务" }),
+  );
   schedule(session, 1900, () =>
+    sseSend(session, {
+      type: "tool_execution_error",
+      toolCallId: "t-review",
+      errorMessage: "工作区存在未提交改动，需先处理",
+    }),
+  );
+  schedule(session, 2100, () =>
     sseSend(session, {
       type: "message_end",
       message: {
         role: "assistant",
         content: [
-          {
-            type: "thinking",
-            thinking: "先理解需求，再拆解为可执行步骤：1) 建立会话；2) 订阅事件流；3) 渲染增量内容。",
-          },
+          { type: "thinking", thinking },
           { type: "text", text },
         ],
         timestamp: new Date().toISOString(),
       },
     }),
   );
-  schedule(session, 2000, () => sseSend(session, { type: "agent_end" }));
+  schedule(session, 2200, () => sseSend(session, { type: "agent_end" }));
 }
 
 const server = createServer(async (req, res) => {
