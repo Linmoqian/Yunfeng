@@ -7,3 +7,4 @@
 - 三变体 UI 原型已废弃（git 78b8aed 清空重写）；当前是单一 Apple 液态玻璃设计系统（Tailwind v4 @theme + [data-theme] CSS 变量 + shadcn），主题仍处收敛期，未锁定。
 - 前端无测试框架；sidecar 验证手段是 `smoke.mjs` 集成脚本（Windows 下硬编码 bun 绝对路径）。
 - 项目规则维护在 `RULES.md`（简约、模块化、行数阈值、契约同步）。
+- yunfeng-mobile（仓库根目录，与 app/ 独立）：Tauri 2 + Vite + React + Tailwind v4 移动端工程，暗色 Marvis 风格首页（对话入口 / 快捷指令 / Agent 协作），前端当前用静态数据，sidecar 接入待做。

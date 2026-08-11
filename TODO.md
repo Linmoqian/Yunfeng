@@ -19,3 +19,12 @@
 - [ ] Rust release 模式接入 sidecar 产物
 - [ ] skills 工作流集成（内置 SKILL.md 包 + 管理界面）
 - [ ] 端到端 tauri dev 交互验证
+
+## yunfeng-mobile 移动端前端
+
+- [x] 建立 yunfeng-mobile Tauri 2 + Vite + React 工程骨架
+- [x] 实现 Marvis 风格移动端首页（对话入口 / 快捷指令 / Agent 协作 / 模式切换）
+- [x] 前端构建与单测通过（tsc + vite build + vitest）
+- [ ] Rust 侧 cargo check / tauri 启动验证
+- [ ] 移动端接入 sidecar 数据（当前为本地占位回复）
+- [ ] 真机 / Tauri mobile 目标验证
