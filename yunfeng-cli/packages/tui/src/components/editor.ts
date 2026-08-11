@@ -35,12 +35,20 @@ function nextGraphemeEnd(text: string, pos: number): number {
 	return pos + 1;
 }
 
+export interface EditorOptions {
+	/** Enter 提交（触发 onSubmit）而非插入换行（模仿 pi 聊天输入） */
+	submitOnEnter?: boolean;
+}
+
 export class Editor implements Component, Focusable {
 	/** 当前输入的原始文本（多行用 \n 分隔） */
 	value = '';
 	/** 光标位置：total offset（跨行累计，始终落在字素边界） */
 	cursor = 0;
 	focused = false;
+	/** 提交回调（submitOnEnter 模式下 Enter 触发，传入完整输入并清空编辑器） */
+	onSubmit?: (text: string) => void;
+	private submitOnEnter: boolean;
 
 	private invalidated = true;
 	/** 撤销栈（含光标）；上限 100 条 */
@@ -49,9 +57,10 @@ export class Editor implements Component, Focusable {
 	/** 上次编辑类型：连续同类编辑合并为一次撤销步骤 */
 	private lastEditType: string | null = null;
 
-	constructor(initial = '') {
+	constructor(initial = '', options: EditorOptions = {}) {
 		this.value = initial;
 		this.cursor = initial.length;
+		this.submitOnEnter = options.submitOnEnter ?? false;
 	}
 
 	invalidate(): void {
@@ -196,6 +205,18 @@ export class Editor implements Component, Focusable {
 				this.insertChar(key.value);
 				return true;
 			case 'enter':
+				// 提交模式：Enter 触发 onSubmit 并清空编辑器
+				if (this.submitOnEnter && this.onSubmit) {
+					const text = this.value;
+					if (text.trim()) {
+						this.onSubmit(text);
+						this.value = '';
+						this.cursor = 0;
+						this.lastEditType = null;
+						this.invalidate();
+					}
+					return true;
+				}
 				this.insertChar('\n');
 				return true;
 			case 'backspace':

@@ -36,7 +36,7 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 		{ role: 'system', from: 'yunfeng', content: '欢迎使用 yunfeng-cli TUI' },
 		{ role: 'assistant', from: 'assistant', content: '在底部输入框打字，Ctrl+C 退出。' },
 	]);
-	const editor = new Editor('');
+	const editor = new Editor('', { submitOnEnter: true });
 	const status = new StatusBar(() => ({
 		cwd: process.cwd(),
 		sessionName: 'yunfeng',
@@ -63,20 +63,15 @@ export function createApp(terminal: Terminal, opts: CreateAppOptions = {}): CliA
 	tui.addChild(layout);
 	tui.setFocus(editor);
 
-	// 提交：回车把输入写入消息流
-	tui.addInputListener((data) => {
-		if (data === '\r' || data === '\n') {
-			const line = editor.value.trim();
-			if (line) {
-				messages.add({ role: 'user', from: 'you', content: line });
-				messages.add({ role: 'assistant', from: 'assistant', content: `收到：${line}` });
-				editor.value = '';
-				editor.cursor = 0;
-				tui.requestRender();
-			}
+	// 提交：Editor Enter 触发 onSubmit（模仿 pi 聊天输入），写入消息流
+	editor.onSubmit = (text) => {
+		const line = text.trim();
+		if (line) {
+			messages.add({ role: 'user', from: 'you', content: line });
+			messages.add({ role: 'assistant', from: 'assistant', content: `收到：${line}` });
+			tui.requestRender();
 		}
-		return { consume: false };
-	});
+	};
 
 	// 全局快捷键：Ctrl+C 退出、Ctrl+L 清屏
 	const quit = opts.onQuit ?? (() => process.exit(0));

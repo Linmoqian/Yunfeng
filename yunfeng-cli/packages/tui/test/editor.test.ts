@@ -181,3 +181,31 @@ describe('Editor word navigation', () => {
 		expect(e.cursor).toBe(3); // "你好，" 后
 	});
 });
+
+describe('Editor submit mode', () => {
+	it('submitOnEnter fires onSubmit with text and clears editor', () => {
+		const e = new Editor('', { submitOnEnter: true });
+		let submitted = '';
+		e.onSubmit = (text) => (submitted = text);
+		keys(e, ['你', '好']);
+		e.handleInput('\r');
+		expect(submitted).toBe('你好');
+		expect(e.value).toBe('');
+		expect(e.cursor).toBe(0);
+	});
+
+	it('submitOnEnter ignores empty submit', () => {
+		const e = new Editor('', { submitOnEnter: true });
+		let count = 0;
+		e.onSubmit = () => count++;
+		e.handleInput('\r');
+		expect(count).toBe(0);
+	});
+
+	it('default mode keeps newline insertion on enter', () => {
+		const e = new Editor('');
+		e.handleInput('a');
+		e.handleInput('\r');
+		expect(e.value).toBe('a\n');
+	});
+});
