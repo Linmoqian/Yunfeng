@@ -8,8 +8,8 @@
  *
  * v1 不接 agent/LLM，只做交互底座。
  */
-import { visibleWidth, stripTerminalSequences } from "./utils.js";
-import { parseKey, type Key } from "./terminal/input.js";
+import { visibleWidth, stripTerminalSequences } from './utils.js';
+import { parseKey, type Key } from './terminal/input.js';
 
 /** 组件接口：渲染成行 + 可选输入处理。height 为可用高度（主轴为纵向的布局组件使用） */
 export interface Component {
@@ -27,11 +27,11 @@ export interface Focusable {
 }
 
 export function isFocusable(c: Component | null): c is Component & Focusable {
-	return !!c && "focused" in c;
+	return !!c && 'focused' in c;
 }
 
 /** 光标位置标记：APC 序列（零宽，终端忽略），TUI 据此定位硬件光标 */
-export const CURSOR_MARKER = "\u001B_pi:c\u0007";
+export const CURSOR_MARKER = '\u001B_pi:c\u0007';
 
 /**
  * Container：持有并渲染子组件的容器。不进行排版，只纵向堆叠子组件。
@@ -81,7 +81,7 @@ export interface TuiStopOptions {
 }
 
 /** TUI 渲染模式 */
-export type TuiMode = "regular" | "fullscreen";
+export type TuiMode = 'regular' | 'fullscreen';
 
 /** 终端抽象：TUI 与外界的唯一 I/O 边界 */
 export interface Terminal {
@@ -100,7 +100,7 @@ export interface Terminal {
  * 具体的渲染目标（主屏/全屏）由子类 doRender 覆盖。
  */
 export abstract class TuiBase extends Container {
-	readonly abstract mode: TuiMode;
+	abstract readonly mode: TuiMode;
 	abstract terminal: Terminal;
 
 	/** 当前模态弹层；存在时只渲染弹层并接管渲染面 */
@@ -130,7 +130,7 @@ export abstract class TuiBase extends Container {
 		// 只扫描可见视口底部 height 行
 		const start = Math.max(0, lines.length - height);
 		for (let i = lines.length - 1; i >= start; i--) {
-			const line = lines[i] ?? "";
+			const line = lines[i] ?? '';
 			const idx = line.indexOf(CURSOR_MARKER);
 			if (idx !== -1) {
 				const before = line.slice(0, idx);
@@ -145,7 +145,7 @@ export abstract class TuiBase extends Container {
 	 * 定位硬件光标（IME）：[<row>;<col>H 后显示光标。
 	 * row/col 为 0-based，输出时转 1-based。
 	 */
-	protected positionCursor(row: number, col: number, height: number): void {
+	protected positionCursor(row: number, col: number, _height: number): void {
 		const r = row + 1;
 		const c = col + 1;
 		this.terminal.write(`\x1b[${r};${c}H\x1b[?25h`);
@@ -168,7 +168,7 @@ export abstract class TuiBase extends Container {
 		} else {
 			const n = Math.max(current.length, previous.length);
 			for (let i = 0; i < n; i++) {
-				if ((current[i] ?? "") !== (previous[i] ?? "")) dirty.push(i);
+				if ((current[i] ?? '') !== (previous[i] ?? '')) dirty.push(i);
 			}
 		}
 		// 更新上一帧状态（即使无变化也同步，供下次比对）
@@ -177,13 +177,13 @@ export abstract class TuiBase extends Container {
 		this.previousHeight = h;
 		if (dirty.length === 0) return null;
 
-		let out = "";
-		if (full) out += "\x1b[H";
+		let out = '';
+		if (full) out += '\x1b[H';
 		for (const row of dirty) {
 			if (row >= h) break;
-			const line = current[row] ?? "";
+			const line = current[row] ?? '';
 			if (full) {
-				out += "\x1b[2K" + line + "\x1b[0m\n";
+				out += '\x1b[2K' + line + '\x1b[0m\n';
 			} else {
 				// 定位到目标行（1-based）再清行写入
 				out += `\x1b[${row + 1};1H\x1b[2K${line}\x1b[0m`;
@@ -286,11 +286,15 @@ export abstract class TuiBase extends Container {
 	}
 
 	start(): void {
-		this.terminal.start((d) => this.handleTerminalInput(d), () => this.onResize());
+		this.terminal.start(
+			(d) => this.handleTerminalInput(d),
+			() => this.onResize(),
+		);
 		this.requestRender();
 	}
 
 	stop(opts?: TuiStopOptions): void {
+		void opts;
 		this.stopped = true;
 		if (this.renderTimer) {
 			clearTimeout(this.renderTimer);
@@ -318,7 +322,7 @@ export abstract class TuiBase extends Container {
 		});
 		const visible = content.slice(-height);
 		const cursorPos = this.extractCursorPosition(visible, height);
-		const lines = visible.map((l) => l.split(CURSOR_MARKER).join(""));
+		const lines = visible.map((l) => l.split(CURSOR_MARKER).join(''));
 
 		const output = this.diffAndBuild(lines, width, height);
 		if (output !== null) {

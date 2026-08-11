@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { TuiFullScreen } from "../src/tui-full-screen.js";
-import type { Terminal } from "../src/tui.js";
-import { Text } from "../src/layout/text.js";
-import { stripTerminalSequences } from "../src/utils.js";
+import { describe, expect, it } from 'vitest';
+import { TuiFullScreen } from '../src/tui-full-screen.js';
+import type { Terminal } from '../src/tui.js';
+import { Text } from '../src/layout/text.js';
+import { stripTerminalSequences } from '../src/utils.js';
 
 class FakeTerminal implements Terminal {
-	output = "";
+	output = '';
 	cols = 40;
 	rows = 10;
 	started = false;
@@ -25,58 +25,58 @@ class FakeTerminal implements Terminal {
 		return this.rows;
 	}
 	hideCursor(): void {
-		this.output += "\x1b[?25l";
+		this.output += '\x1b[?25l';
 	}
 	showCursor(): void {
-		this.output += "\x1b[?25h";
+		this.output += '\x1b[?25h';
 	}
 	clearScreen(): void {
-		this.output += "\x1b[2J\x1b[H";
+		this.output += '\x1b[2J\x1b[H';
 	}
 }
 
 function build() {
 	const term = new FakeTerminal();
 	const tui = new TuiFullScreen({ terminal: term });
-	tui.addChild(new Text("hello fullscreen"));
+	tui.addChild(new Text('hello fullscreen'));
 	return { term, tui };
 }
 
-describe("TuiFullScreen", () => {
-	it("start switches to alt screen and clears", () => {
+describe('TuiFullScreen', () => {
+	it('start switches to alt screen and clears', () => {
 		const { tui, term } = build();
 		tui.start();
 		tui.renderNow(true);
-		expect(term.output).toContain("\x1b[?1049h");
-		expect(term.output).toContain("\x1b[2J");
-		expect(stripTerminalSequences(term.output)).toContain("hello fullscreen");
+		expect(term.output).toContain('\x1b[?1049h');
+		expect(term.output).toContain('\x1b[2J');
+		expect(stripTerminalSequences(term.output)).toContain('hello fullscreen');
 	});
 
-	it("stop exits alt screen and restores cursor", () => {
+	it('stop exits alt screen and restores cursor', () => {
 		const { tui, term } = build();
 		tui.start();
 		tui.renderNow(true);
-		term.output = "";
+		term.output = '';
 		tui.stop();
-		expect(term.output).toContain("\x1b[?1049l");
-		expect(term.output).toContain("\x1b[?25h");
+		expect(term.output).toContain('\x1b[?1049l');
+		expect(term.output).toContain('\x1b[?25h');
 	});
 
-	it("stop with preserveScreen keeps alt screen", () => {
+	it('stop with preserveScreen keeps alt screen', () => {
 		const { tui, term } = build();
 		tui.start();
 		tui.renderNow(true);
-		term.output = "";
+		term.output = '';
 		tui.stop({ preserveScreen: true });
-		expect(term.output).not.toContain("\x1b[?1049l");
+		expect(term.output).not.toContain('\x1b[?1049l');
 	});
 
-	it("no change on second render outputs no redraw", () => {
+	it('no change on second render outputs no redraw', () => {
 		const { tui, term } = build();
 		tui.start();
 		tui.renderNow(true);
-		term.output = "";
+		term.output = '';
 		tui.renderNow(true);
-		expect(term.output).not.toContain("\x1b[2K");
+		expect(term.output).not.toContain('\x1b[2K');
 	});
 });

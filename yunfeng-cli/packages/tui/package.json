@@ -1,0 +1,27 @@
+{
+	"name": "@yunfeng/tui",
+	"version": "0.0.0",
+	"description": "Yunfeng terminal UI rendering engine",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"test": "vitest run",
+		"clean": "rm -rf dist"
+	},
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"typescript": "^5.9.0",
+		"vitest": "^4.0.0"
+	}
+}

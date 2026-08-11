@@ -3,8 +3,8 @@
  * 进入 raw mode 逐键接收输入，提供尺寸与基础 ANSI 写方法。
  * 构造时探测终端颜色能力（NO_COLOR / TERM / COLORTERM）并配置渲染降级。
  */
-import type { Terminal } from "../tui.js";
-import { setColorMode, type ColorMode } from "./ansi.js";
+import type { Terminal } from '../tui.js';
+import { setColorMode, type ColorMode } from './ansi.js';
 
 /**
  * 探测颜色渲染模式：
@@ -14,14 +14,14 @@ import { setColorMode, type ColorMode } from "./ansi.js";
  * - 默认 truecolor（现代终端）
  */
 export function detectColorMode(env: NodeJS.ProcessEnv = process.env, term?: string): ColorMode {
-  if (env.NO_COLOR !== undefined && env.NO_COLOR !== "") return "none";
-  const t = term ?? env.TERM ?? "";
-  if (t === "dumb") return "none";
-  if (env.COLORTERM === "truecolor" || t.includes("truecolor") || t.includes("direct")) {
-    return "truecolor";
-  }
-  if (t.includes("256color")) return "256";
-  return "truecolor";
+	if (env.NO_COLOR !== undefined && env.NO_COLOR !== '') return 'none';
+	const t = term ?? env.TERM ?? '';
+	if (t === 'dumb') return 'none';
+	if (env.COLORTERM === 'truecolor' || t.includes('truecolor') || t.includes('direct')) {
+		return 'truecolor';
+	}
+	if (t.includes('256color')) return '256';
+	return 'truecolor';
 }
 
 export class ProcessTerminal implements Terminal {
@@ -29,7 +29,10 @@ export class ProcessTerminal implements Terminal {
 	private resizeHandler: (() => void) | null = null;
 	private stdin: NodeJS.ReadStream;
 
-	constructor(stdin: NodeJS.ReadStream = process.stdin, private stdout: NodeJS.WriteStream = process.stdout) {
+	constructor(
+		stdin: NodeJS.ReadStream = process.stdin,
+		private stdout: NodeJS.WriteStream = process.stdout,
+	) {
 		this.stdin = stdin;
 		setColorMode(detectColorMode(process.env, process.env.TERM));
 	}
@@ -39,9 +42,9 @@ export class ProcessTerminal implements Terminal {
 		this.resizeHandler = onResize;
 		this.stdin.setRawMode?.(true);
 		this.stdin.resume();
-		this.stdin.setEncoding("utf8");
-		this.stdin.on("data", this.dataHandler);
-		this.stdout.on("resize", onResize);
+		this.stdin.setEncoding('utf8');
+		this.stdin.on('data', this.dataHandler);
+		this.stdout.on('resize', onResize);
 	}
 
 	private dataHandler = (data: Buffer | string): void => {
@@ -49,8 +52,8 @@ export class ProcessTerminal implements Terminal {
 	};
 
 	stop(): void {
-		this.stdin.removeListener("data", this.dataHandler);
-		this.stdout.removeListener("resize", this.resizeHandler!);
+		this.stdin.removeListener('data', this.dataHandler);
+		this.stdout.removeListener('resize', this.resizeHandler!);
 		this.stdin.setRawMode?.(false);
 		this.stdin.pause();
 	}
@@ -68,14 +71,14 @@ export class ProcessTerminal implements Terminal {
 	}
 
 	hideCursor(): void {
-		this.write("\x1b[?25l");
+		this.write('\x1b[?25l');
 	}
 
 	showCursor(): void {
-		this.write("\x1b[?25h");
+		this.write('\x1b[?25h');
 	}
 
 	clearScreen(): void {
-		this.write("\x1b[2J\x1b[H");
+		this.write('\x1b[2J\x1b[H');
 	}
 }

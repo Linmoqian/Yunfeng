@@ -3,7 +3,7 @@
  * 进入时切换备用屏并清屏，退出时恢复主屏（可 preserveScreen 留给接管者）。
  * 内容渲染复用 TuiBase 的逐行差分。
  */
-import { TuiBase, CURSOR_MARKER, type Terminal, type TuiMode, type TuiStopOptions } from "./tui.js";
+import { TuiBase, type Terminal, type TuiMode, type TuiStopOptions } from './tui.js';
 
 export interface TuiFullScreenOptions {
 	terminal: Terminal;
@@ -11,7 +11,7 @@ export interface TuiFullScreenOptions {
 }
 
 export class TuiFullScreen extends TuiBase {
-	readonly mode: TuiMode = "fullscreen";
+	readonly mode: TuiMode = 'fullscreen';
 	terminal: Terminal;
 
 	constructor(opts: TuiFullScreenOptions) {
@@ -22,7 +22,7 @@ export class TuiFullScreen extends TuiBase {
 
 	override start(): void {
 		// 进入备用屏幕 + 清屏 + 隐藏光标
-		this.terminal.write("\x1b[?1049h\x1b[2J\x1b[H");
+		this.terminal.write('\x1b[?1049h\x1b[2J\x1b[H');
 		this.terminal.hideCursor();
 		super.start();
 	}
@@ -35,7 +35,7 @@ export class TuiFullScreen extends TuiBase {
 		super.stop(opts);
 		// preserveScreen：留给后续接管同一终端的 TUI，不退出备用屏幕
 		if (!opts?.preserveScreen) {
-			this.terminal.write("\x1b[?1049l");
+			this.terminal.write('\x1b[?1049l');
 		}
 		this.terminal.showCursor();
 	}
