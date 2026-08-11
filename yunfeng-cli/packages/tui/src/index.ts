@@ -41,6 +41,7 @@ export {
 	type TuiStopOptions,
 } from "./tui.js";
 export { TuiMainScreen } from "./tui-main-screen.js";
+export { TuiFullScreen, type TuiFullScreenOptions } from "./tui-full-screen.js";
 
 // 布局系统
 export {

@@ -15,11 +15,6 @@ export class TuiMainScreen extends TuiBase {
 	terminal: Terminal;
 	private showHardwareCursor: boolean;
 
-	// 差分状态
-	private prevLines: string[] = [];
-	private prevWidth = 0;
-	private prevHeight = 0;
-
 	constructor(opts: TuiMainScreenOptions) {
 		super();
 		this.terminal = opts.terminal;
@@ -49,14 +44,10 @@ export class TuiMainScreen extends TuiBase {
 		// 剥离 CURSOR_MARKER
 		lines = visible.map((l) => l.split(CURSOR_MARKER).join(""));
 
-		const output = this.diffAndBuild(lines, this.prevLines, this.prevWidth, this.prevHeight, width, height);
+		const output = this.diffAndBuild(lines, width, height);
 		if (output !== null) {
 			this.terminal.write(output);
 		}
-
-		this.prevLines = lines;
-		this.prevWidth = width;
-		this.prevHeight = height;
 
 		// 定位硬件光标（IME）
 		if (this.showHardwareCursor && cursorPos) {
@@ -64,54 +55,6 @@ export class TuiMainScreen extends TuiBase {
 		} else {
 			this.terminal.hideCursor();
 		}
-	}
-
-	/**
-	 * 逐行差分：对比当前与上一帧，返回需要输出的终端序列。
-	 * - 尺寸变化：全量重绘（移到原点逐行清行写）
-	 * - 行内容变化：仅对变化行做光标定位 + 清行 + 写入，保留其余区域
-	 * - 无变化：返回 null（不输出任何字节）
-	 */
-	private diffAndBuild(
-		current: string[],
-		previous: string[],
-		prevW: number,
-		prevH: number,
-		w: number,
-		h: number,
-	): string | null {
-		const full = w !== prevW || h !== prevH;
-		const dirty: number[] = [];
-		if (full) {
-			for (let i = 0; i < Math.min(current.length, h); i++) dirty.push(i);
-		} else {
-			const n = Math.max(current.length, previous.length);
-			for (let i = 0; i < n; i++) {
-				if ((current[i] ?? "") !== (previous[i] ?? "")) dirty.push(i);
-			}
-		}
-		if (dirty.length === 0) return null;
-
-		let out = "";
-		if (full) out += "\x1b[H";
-		for (const row of dirty) {
-			if (row >= h) break;
-			const line = current[row] ?? "";
-			if (full) {
-				out += "\x1b[2K" + line + "\x1b[0m\n";
-			} else {
-				// 定位到目标行（1-based）再清行写入
-				out += `\x1b[${row + 1};1H\x1b[2K${line}\x1b[0m`;
-			}
-		}
-		return out;
-	}
-
-	private positionCursor(row: number, col: number, height: number): void {
-		// \x1b[<row>;<col>H 光标定位
-		const r = row + 1;
-		const c = col + 1;
-		this.terminal.write(`\x1b[${r};${c}H\x1b[?25h`);
 	}
 
 	override stop(opts?: TuiStopOptions): void {

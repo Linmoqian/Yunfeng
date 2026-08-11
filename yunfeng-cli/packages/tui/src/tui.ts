@@ -122,6 +122,57 @@ export abstract class TuiBase extends Container {
 		return null;
 	}
 
+	/**
+	 * 定位硬件光标（IME）：[<row>;<col>H 后显示光标。
+	 * row/col 为 0-based，输出时转 1-based。
+	 */
+	protected positionCursor(row: number, col: number, height: number): void {
+		const r = row + 1;
+		const c = col + 1;
+		this.terminal.write(`\x1b[${r};${c}H\x1b[?25h`);
+	}
+
+	/**
+	 * 逐行差分：对比当前行与上一帧，返回需要输出的终端序列，并更新上一帧状态。
+	 * - 尺寸变化：全量重绘（移到原点逐行清行写）
+	 * - 行内容变化：仅对变化行做光标定位 + 清行 + 写入，保留其余区域
+	 * - 无变化：返回 null（不输出任何字节）
+	 */
+	protected diffAndBuild(current: string[], w: number, h: number): string | null {
+		const previous = this.previousLines;
+		const prevW = this.previousWidth;
+		const prevH = this.previousHeight;
+		const full = w !== prevW || h !== prevH;
+		const dirty: number[] = [];
+		if (full) {
+			for (let i = 0; i < Math.min(current.length, h); i++) dirty.push(i);
+		} else {
+			const n = Math.max(current.length, previous.length);
+			for (let i = 0; i < n; i++) {
+				if ((current[i] ?? "") !== (previous[i] ?? "")) dirty.push(i);
+			}
+		}
+		// 更新上一帧状态（即使无变化也同步，供下次比对）
+		this.previousLines = current;
+		this.previousWidth = w;
+		this.previousHeight = h;
+		if (dirty.length === 0) return null;
+
+		let out = "";
+		if (full) out += "\x1b[H";
+		for (const row of dirty) {
+			if (row >= h) break;
+			const line = current[row] ?? "";
+			if (full) {
+				out += "\x1b[2K" + line + "\x1b[0m\n";
+			} else {
+				// 定位到目标行（1-based）再清行写入
+				out += `\x1b[${row + 1};1H\x1b[2K${line}\x1b[0m`;
+			}
+		}
+		return out;
+	}
+
 	setFocus(component: Component | null): void {
 		if (this.focusedComponent === component) return;
 		if (this.focusedComponent && isFocusable(this.focusedComponent)) {
