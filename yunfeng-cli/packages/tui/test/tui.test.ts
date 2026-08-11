@@ -155,3 +155,46 @@ describe("TuiMainScreen diff rendering", () => {
 		expect(term.output).toContain("\x1b[2K");
 	});
 });
+
+describe("global shortcuts", () => {
+	it("handler consuming a key prevents editor from handling it", () => {
+		const { tui, term, editor } = buildFresh();
+		tui.start();
+		tui.renderNow(true);
+		let fired = 0;
+		tui.addGlobalShortcut("test", (key) => {
+			if (key.kind === "ctrl" && key.value === "c") {
+				fired++;
+				return true;
+			}
+			return false;
+		});
+		term.emit("\x03");
+		tui.renderNow(true);
+		expect(fired).toBe(1);
+		expect(editor.value).toBe(""); // ctrl-c 未进入编辑器
+	});
+
+	it("non-consuming handler lets input through to component", () => {
+		const { tui, term, editor } = buildFresh();
+		tui.start();
+		tui.renderNow(true);
+		tui.addGlobalShortcut("pass", () => false);
+		term.emit("h");
+		tui.renderNow(true);
+		expect(editor.value).toBe("h");
+	});
+
+	it("unsub removes shortcut", () => {
+		const { tui, term } = buildFresh();
+		tui.start();
+		let fired = 0;
+		const unsub = tui.addGlobalShortcut("x", () => {
+			fired++;
+			return false;
+		});
+		unsub();
+		term.emit("\x03");
+		expect(fired).toBe(0);
+	});
+});

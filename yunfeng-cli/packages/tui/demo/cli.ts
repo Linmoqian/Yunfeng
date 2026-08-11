@@ -47,6 +47,23 @@ const layout = new VStack(
 tui.addChild(layout);
 tui.setFocus(editor);
 
+// 全局快捷键：Ctrl+C 退出、Ctrl+L 清屏
+tui.addGlobalShortcut("quit", (key) => {
+	if (key.kind === "ctrl" && key.value === "c") {
+		process.stdout.write("\x1b[?25h\x1b[0m\n");
+		process.exit(0);
+	}
+	return false;
+});
+const unsubClear = tui.addGlobalShortcut("clear", (key) => {
+	if (key.kind === "ctrl" && key.value === "l") {
+		process.stdout.write("\x1b[2J\x1b[H");
+		tui.requestRender();
+		return true;
+	}
+	return false;
+});
+
 tui.start();
 
 // 监听编辑提交：输入 quit 退出

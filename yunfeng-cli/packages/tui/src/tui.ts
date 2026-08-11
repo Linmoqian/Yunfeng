@@ -9,7 +9,7 @@
  * v1 不接 agent/LLM，只做交互底座。
  */
 import { visibleWidth, stripTerminalSequences } from "./utils.js";
-import { parseKey } from "./terminal/input.js";
+import { parseKey, type Key } from "./terminal/input.js";
 
 /** 组件接口：渲染成行 + 可选输入处理。height 为可用高度（主轴为纵向的布局组件使用） */
 export interface Component {
@@ -98,6 +98,8 @@ export abstract class TuiBase extends Container {
 
 	protected focusedComponent: Component | null = null;
 	private inputListeners: TuiInputListener[] = [];
+	/** 全局快捷键：优先于组件输入处理；handler 返回 true 表示消费 */
+	private globalShortcuts = new Map<string, (key: Key) => boolean>();
 	private renderRequested = false;
 	private renderTimer: ReturnType<typeof setTimeout> | null = null;
 	private static readonly MIN_RENDER_INTERVAL = 16;
@@ -214,19 +216,41 @@ export abstract class TuiBase extends Container {
 		};
 	}
 
+	/**
+	 * 注册全局快捷键。handler 在输入分发给组件之前执行，返回 true 表示消费该键。
+	 * @returns 取消注册函数
+	 */
+	addGlobalShortcut(name: string, handler: (key: Key) => boolean): () => void {
+		this.globalShortcuts.set(name, handler);
+		return () => {
+			this.globalShortcuts.delete(name);
+		};
+	}
+
+	private dispatchGlobalShortcut(key: Key): boolean {
+		for (const handler of this.globalShortcuts.values()) {
+			if (handler(key)) return true;
+		}
+		return false;
+	}
+
 	private handleTerminalInput(data: string): void {
 		// 拆分为单个键事件逐个分发（终端可能批量送达多键）
 		let buffer = data;
 		while (buffer.length > 0) {
 			let keyData: string;
+			let key: Key | null = null;
 			const parsed = parseKey(buffer);
 			if (parsed) {
 				keyData = buffer.slice(0, parsed.consumed);
+				key = parsed.key;
 				buffer = buffer.slice(parsed.consumed);
 			} else {
 				keyData = buffer.slice(0, 1);
 				buffer = buffer.slice(1);
 			}
+			// 全局快捷键优先于组件
+			if (key && this.dispatchGlobalShortcut(key)) continue;
 			// 让监听器有机会改写/消费
 			let message = keyData;
 			for (const listener of this.inputListeners) {
