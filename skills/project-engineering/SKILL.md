@@ -13,12 +13,14 @@ description: 按本仓库工程规范安全地实施代码、配置、文档、�
 2. 根据任务只读取必要的专题规范：
    * 前端：[frontend.md](../../docs/development/frontend.md)
    * Rust：[rust.md](../../docs/development/rust.md)
+   * HarmonyOS：[harmonyos.md](../../docs/development/harmonyos.md)
    * 前后端热加载：[hot-reload.md](../../docs/development/hot-reload.md)
    * Python：[python.md](../../docs/development/python.md)
    * CMake：[cmake.md](../../docs/development/cmake.md)
    * Git：[git-workflow.md](../../docs/development/git-workflow.md)
    * GitHub：[github.md](../../docs/development/github.md)
    * 验证：[verification.md](../../docs/development/verification.md)
+   * 写作：[writing.md](../../docs/development/writing.md)
    * 代码注释：[code-comments.md](../../docs/development/code-comments.md)
    * 并发与线程：[concurrency.md](../../docs/development/concurrency.md)
    * 接口文档：[api-documentation.md](../../docs/development/api-documentation.md)
@@ -29,6 +31,7 @@ description: 按本仓库工程规范安全地实施代码、配置、文档、�
 * `app/` 存放项目主体代码。
 * `docs/` 存放开发文档、开发日志和开发规范。
 * `docs/api/` 按需存放实际接口文档，没有接口时不创建空目录。
+* `skills/` 存放项目可复用的 Codex Skill。
 * `tests/` 存放跨技术栈测试和验收测试；语言工具链测试放在对应 crate 或模块内。
 * 新增文件应遵循上述布局；不创建空目录。
 * 迁移或重命名现有目录前，必须先获得工程师同意。
