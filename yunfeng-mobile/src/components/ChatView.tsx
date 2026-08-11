@@ -3,7 +3,7 @@ import { ArrowLeft, RotateCcw, Send, Sparkles, Square } from "lucide-react";
 import type { SidecarClient } from "@/lib/api";
 import { useChat } from "@/hooks/useChat";
 import { sessions } from "@/lib/data";
-import type { SessionMessage } from "@/lib/types";
+import type { AgentEvent, SessionMessage } from "@/lib/types";
 import { AssistantBubble, UserBubble } from "./MessageBubble";
 import { ToolCard } from "./ToolCard";
 
@@ -13,10 +13,11 @@ type Props = {
   onBack: () => void;
   client: SidecarClient | null;
   onActivity: (id: string | null, prompt: string) => string | null;
+  onAgentEvent?: (event: AgentEvent) => void;
 };
 
-export default function ChatView({ id, title, onBack, client, onActivity }: Props) {
-  const chat = useChat(client);
+export default function ChatView({ id, title, onBack, client, onActivity, onAgentEvent }: Props) {
+  const chat = useChat(client, { onEvent: onAgentEvent });
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);

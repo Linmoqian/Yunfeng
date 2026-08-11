@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import ChatView from "@/components/ChatView";
 import { createSidecarClient } from "@/lib/client";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { useSessionStore } from "@/hooks/useSessionStore";
 import HomeView from "@/components/HomeView";
 import SessionsView from "@/components/SessionsView";
@@ -14,6 +15,7 @@ export type ActiveChat = { id: string | null; title: string };
 export default function App() {
   const client = useMemo(() => createSidecarClient(), []);
   const store = useSessionStore();
+  const agentPanel = useAgentStatus();
   const [tab, setTab] = useState<Tab>("home");
   const [chat, setChat] = useState<ActiveChat | null>(null);
 
@@ -47,6 +49,7 @@ export default function App() {
           onBack={() => setChat(null)}
           client={client}
           onActivity={onActivity}
+          onAgentEvent={agentPanel.applyEvent}
         />
       </div>
     );
@@ -55,7 +58,13 @@ export default function App() {
   return (
     <div className="mx-auto flex h-dvh max-w-[430px] flex-col bg-background text-foreground">
       <main className="no-scrollbar flex-1 overflow-y-auto">
-        {tab === "home" && <HomeView onOpenSession={openSession} recent={store.active} />}
+        {tab === "home" && (
+          <HomeView
+            onOpenSession={openSession}
+            recent={store.active}
+            agents={agentPanel.agents}
+          />
+        )}
         {tab === "sessions" && (
           <SessionsView
             store={store}

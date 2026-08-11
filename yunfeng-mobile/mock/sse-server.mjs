@@ -70,6 +70,20 @@ function runDemoPrompt(session, prompt) {
   const half = Math.ceil(text.length / 2);
   const thinking = "先理解需求，再拆解为可执行步骤：1) 建立会话；2) 订阅事件流；3) 渲染增量内容。";
 
+  schedule(session, 80, () =>
+    sseSend(session, {
+      type: "agent_update",
+      agentId: "lead",
+      status: "working",
+      activity: "正在拆解「代码审查」任务",
+    }),
+  );
+  schedule(session, 90, () =>
+    sseSend(session, { type: "agent_update", agentId: "code", status: "working", activity: "执行代码审查" }),
+  );
+  schedule(session, 100, () =>
+    sseSend(session, { type: "agent_update", agentId: "test", status: "working", activity: "正在准备测试环境" }),
+  );
   schedule(session, 150, () =>
     sseSend(session, { type: "tool_execution_start", toolCallId: "t-decompose", toolName: "任务拆解" }),
   );
@@ -135,7 +149,12 @@ function runDemoPrompt(session, prompt) {
       },
     }),
   );
-  schedule(session, 2200, () => sseSend(session, { type: "agent_end" }));
+  schedule(session, 2200, () => {
+    sseSend(session, { type: "agent_end" });
+    sseSend(session, { type: "agent_update", agentId: "lead", status: "idle", activity: "空闲" });
+    sseSend(session, { type: "agent_update", agentId: "code", status: "idle", activity: "空闲" });
+    sseSend(session, { type: "agent_update", agentId: "test", status: "idle", activity: "空闲" });
+  });
 }
 
 const server = createServer(async (req, res) => {

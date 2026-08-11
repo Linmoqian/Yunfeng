@@ -1,17 +1,19 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { ChevronRight, Cloud, Cpu, MessageSquare, Sparkles } from "lucide-react";
-import { agents, quickCommands, type AgentStatus } from "@/lib/data";
+import { quickCommands, type AgentStatus } from "@/lib/data";
+import type { AgentStatusInfo } from "@/lib/agentEvents";
 import { formatRelativeTime, type MobileSession } from "@/lib/sessionStore";
 import { cn } from "@/lib/utils";
 
 type Props = {
   onOpenSession: (id: string | null, title: string) => void;
   recent: MobileSession[];
+  agents: AgentStatusInfo[];
 };
 type RunMode = "local" | "cloud";
 
-export default function HomeView({ onOpenSession, recent }: Props) {
+export default function HomeView({ onOpenSession, recent, agents }: Props) {
   const [mode, setMode] = useState<RunMode>("local");
 
   return (

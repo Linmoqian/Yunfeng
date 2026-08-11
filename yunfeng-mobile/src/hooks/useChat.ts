@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { SidecarClient } from "@/lib/api";
 import { chatReducer, initialChatState, type ToolCall } from "@/lib/chatEvents";
-import type { SessionMessage, SessionState } from "@/lib/types";
+import type { AgentEvent, SessionMessage, SessionState } from "@/lib/types";
 
 export interface UseChatResult {
   sessionId: string | null;
@@ -21,12 +21,17 @@ export interface UseChatResult {
   retryLast: () => Promise<void>;
 }
 
-export function useChat(client: SidecarClient | null): UseChatResult {
+export function useChat(
+  client: SidecarClient | null,
+  opts?: { onEvent?: (event: AgentEvent) => void },
+): UseChatResult {
   const [state, dispatch] = useReducer(chatReducer, initialChatState);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [rpcState, setRpcState] = useState<SessionState | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastPromptRef = useRef<string | null>(null);
+  const onEventRef = useRef(opts?.onEvent);
+  onEventRef.current = opts?.onEvent;
 
   useEffect(() => {
     return () => unsubscribeRef.current?.();
@@ -42,7 +47,10 @@ export function useChat(client: SidecarClient | null): UseChatResult {
     setSessionId(sid);
     unsubscribeRef.current = c.subscribeEvents(
       sid,
-      (event) => dispatch(event),
+      (event) => {
+        onEventRef.current?.(event);
+        dispatch(event);
+      },
       (err) => dispatch({ type: "prompt_error", errorMessage: err.message }),
     );
     return sid;
