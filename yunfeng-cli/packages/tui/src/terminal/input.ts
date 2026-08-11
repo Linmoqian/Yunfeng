@@ -181,7 +181,7 @@ export function parseKey(data: string, pos = 0): ParseResult | null {
     }
     // Alt + 可打印字符：ESC 后跟一个普通字符
     if (ch1 >= 0x20 && ch1 <= 0x7e) {
-      return { key: { kind: "alt", value: data[pos + 1] }, consumed: 2 };
+      return { key: { kind: "alt", value: data[pos + 1] ?? "" }, consumed: 2 };
     }
     // 其他 ESC 前缀，按 unknown 处理
     return { key: { kind: "unknown", raw: data.slice(pos, pos + 2) }, consumed: 2 };
