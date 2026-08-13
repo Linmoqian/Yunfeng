@@ -3634,8 +3634,13 @@
 .conversation-message--user {
   align-self: flex-end;
   max-width: min(78%, 620px);
-  padding: 11px 16px;
+  padding: 0;
   border: 0;
+  background: transparent;
+}
+
+.conversation-message--user .conversation-message__content {
+  padding: 11px 16px;
   border-radius: var(--yf-radius-lg);
   background: color-mix(in srgb, var(--accent) 11%, var(--surface));
 }
@@ -3664,6 +3669,7 @@
 
 .conversation-message--user .conversation-message__actions {
   justify-content: flex-end;
+  padding-right: 4px;
 }
 
 .conversation-message--tool {
