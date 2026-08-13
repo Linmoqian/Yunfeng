@@ -2148,9 +2148,7 @@
   display: grid;
   justify-items: center;
   margin: 36px 8px 0;
-  padding: 28px 16px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  padding: 0;
   text-align: center;
 }
 
@@ -3288,11 +3286,6 @@
 .session-sidebar__taskboard-copy strong {
   font-size: 13px;
   font-weight: 650;
-}
-
-.session-sidebar__taskboard-copy small {
-  color: var(--text-secondary);
-  font-size: 11px;
 }
 
 .session-sidebar__taskboard-arrow {

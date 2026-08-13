@@ -95,7 +95,6 @@ export function SessionSidebar({
           <span className="session-sidebar__taskboard-icon"><LayoutDashboard size={17} aria-hidden="true" /></span>
           <span className="session-sidebar__taskboard-copy">
             <strong>任务看板</strong>
-            <small>规划与推进</small>
           </span>
           <ArrowUpRight className="session-sidebar__taskboard-arrow" size={15} aria-hidden="true" />
         </button>
@@ -106,7 +105,7 @@ export function SessionSidebar({
           type="search"
           value={search}
           onChange={(event) => onSearch(event.target.value)}
-          placeholder="搜索任务…"
+          placeholder="寻觅"
           autoComplete="off"
           allowClear
           variant="borderless"
