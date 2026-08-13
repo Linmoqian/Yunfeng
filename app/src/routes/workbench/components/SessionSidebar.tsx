@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Input, Button } from "antd";
-import { ArrowUpRight, ChevronRight, Plus, Search, X } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Plus, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import yuncongCloud from "../../../assets/generated/yuncong-cloud.png";
+import cloudMascot from "../../../assets/generated/yunfeng-cloud.png";
 import yundianPalace from "../../../assets/generated/yundian-palace.png";
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 import { TaskRow } from "../../../features/workbench/TaskRow";
@@ -75,7 +76,9 @@ export function SessionSidebar({
           <MapleStatusMark />
           <span>Yunfeng</span>
         </a>
-        <Button type="text" icon={<X size={17} />} onClick={onClose} aria-label="关闭任务列表" />
+        <button className="session-sidebar__close-cloud" type="button" onClick={onClose} aria-label="关闭任务列表">
+          <img src={cloudMascot} alt="" />
+        </button>
       </div>
 
       <div className="session-sidebar__actions">

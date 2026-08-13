@@ -21,19 +21,19 @@ export function WorkbenchHeader({
   return (
     <header className="workbench-header">
       <div className="session-main__context">
-        <button
-          className={`sidebar-toggle sidebar-toggle--${sidebarCollapsed ? "closed" : "open"}`}
-          type="button"
-          onClick={onToggleSidebar}
-          aria-label={sidebarCollapsed ? "打开任务列表" : "关闭任务列表"}
-          aria-expanded={!sidebarCollapsed}
-          title={sidebarCollapsed ? "打开任务列表" : "关闭任务列表"}
-        >
-          <img className="sidebar-toggle__cloud" src={cloudMascot} alt="" />
-          <span className="sidebar-toggle__label" aria-hidden="true">
-            {sidebarCollapsed ? "唤回任务列表" : "带走任务列表"}
-          </span>
-        </button>
+        {sidebarCollapsed ? (
+          <button
+            className="sidebar-toggle sidebar-toggle--closed"
+            type="button"
+            onClick={onToggleSidebar}
+            aria-label="打开任务列表"
+            aria-expanded="false"
+            title="打开任务列表"
+          >
+            <img className="sidebar-toggle__cloud" src={cloudMascot} alt="" />
+            <span className="sidebar-toggle__label" aria-hidden="true">唤回任务列表</span>
+          </button>
+        ) : null}
       </div>
       <div className="workbench-header__actions">
         {hasFocus ? (

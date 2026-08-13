@@ -2950,6 +2950,30 @@
   margin: 0;
 }
 
+.session-sidebar__close-cloud {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.session-sidebar__close-cloud img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  transition: filter 180ms var(--motion-ease), transform 260ms var(--motion-ease);
+}
+
+.session-sidebar__close-cloud:hover img,
+.session-sidebar__close-cloud:focus-visible img {
+  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 16%));
+  transform: translateX(2px) translateY(-1px) rotate(3deg) scale(1.06);
+}
+
 .session-sidebar__icon-btn {
   display: inline-flex;
   align-items: center;
