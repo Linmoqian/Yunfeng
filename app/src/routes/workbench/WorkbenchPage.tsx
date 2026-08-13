@@ -63,6 +63,7 @@ export function WorkbenchPage() {
   const archivedFilter = useAppSelector((state) => state.workbench.archivedFilter);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftTask, setDraftTask] = useState(false);
+  const [initialMessage, setInitialMessage] = useState<{ taskId: string; text: string } | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     window.matchMedia("(max-width: 720px)").matches ||
       resolveSidebarCollapsed(window.localStorage.getItem("yunfeng-sidebar-collapsed")),
@@ -237,6 +238,7 @@ export function WorkbenchPage() {
 
   function handleOpenTask(task: TaskSummary) {
     setDraftTask(false);
+    setInitialMessage(null);
     if (task.isLegacy) {
       dispatch(workbenchActions.selectSession(task.sessionId));
     } else {
@@ -249,6 +251,7 @@ export function WorkbenchPage() {
     if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
     dispatch(workbenchActions.selectTask(null));
     dispatch(workbenchActions.selectSession(null));
+    setInitialMessage(null);
     setDraftTask(true);
   }
 
@@ -311,7 +314,8 @@ export function WorkbenchPage() {
               modelCatalog={modelCatalog}
               modelSelection={modelSelection}
               onTaskUpdated={(task) => dispatch(workbenchActions.taskUpdated(task))}
-              onTaskCreated={(task) => {
+              onTaskCreated={(task, firstMessage) => {
+                setInitialMessage({ taskId: task.id, text: firstMessage });
                 dispatch(workbenchActions.taskUpdated(task));
                 dispatch(workbenchActions.selectTask(task.id));
                 setDraftTask(false);
@@ -322,6 +326,7 @@ export function WorkbenchPage() {
             <TaskFocusPanel
               task={currentTask}
               sessions={sessions}
+              initialMessage={initialMessage?.taskId === currentTask.id ? initialMessage.text : undefined}
               onTaskUpdated={(task) => dispatch(workbenchActions.taskUpdated(task))}
               modelCatalog={modelCatalog}
             />

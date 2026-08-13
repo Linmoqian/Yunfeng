@@ -23,13 +23,14 @@ interface TaskFocusPanelProps {
   legacySession?: SessionSnapshot;
   sessions: SessionSnapshot[];
   onTaskUpdated: (task: TaskState) => void;
-  onTaskCreated?: (task: TaskState) => void;
+  onTaskCreated?: (task: TaskState, firstMessage: string) => void;
+  initialMessage?: string;
   modelCatalog?: ModelCatalog;
   modelSelection?: ModelSelection | null;
 }
 
 /** 单任务聚焦面板：编排会话流、工具、审批、运行控制、配置与 Git 改动。 */
-export function TaskFocusPanel({ draft = false, task, legacySession, sessions, onTaskUpdated, onTaskCreated, modelCatalog, modelSelection }: TaskFocusPanelProps) {
+export function TaskFocusPanel({ draft = false, task, legacySession, sessions, onTaskUpdated, onTaskCreated, initialMessage, modelCatalog, modelSelection }: TaskFocusPanelProps) {
   const { message } = App.useApp();
   const [sending, setSending] = useState(false);
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
@@ -54,6 +55,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     legacySession,
     isDraft: draft,
     isLegacy,
+    initialMessage,
     sessionId,
     onTaskUpdated,
   });
@@ -92,7 +94,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         setLocalTask(createdTask);
         setMessageStatus(optimisticId, "sent");
         onTaskUpdated(createdTask);
-        onTaskCreated?.(createdTask);
+        onTaskCreated?.(createdTask, next);
       } else if (isLegacy) {
         const imported = await ensureTaskForLegacy();
         await sendTaskCommand(imported.id, { type: "prompt", message: next });

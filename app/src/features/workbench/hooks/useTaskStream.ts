@@ -31,6 +31,7 @@ export interface StreamHandlerOptions {
   legacySession?: SessionSnapshot;
   isDraft: boolean;
   isLegacy: boolean;
+  initialMessage?: string;
   sessionId: string;
   onTaskUpdated: (task: TaskState) => void;
 }
@@ -53,7 +54,7 @@ export interface StreamResult {
   beginOptimisticSend: (text: string) => string;
 }
 
-export function useTaskStream({ task, isDraft, isLegacy, sessionId, onTaskUpdated }: StreamHandlerOptions): StreamResult {
+export function useTaskStream({ task, isDraft, isLegacy, initialMessage, sessionId, onTaskUpdated }: StreamHandlerOptions): StreamResult {
   const [conversation, setConversation] = useState<ConversationItem[]>([]);
   const [conversationLoading, setConversationLoading] = useState(true);
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("connecting");
@@ -265,6 +266,19 @@ export function useTaskStream({ task, isDraft, isLegacy, sessionId, onTaskUpdate
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, isDraft, isLegacy, handleStreamEvent, resetForTask]);
+
+  useEffect(() => {
+    if (!initialMessage || !task) return;
+    setConversation((current) => {
+      const exists = current.some((item) => item.role === "user" && item.text === initialMessage);
+      return exists ? current : [...current, {
+        id: `initial-user-${task.id}`,
+        role: "user",
+        text: initialMessage,
+        status: "sent",
+      }];
+    });
+  }, [initialMessage, task]);
 
   // localTask 变化时上报父级；用微任务避开渲染期间 setState 父组件的问题。
   const prevTaskRef = useRef<TaskState | null | undefined>(task);
