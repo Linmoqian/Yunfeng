@@ -109,11 +109,9 @@ export async function handleTasksGet(query: URLSearchParams): Promise<RouteResul
 
 export async function handleTaskCreate(body: Record<string, unknown>): Promise<RouteResult> {
   const { store, runtime, hub } = getTaskContext();
-  const cwd = typeof body.cwd === "string" ? body.cwd : "";
+  const cwd = typeof body.cwd === "string" && body.cwd.trim() ? body.cwd : process.cwd();
   const message = typeof body.message === "string" ? body.message : "";
-  if (!cwd) return jsonApi(json({ error: apiError("bad_request", "cwd 是必填项", { status: 400 }) }), null);
   if (!existsSync(cwd)) return jsonApi(json({ error: apiError("bad_request", `目录不存在: ${cwd}`, { status: 400 }) }), null);
-  if (!message.trim()) return jsonApi(json({ error: apiError("bad_request", "message 不能为空", { status: 400 }) }), null);
 
   let provider: string | undefined;
   let modelId: string | undefined;
@@ -132,13 +130,14 @@ export async function handleTaskCreate(body: Record<string, unknown>): Promise<R
     const { session, realSessionId } = await startRpcSession(tempKey, "", cwd, {
       ...(provider && modelId ? { initialModel: { provider, modelId } } : {}),
     });
-    const state = store.create({ sessionId: realSessionId, cwd, title: message.slice(0, 60), source: "task" });
+    const state = store.create({ sessionId: realSessionId, cwd, title: message.trim().slice(0, 60) || "新建对话", source: "task" });
     runtime.importSession(session);
     await hub.emit(state.id, "task_updated", { status: state.status, created: true });
     // 异步记录 Git 基线（不阻断首轮启动）
     void runtime.recordGitBaseline(state.id);
-    // 首轮 prompt
-    await runtime.dispatchCommand(state, { type: "prompt", message });
+    if (message.trim()) {
+      await runtime.dispatchCommand(state, { type: "prompt", message });
+    }
     return json({ task: serializeTask(state), sessionId: realSessionId });
   } catch (error) {
     return jsonApi(json({ error: apiError("task_create_failed", error instanceof Error ? error.message : String(error)) }), error);

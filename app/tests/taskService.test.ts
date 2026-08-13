@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { browseDirectories } from "../src/services/taskService.ts";
+import { browseDirectories, createConversation } from "../src/services/taskService.ts";
 
 test("browseDirectories 编码目录路径并返回可浏览目录", async (context) => {
   const originalFetch = globalThis.fetch;
@@ -51,4 +51,25 @@ test("browseDirectories 未指定路径时从服务端默认目录开始", async
   await browseDirectories();
 
   assert.equal(requestedUrl, "/api/cwd/browse");
+});
+
+test("createConversation 不要求目录或首条消息", async (context) => {
+  const originalFetch = globalThis.fetch;
+  let payload: unknown;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = (async (_input, init) => {
+    payload = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({
+      task: { id: "task-conversation" },
+      sessionId: "session-conversation",
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const result = await createConversation({ provider: "openai", modelId: "gpt-5" });
+
+  assert.deepEqual(payload, { model: { provider: "openai", modelId: "gpt-5" } });
+  assert.equal(result.task.id, "task-conversation");
+  assert.equal(result.sessionId, "session-conversation");
 });

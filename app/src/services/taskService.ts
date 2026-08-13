@@ -222,12 +222,31 @@ export async function createTask(
   message: string,
   model?: ModelSelection | null,
 ): Promise<{ task: TaskState; sessionId: string }> {
+  return createTaskRequest({ cwd, message, model });
+}
+
+/** 创建一段尚未发送首条消息的对话。 */
+export async function createConversation(
+  model?: ModelSelection | null,
+): Promise<{ task: TaskState; sessionId: string }> {
+  return createTaskRequest({ model });
+}
+
+async function createTaskRequest({
+  cwd,
+  message,
+  model,
+}: {
+  cwd?: string;
+  message?: string;
+  model?: ModelSelection | null;
+}): Promise<{ task: TaskState; sessionId: string }> {
   const response = await fetch("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      cwd,
-      message,
+      ...(cwd ? { cwd } : {}),
+      ...(message ? { message } : {}),
       ...(model ? { model: { provider: model.provider, modelId: model.modelId } } : {}),
     }),
   });

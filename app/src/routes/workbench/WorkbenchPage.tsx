@@ -1,7 +1,8 @@
+import { App } from "antd";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  createTask,
+  createConversation,
   loadLegacySessions,
   loadModelCatalog,
   loadTasks,
@@ -14,7 +15,6 @@ import {
   type TaskStreamEvent,
 } from "../../services/taskService";
 const TaskFocusPanel = lazy(() => import("../../features/workbench/TaskFocusPanel").then((module) => ({ default: module.TaskFocusPanel })));
-const NewTaskDialog = lazy(() => import("../../features/workbench/NewTaskDialog").then((module) => ({ default: module.NewTaskDialog })));
 const SettingsDialog = lazy(() => import("../../features/workbench/SettingsDialog").then((module) => ({ default: module.SettingsDialog })));
 import {
   buildTaskSections,
@@ -43,8 +43,10 @@ function isTaskStateLike(value: unknown): value is TaskState {
 
 export function WorkbenchPage() {
   const dispatch = useAppDispatch();
+  const { message } = App.useApp();
   const { setMode, mode: themeMode } = useThemeMode();
   const initialTaskResolved = useRef(false);
+  const creatingConversation = useRef(false);
 
   const tasks = useAppSelector((state) => state.workbench.tasks);
   const sessions = useAppSelector((state) => state.workbench.sessions);
@@ -55,7 +57,6 @@ export function WorkbenchPage() {
   const search = useAppSelector((state) => state.workbench.search);
   const projectFilter = useAppSelector((state) => state.workbench.projectFilter);
   const archivedFilter = useAppSelector((state) => state.workbench.archivedFilter);
-  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     window.matchMedia("(max-width: 720px)").matches ||
@@ -214,13 +215,6 @@ export function WorkbenchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelCwd, modelReloadKey, currentTask?.id, settingsOpen]);
 
-  async function handleCreateTask(cwd: string, message: string) {
-    const { task } = await createTask(cwd, message, modelSelection);
-    dispatch(workbenchActions.taskUpdated(task));
-    dispatch(workbenchActions.selectTask(task.id));
-    await refreshSnapshot();
-  }
-
   async function handleRename(taskId: string, name: string) {
     const updated = await renameTask(taskId, name);
     dispatch(workbenchActions.taskUpdated(updated));
@@ -245,9 +239,26 @@ export function WorkbenchPage() {
     if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
   }
 
-  function handleOpenNewTask() {
+  async function handleOpenNewTask() {
     if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
-    setNewTaskOpen(true);
+    if (creatingConversation.current) return;
+
+    creatingConversation.current = true;
+    message.loading({ content: "正在新建对话…", key: "new-conversation" });
+    try {
+      const { task } = await createConversation(modelSelection);
+      dispatch(workbenchActions.taskUpdated(task));
+      dispatch(workbenchActions.selectTask(task.id));
+      await refreshSnapshot();
+      message.success({ content: "已新建对话", key: "new-conversation" });
+    } catch (error) {
+      message.error({
+        content: error instanceof Error ? error.message : "创建对话失败，请稍后重试。",
+        key: "new-conversation",
+      });
+    } finally {
+      creatingConversation.current = false;
+    }
   }
 
   function handleModelChange(nextModel: ModelSelection | null) {
@@ -331,11 +342,6 @@ export function WorkbenchPage() {
           )}
         </main>
 
-        <NewTaskDialog
-          open={newTaskOpen}
-          onClose={() => setNewTaskOpen(false)}
-          onCreate={handleCreateTask}
-        />
         <SettingsDialog
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
