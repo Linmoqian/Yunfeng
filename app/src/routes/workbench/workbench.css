@@ -3324,8 +3324,11 @@
 }
 
 .session-sidebar__search:focus-within,
-.session-sidebar__search:focus-within .ant-input-affix-wrapper {
+.session-sidebar__search:focus-within .ant-input-affix-wrapper,
+.session-sidebar__search .ant-input-affix-wrapper-focused {
+  border-color: transparent;
   background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  box-shadow: none;
 }
 
 .session-sidebar__search .ant-input-affix-wrapper {
