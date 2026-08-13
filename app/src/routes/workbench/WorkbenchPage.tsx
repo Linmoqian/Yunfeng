@@ -41,6 +41,14 @@ function isTaskStateLike(value: unknown): value is TaskState {
   return typeof candidate.id === "string" && typeof candidate.sessionId === "string" && typeof candidate.status === "string";
 }
 
+function formatConnectionNotice(error: string): string {
+  const httpMatch = error.match(/（HTTP\s+(\d+)）/);
+  const reason = error.replace(/（HTTP\s+\d+）/, "").trim();
+  return httpMatch
+    ? `在风里已迷失了方向（HTTP ${httpMatch[1]}：${reason}）`
+    : `在风里已迷失了方向（${reason}）`;
+}
+
 export function WorkbenchPage() {
   const dispatch = useAppDispatch();
   const { message } = App.useApp();
@@ -302,15 +310,13 @@ export function WorkbenchPage() {
             sidebarCollapsed={sidebarCollapsed}
             onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
             hasFocus={Boolean(currentTask || currentSession)}
-            contextTitle={currentTask?.title ?? currentSession?.name ?? "全部任务"}
-            connectionState={connectionState}
             onNewTask={handleOpenNewTask}
             onOpenSettings={() => setSettingsOpen(true)}
           />
 
           {connectionState === "offline" && loadError ? (
             <div className="connection-notice" role="status">
-              <span>{loadError}</span>
+              <span>{formatConnectionNotice(loadError)}</span>
               <button className="text-button" type="button" onClick={() => void refreshSnapshot()}>重新连接</button>
             </div>
           ) : null}
