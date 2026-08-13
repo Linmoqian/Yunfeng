@@ -3252,7 +3252,7 @@
   padding: 9px 10px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--yf-radius-md);
-  background: color-mix(in srgb, var(--yf-brand-primary) 4%, var(--surface));
+  background: transparent;
   color: var(--text-primary);
   cursor: pointer;
   text-align: left;
@@ -3260,9 +3260,9 @@
 }
 
 .session-sidebar__taskboard:hover {
-  border-color: color-mix(in srgb, var(--yf-brand-primary) 42%, var(--border-strong)) !important;
-  background: color-mix(in srgb, var(--yf-brand-primary) 8%, var(--surface)) !important;
-  box-shadow: var(--yf-shadow-sm) !important;
+  border-color: var(--border-strong) !important;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
+  box-shadow: none !important;
   color: var(--text-primary) !important;
   transform: translateY(-1px);
 }
@@ -3321,6 +3321,11 @@
 
 .session-sidebar__search {
   margin-bottom: 12px;
+}
+
+.session-sidebar__search:focus-within,
+.session-sidebar__search:focus-within .ant-input-affix-wrapper {
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
 }
 
 .session-sidebar__search .ant-input-affix-wrapper {

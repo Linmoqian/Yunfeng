@@ -102,6 +102,8 @@ test("buildTaskSections 按介入优先级分组，并隐藏空分组", () => {
     ["attention", "running", "waiting", "completed", "legacy"],
   );
   assert.equal(sections[0]?.tasks[0]?.id, "attention");
+  assert.equal(sections.find((section) => section.id === "waiting")?.label, "静候");
+  assert.equal(sections.find((section) => section.id === "legacy")?.label, "云丛");
 });
 
 test("buildTaskSections 归档任务默认隐藏，开启归档可见后展示", () => {

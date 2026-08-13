@@ -38,10 +38,10 @@ const SECTION_ORDER: Array<{ id: TaskSection; label: string }> = [
   { id: "attention", label: "需要你介入" },
   { id: "running", label: "正在进行" },
   { id: "waiting_approval", label: "等待审批" },
-  { id: "waiting", label: "等待继续" },
+  { id: "waiting", label: "静候" },
   { id: "completed", label: "已完成" },
   { id: "archived", label: "已归档" },
-  { id: "legacy", label: "旧会话" },
+  { id: "legacy", label: "云丛" },
 ];
 
 export const STATUS_LABELS: Record<TaskState["status"] | "history", string> = {
