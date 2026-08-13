@@ -3552,6 +3552,11 @@
   display: none;
 }
 
+.conversation-message__yunfeng-mark {
+  width: 16px;
+  height: 16px;
+}
+
 .conversation-message--assistant .conversation-message__content,
 .conversation-message--assistant .conversation-message__actions {
   grid-column: 2;

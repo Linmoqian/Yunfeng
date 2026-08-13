@@ -1,7 +1,9 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
+import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState } from "react";
+
+import { MapleStatusMark } from "../MapleStatusMark";
 
 export type ConversationRole = "user" | "assistant" | "tool";
 export type MessageStatus = "sending" | "sent" | "failed" | undefined;
@@ -145,7 +147,7 @@ function ConversationMarkdown({ text }: { text: string }) {
 function RoleIcon({ role }: { role: ConversationRole }) {
   if (role === "user") return <User size={14} aria-hidden="true" />;
   if (role === "tool") return <Wrench size={14} aria-hidden="true" />;
-  return <Bot size={14} aria-hidden="true" />;
+  return <MapleStatusMark className="conversation-message__yunfeng-mark" />;
 }
 
 function ApprovalCard({
