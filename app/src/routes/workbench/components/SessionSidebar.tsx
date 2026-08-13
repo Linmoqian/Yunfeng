@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Input, Button } from "antd";
-import { ArrowUpRight, ChevronRight, LayoutDashboard, Plus, Search, X } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Plus, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import yuncongCloud from "../../../assets/generated/yuncong-cloud.png";
+import yundianPalace from "../../../assets/generated/yundian-palace.png";
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 import { TaskRow } from "../../../features/workbench/TaskRow";
 import type { TaskSectionGroup, TaskSummary } from "../../../features/workbench/taskPresentation";
@@ -93,9 +94,9 @@ export function SessionSidebar({
           onClick={() => navigate("/taskboard")}
           aria-label="打开任务看板"
         >
-          <span className="session-sidebar__taskboard-icon"><LayoutDashboard size={17} aria-hidden="true" /></span>
+          <span className="session-sidebar__taskboard-icon"><img src={yundianPalace} alt="" /></span>
           <span className="session-sidebar__taskboard-copy">
-            <strong>任务看板</strong>
+            <strong>云殿</strong>
           </span>
           <ArrowUpRight className="session-sidebar__taskboard-arrow" size={15} aria-hidden="true" />
         </button>

@@ -3284,6 +3284,12 @@
   color: var(--yf-brand-on-primary);
 }
 
+.session-sidebar__taskboard-icon img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
 .session-sidebar__taskboard-copy {
   display: grid;
   min-width: 0;
