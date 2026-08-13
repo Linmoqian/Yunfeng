@@ -4,18 +4,12 @@ import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState } from "react";
 
 import { MapleStatusMark } from "../MapleStatusMark";
+import {
+  type ConversationItem,
+  type ConversationRole,
+} from "../conversationState";
 
-export type ConversationRole = "user" | "assistant" | "tool";
-export type MessageStatus = "sending" | "sent" | "failed" | undefined;
-
-export interface ConversationItem {
-  id: string;
-  role: ConversationRole;
-  text: string;
-  thinking?: string;
-  streaming?: boolean;
-  status?: MessageStatus;
-}
+export type { ConversationItem, ConversationRole, MessageStatus } from "../conversationState";
 
 interface ToolCallInfo {
   callId: string;
@@ -104,17 +98,7 @@ export function normalizeConversationMessage(message: unknown, index: number): C
   };
 }
 
-export function mergeConversation(current: ConversationItem[], loaded: ConversationItem[]): ConversationItem[] {
-  const loadedIds = new Set(loaded.map((message) => message.id));
-  const loadedContent = new Set(loaded.map((message) => `${message.role}\u0000${message.text}`));
-  return [
-    ...loaded,
-    ...current.filter((message) => (
-      message.id === STREAMING_MESSAGE_ID
-      || (!loadedIds.has(message.id) && !loadedContent.has(`${message.role}\u0000${message.text}`))
-    )),
-  ];
-}
+export { mergeConversation } from "../conversationState";
 
 export const STREAMING_MESSAGE_ID = "__streaming_assistant__";
 
