@@ -84,7 +84,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
 
   async function handleSubmit(text: string, mode: "steer" | "followUp") {
     const next = text.trim();
-    if (!next || sending || streamStatus === "streaming") return;
+    if (!next || sending) return;
 
     const optimisticId = beginOptimisticSend(next);
     setSending(true);

@@ -18,15 +18,15 @@ interface ComposerProps {
 export function Composer({ isDraft, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [nextActionMode, setNextActionMode] = useState<"steer" | "followUp">("steer");
+  const [nextActionMode, setNextActionMode] = useState<"steer" | "followUp">("followUp");
 
   const streaming = streamStatus === "streaming";
   const hasDraft = Boolean(draft.trim());
-  const showStop = streaming || (running && !hasDraft);
-  const disabled = sending || streaming || !draft.trim();
+  const showStop = (streaming || running) && !hasDraft;
+  const disabled = sending || !draft.trim();
 
   async function handleSubmit() {
-    if (!draft.trim() || sending || streamStatus === "streaming") return;
+    if (!draft.trim() || sending) return;
     const next = draft.trim();
     setDraft("");
     setFeedback(null);
@@ -56,7 +56,7 @@ export function Composer({ isDraft, running, isLegacy, sending, streamStatus, st
             void handleSubmit();
           }
         }}
-        placeholder={running ? "Agent 正在运行，可停止后继续输入" : isDraft ? "输入后建立新对话" : "给 Yunfeng 发送消息"}
+        placeholder={running ? "Agent 正在运行，消息将排入下一轮" : isDraft ? "输入后建立新对话" : "给 Yunfeng 发送消息"}
         autoSize={{ minRows: 1, maxRows: 6 }}
         disabled={sending}
         maxLength={10000}
