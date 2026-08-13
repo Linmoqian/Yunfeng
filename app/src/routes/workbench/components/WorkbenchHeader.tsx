@@ -1,5 +1,7 @@
 import { Button } from "antd";
-import { PanelLeftClose, PanelLeftOpen, Plus, Settings } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
+
+import cloudMascot from "../../../assets/generated/yunfeng-cloud.png";
 
 import type { ConnectionState } from "../../../store/workbenchSlice";
 
@@ -32,18 +34,17 @@ export function WorkbenchHeader({
     <header className="workbench-header">
       <div className="session-main__context">
         <button
-          className="icon-button sidebar-toggle"
+          className={`sidebar-toggle sidebar-toggle--${sidebarCollapsed ? "closed" : "open"}`}
           type="button"
           onClick={onToggleSidebar}
           aria-label={sidebarCollapsed ? "打开任务列表" : "关闭任务列表"}
           aria-expanded={!sidebarCollapsed}
           title={sidebarCollapsed ? "打开任务列表" : "关闭任务列表"}
         >
-          {sidebarCollapsed ? (
-            <PanelLeftOpen size={18} aria-hidden="true" />
-          ) : (
-            <PanelLeftClose size={18} aria-hidden="true" />
-          )}
+          <img className="sidebar-toggle__cloud" src={cloudMascot} alt="" />
+          <span className="sidebar-toggle__label" aria-hidden="true">
+            {sidebarCollapsed ? "唤回任务列表" : "带走任务列表"}
+          </span>
         </button>
         <div>
           <p className="eyebrow">{hasFocus ? "当前对话" : "Yunfeng"}</p>

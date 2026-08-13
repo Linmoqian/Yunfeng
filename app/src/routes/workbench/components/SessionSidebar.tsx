@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Input, Button } from "antd";
-import { ChevronRight, Columns3, Plus, Search, FolderGit2, X } from "lucide-react";
+import { ArrowUpRight, ChevronRight, LayoutDashboard, Plus, Search, FolderGit2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
@@ -86,14 +86,19 @@ export function SessionSidebar({
         >
           新建任务
         </Button>
-        <Button
-          block
+        <button
+          type="button"
           className="session-sidebar__taskboard"
-          icon={<Columns3 size={16} />}
           onClick={() => navigate("/taskboard")}
+          aria-label="打开任务看板"
         >
-          任务看板
-        </Button>
+          <span className="session-sidebar__taskboard-icon"><LayoutDashboard size={17} aria-hidden="true" /></span>
+          <span className="session-sidebar__taskboard-copy">
+            <strong>任务看板</strong>
+            <small>规划与推进</small>
+          </span>
+          <ArrowUpRight className="session-sidebar__taskboard-arrow" size={15} aria-hidden="true" />
+        </button>
       </div>
       <div className="session-sidebar__search">
         <Search size={14} className="session-sidebar__search-icon" aria-hidden="true" />
