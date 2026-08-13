@@ -182,9 +182,9 @@ export function SessionSidebar({
         </nav>
       ) : (
         <div className="session-sidebar__empty">
-         <MapleStatusMark />
+          <MapleStatusMark />
           <p>{search ? "没有匹配的任务" : "还没有任务"}</p>
-          <span>{search ? "换个搜索词试试。" : "从一个清晰的目标开始。"}</span>
+          {search ? <span>换个搜索词试试。</span> : null}
         </div>
       )}
     </aside>

@@ -29,6 +29,7 @@
 - [x] 按设计 token 重建任务看板与 /taskboard 路由界面
 - [x] 新建任务改为直接创建空白对话
 - [x] 精简工作台头部并调整离线提示文案
+- [x] 移除侧栏空态补充文案与设置文字
 - [x] yunfeng-cli TUI：新增云朵吉祥物组件（Mascot + 浮动动画 + demo）
 - [x] yunfeng-cli TUI P0：flex 布局、逐行差分、消息滚动、选择器交互、编辑器键位、全屏模式
 - [x] yunfeng-cli TUI P1：Scroll/Overlay/键位扩展/颜色降级/全局快捷键；P2 部分（visibleWidth 统一/测试/dispose）

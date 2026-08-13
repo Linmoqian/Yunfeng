@@ -2691,13 +2691,6 @@
   flex: 0 0 auto;
 }
 
-/* 头部设置按钮 */
-.workbench-header__settings {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 /* 工具卡 loading 旋转 */
 .spin {
   animation: yf-spin 1s linear infinite;

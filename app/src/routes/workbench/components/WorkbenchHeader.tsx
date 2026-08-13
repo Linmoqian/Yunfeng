@@ -42,10 +42,7 @@ export function WorkbenchHeader({
           </Button>
         ) : null}
         <button className="text-button" type="button" onClick={onOpenSettings} aria-label="打开设置">
-          <span className="workbench-header__settings">
-            <Settings size={15} aria-hidden="true" />
-            设置
-          </span>
+          <Settings size={15} aria-hidden="true" />
         </button>
       </div>
     </header>
