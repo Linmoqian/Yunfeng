@@ -95,8 +95,8 @@
 }
 
 .button--primary {
-  background: var(--yf-brand-primary);
-  color: var(--yf-brand-on-primary);
+  background: var(--surface);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
