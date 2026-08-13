@@ -1,29 +1,35 @@
 .backButton {
   position: fixed;
-  z-index: 120;
-  top: 10px;
-  left: 228px;
+  z-index: 130;
+  top: 14px;
+  left: 244px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--yf-radius-sm);
-  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--yf-border-default);
+  border-radius: var(--yf-radius-pill);
+  background: color-mix(in srgb, var(--yf-bg-elevated) 92%, transparent);
   box-shadow: var(--yf-shadow-sm);
-  color: var(--text-secondary);
+  color: var(--yf-text-secondary);
   cursor: pointer;
   font: inherit;
 }
 
 .backButton:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--yf-brand-primary) 45%, var(--yf-border-default));
+  background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-elevated));
+  color: var(--yf-brand-primary);
 }
 
-@media (max-width: 719px) {
+@media (max-width: 840px) {
   .backButton {
+    top: 6px;
     left: 10px;
+  }
+
+  .backButton span {
+    display: none;
   }
 }

@@ -18,7 +18,7 @@ export function TaskboardPage() {
         title="返回 Yunfeng 工作台"
       >
         <ArrowLeft size={16} aria-hidden="true" />
-        <span>工作台</span>
+        <span>返回工作台</span>
       </button>
       <TaskboardApp />
     </div>

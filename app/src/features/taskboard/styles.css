@@ -46,6 +46,62 @@
   --dialog-shadow: var(--yf-shadow-xl);
 }
 
+/* Route-level overrides live outside the taskboard scope so the route root remains addressable. */
+.taskboard-route .app-shell { grid-template-columns: 228px minmax(0, 1fr); background: var(--yf-bg-canvas); }
+.taskboard-route .app-nav { padding: 16px 12px 14px; border-right: 1px solid var(--yf-border-divider); background: var(--yf-bg-secondary); }
+.taskboard-route .brand-row { height: 42px; gap: 10px; padding: 0 10px; color: var(--yf-text-primary); font-size: 15px; font-weight: 650; }
+.taskboard-route .brand-mark { width: 24px; height: 24px; border-radius: var(--yf-radius-sm); background: var(--yf-brand-primary); color: var(--yf-brand-on-primary); }
+.taskboard-route .brand-mark svg { width: 15px; height: 15px; }
+.taskboard-route .primary-nav { margin-top: 28px; gap: 5px; }
+.taskboard-route .nav-label { padding: 0 10px 7px; color: var(--yf-text-tertiary); font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.taskboard-route .nav-item, .taskboard-route .project-nav-item, .taskboard-route .theme-toggle { min-height: 38px; padding: 7px 10px; border-radius: var(--yf-radius-sm); color: var(--yf-text-secondary); font-size: 13px; }
+.taskboard-route .nav-item.active { background: color-mix(in srgb, var(--yf-brand-primary) 10%, var(--yf-bg-elevated)); color: var(--yf-brand-primary); font-weight: 600; }
+.taskboard-route .nav-item:hover, .taskboard-route .theme-toggle:hover { background: color-mix(in srgb, var(--yf-brand-primary) 5%, var(--yf-bg-elevated)); color: var(--yf-text-primary); }
+.taskboard-route .nav-footer { margin: 0 2px; padding: 12px 8px 0; border-top: 1px solid var(--yf-border-divider); }
+.taskboard-route .workspace { background: var(--yf-bg-canvas); }
+.taskboard-route .workspace-header { flex-basis: 64px; height: 64px; padding: 0 24px 0 132px; border-bottom: 1px solid var(--yf-border-divider); background: color-mix(in srgb, var(--yf-bg-elevated) 88%, transparent); backdrop-filter: blur(18px); }
+.taskboard-route .header-project-button { height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--yf-radius-sm); color: var(--yf-text-primary); font-size: 14px; }
+.taskboard-route .header-project-button .project-name { color: var(--yf-text-primary); font-weight: 650; }
+.taskboard-route .header-project-button:hover { border-color: var(--yf-border-divider); background: var(--yf-bg-secondary); }
+.taskboard-route .project-automation-trigger, .taskboard-route .header-create-button { border: 1px solid var(--yf-border-default); background: var(--yf-bg-elevated); color: var(--yf-text-secondary); box-shadow: none; }
+.taskboard-route .project-automation-trigger { height: 34px; padding: 0 12px; border-radius: var(--yf-radius-pill); font-size: 12px; }
+.taskboard-route .header-create-button { width: 34px; height: 34px; border-radius: var(--yf-radius-sm); }
+.taskboard-route .board-toolbar { flex-basis: 60px; height: 60px; padding: 0 24px; border-bottom: 1px solid var(--yf-border-divider); background: var(--yf-bg-elevated); }
+.taskboard-route .view-tabs { height: 38px; gap: 4px; padding: 3px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-pill); background: var(--yf-bg-secondary); }
+.taskboard-route .view-tab, .taskboard-route .view-tab:first-child, .taskboard-route .view-tab:nth-child(2) { width: auto; height: 30px; padding: 0 13px; border: 0; border-radius: var(--yf-radius-pill); color: var(--yf-text-secondary); font-size: 12px; font-weight: 550; }
+.taskboard-route .view-tab:hover { background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-elevated)); color: var(--yf-text-primary); }
+.taskboard-route .view-tab.active, .taskboard-route .view-tab.active:hover { border: 0; background: var(--yf-bg-elevated); box-shadow: var(--yf-shadow-sm); color: var(--yf-brand-primary); font-weight: 650; }
+.taskboard-route .search-field, .taskboard-route .task-filter-trigger, .taskboard-route .other-tasks-trigger { width: 34px; height: 34px; min-width: 34px; border: 1px solid transparent; border-radius: var(--yf-radius-sm); background: transparent; color: var(--yf-text-secondary); }
+.taskboard-route .search-field:focus-within, .taskboard-route .search-field.has-value { width: min(240px, 30vw); border-color: var(--yf-border-default); background: var(--yf-bg-elevated); }
+.taskboard-route .issue-board-layout { padding: 22px 24px 24px; background: var(--yf-bg-canvas); }
+.taskboard-route .board-scroll { max-width: none; padding: 0; background: transparent; }
+.taskboard-route .board { grid-template-columns: repeat(var(--main-column-count, 3), minmax(284px, 1fr)); min-width: 900px; gap: 16px; }
+.taskboard-route .board-column { max-width: none; min-width: 284px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-secondary); }
+.taskboard-route .column-header { height: 44px; min-height: 44px; margin: 0; padding: 0 13px; border-bottom: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg) var(--yf-radius-lg) 0 0; background: transparent; }
+.taskboard-route .board-column:not(:first-child) .column-header::before { display: none; }
+.taskboard-route .column-heading h2 { color: var(--yf-text-primary); font-size: 12px; font-weight: 650; }
+.taskboard-route .board-column.status-todo .column-header, .taskboard-route .board-column.status-in_progress .column-header, .taskboard-route .board-column.status-in_review .column-header, .taskboard-route .board-column.status-blocked .column-header { background: transparent; }
+.taskboard-route .board-column.status-todo .column-header { color: var(--yf-semantic-info); }
+.taskboard-route .board-column.status-in_progress .column-header { color: var(--yf-semantic-warning); }
+.taskboard-route .board-column.status-in_review .column-header { color: var(--yf-semantic-success); }
+.taskboard-route .board-column.status-blocked .column-header { color: var(--yf-semantic-error); }
+.taskboard-route .column-list { gap: 10px; min-height: 0; margin: 0; padding: 12px; border-radius: 0 0 var(--yf-radius-lg) var(--yf-radius-lg); background: transparent; }
+.taskboard-route .column-empty { min-height: 140px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); background: color-mix(in srgb, var(--yf-bg-elevated) 72%, transparent); color: var(--yf-text-tertiary); }
+.taskboard-route .task-card { min-height: 96px; gap: 8px; padding: 13px; border: 1px solid var(--yf-border-default); border-radius: var(--yf-radius-md); background: var(--yf-bg-elevated); box-shadow: var(--yf-shadow-sm); transition: border-color 180ms var(--motion-ease), box-shadow 180ms var(--motion-ease), transform 180ms var(--motion-ease); }
+.taskboard-route .task-card:hover, .taskboard-route .task-card.is-context-open { border-color: color-mix(in srgb, var(--yf-brand-primary) 45%, var(--yf-border-default)); background: var(--yf-bg-elevated); box-shadow: var(--yf-shadow-md); transform: translateY(-1px); }
+.taskboard-route .task-card h3 { color: var(--yf-text-primary); font-size: 13px; font-weight: 600; line-height: 1.5; }
+.taskboard-route .task-identifier, .taskboard-route .card-reference { color: var(--yf-text-tertiary); }
+.taskboard-route .error-banner { margin: 16px 24px 0; border: 1px solid color-mix(in srgb, var(--yf-semantic-error) 42%, var(--yf-border-default)); border-radius: var(--yf-radius-md); background: color-mix(in srgb, var(--yf-semantic-error) 6%, var(--yf-bg-elevated)); color: var(--yf-semantic-error); box-shadow: none; }
+.taskboard-route .error-banner strong { color: var(--yf-text-primary); }
+.taskboard-route .error-banner button { border-radius: var(--yf-radius-sm); color: var(--yf-semantic-error); }
+
+@media (max-width: 840px) {
+  .taskboard-route .app-shell { display: block; }
+  .taskboard-route .workspace-header { height: 54px; padding: 0 16px 0 56px; }
+  .taskboard-route .board-toolbar { height: auto; min-height: 56px; padding: 10px 16px; }
+  .taskboard-route .issue-board-layout { padding: 14px 16px 18px; }
+}
+
 @scope (.taskboard-route) {
 
 * {
@@ -8668,6 +8724,375 @@ kbd {
   }
 }
 
+/* Yunfeng taskboard: token-first application shell and work surface. */
+.taskboard-route {
+  --taskboard-sidebar-width: 228px;
+  background: var(--yf-bg-canvas);
+}
+
+.taskboard-route .app-shell {
+  grid-template-columns: var(--taskboard-sidebar-width) minmax(0, 1fr);
+  background: var(--yf-bg-canvas);
+}
+
+.taskboard-route .app-nav {
+  padding: 16px 12px 14px;
+  border-right: 1px solid var(--yf-border-divider);
+  background: var(--yf-bg-secondary);
+}
+
+.taskboard-route .brand-row {
+  height: 42px;
+  gap: 10px;
+  padding: 0 10px;
+  color: var(--yf-text-primary);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.taskboard-route .brand-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--yf-radius-sm);
+  background: var(--yf-brand-primary);
+  color: var(--yf-brand-on-primary);
+}
+
+.taskboard-route .brand-mark svg {
+  width: 15px;
+  height: 15px;
+}
+
+.taskboard-route .primary-nav {
+  margin-top: 28px;
+  gap: 5px;
+}
+
+.taskboard-route .nav-label {
+  padding: 0 10px 7px;
+  color: var(--yf-text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.taskboard-route .nav-item,
+.taskboard-route .project-nav-item,
+.taskboard-route .theme-toggle {
+  min-height: 38px;
+  padding: 7px 10px;
+  border-radius: var(--yf-radius-sm);
+  color: var(--yf-text-secondary);
+  font-size: 13px;
+}
+
+.taskboard-route .nav-item.active,
+.taskboard-route .project-nav-item.active {
+  background: color-mix(in srgb, var(--yf-brand-primary) 10%, var(--yf-bg-elevated));
+  color: var(--yf-brand-primary);
+  font-weight: 600;
+}
+
+.taskboard-route .nav-item:hover,
+.taskboard-route .project-nav-item:hover,
+.taskboard-route .theme-toggle:hover {
+  background: color-mix(in srgb, var(--yf-brand-primary) 5%, var(--yf-bg-elevated));
+  color: var(--yf-text-primary);
+}
+
+.taskboard-route .nav-glyph,
+.taskboard-route .theme-toggle > span {
+  color: currentcolor;
+}
+
+.taskboard-route .nav-footer {
+  margin: 0 2px;
+  padding: 12px 8px 0;
+  border-top: 1px solid var(--yf-border-divider);
+}
+
+.taskboard-route .connection {
+  color: var(--yf-text-tertiary);
+}
+
+.taskboard-route .workspace {
+  min-width: 0;
+  background: var(--yf-bg-canvas);
+}
+
+.taskboard-route .workspace-header {
+  flex-basis: 64px;
+  height: 64px;
+  padding: 0 24px 0 132px;
+  border-bottom: 1px solid var(--yf-border-divider);
+  background: color-mix(in srgb, var(--yf-bg-elevated) 88%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.taskboard-route .workspace-kicker {
+  gap: 8px;
+}
+
+.taskboard-route .header-project-button {
+  max-width: min(40vw, 420px);
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--yf-radius-sm);
+  color: var(--yf-text-primary);
+  font-size: 14px;
+}
+
+.taskboard-route .header-project-button .project-name {
+  color: var(--yf-text-primary);
+  font-weight: 650;
+}
+
+.taskboard-route .header-project-button:hover,
+.taskboard-route .header-project-button[aria-expanded="true"] {
+  border-color: var(--yf-border-divider);
+  background: var(--yf-bg-secondary);
+}
+
+.taskboard-route .header-actions {
+  gap: 10px;
+}
+
+.taskboard-route .project-automation-trigger,
+.taskboard-route .header-create-button {
+  border: 1px solid var(--yf-border-default);
+  background: var(--yf-bg-elevated);
+  color: var(--yf-text-secondary);
+  box-shadow: none;
+}
+
+.taskboard-route .project-automation-trigger {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--yf-radius-pill);
+  font-size: 12px;
+}
+
+.taskboard-route .header-create-button {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--yf-radius-sm);
+}
+
+.taskboard-route .project-automation-trigger:hover,
+.taskboard-route .header-create-button:hover {
+  border-color: color-mix(in srgb, var(--yf-brand-primary) 44%, var(--yf-border-default));
+  background: color-mix(in srgb, var(--yf-brand-primary) 5%, var(--yf-bg-elevated));
+  color: var(--yf-brand-primary);
+}
+
+.taskboard-route .board-toolbar {
+  flex-basis: 60px;
+  height: 60px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--yf-border-divider);
+  background: var(--yf-bg-elevated);
+}
+
+.taskboard-route .view-tabs {
+  height: 38px;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--yf-border-divider);
+  border-radius: var(--yf-radius-pill);
+  background: var(--yf-bg-secondary);
+}
+
+.taskboard-route .view-tab,
+.taskboard-route .view-tab:first-child,
+.taskboard-route .view-tab:nth-child(2) {
+  height: 30px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: var(--yf-radius-pill);
+  color: var(--yf-text-secondary);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.taskboard-route .view-tab:hover {
+  background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-elevated));
+  color: var(--yf-text-primary);
+}
+
+.taskboard-route .view-tab.active,
+.taskboard-route .view-tab.active:hover {
+  border: 0;
+  background: var(--yf-bg-elevated);
+  box-shadow: var(--yf-shadow-sm);
+  color: var(--yf-brand-primary);
+  font-weight: 650;
+}
+
+.taskboard-route .search-field,
+.taskboard-route .task-filter-trigger,
+.taskboard-route .other-tasks-trigger {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border: 1px solid transparent;
+  border-radius: var(--yf-radius-sm);
+  background: transparent;
+  color: var(--yf-text-secondary);
+}
+
+.taskboard-route .search-field:focus-within,
+.taskboard-route .search-field.has-value {
+  width: min(240px, 30vw);
+  border-color: var(--yf-border-default);
+  background: var(--yf-bg-elevated);
+}
+
+.taskboard-route .issue-board-layout {
+  padding: 22px 24px 24px;
+  background: var(--yf-bg-canvas);
+}
+
+.taskboard-route .board-scroll {
+  max-width: none;
+  padding: 0;
+  background: transparent;
+}
+
+.taskboard-route .board {
+  grid-template-columns: repeat(var(--main-column-count, 3), minmax(284px, 1fr));
+  min-width: 900px;
+  gap: 16px;
+}
+
+.taskboard-route .board-column {
+  max-width: none;
+  min-width: 284px;
+  border: 1px solid var(--yf-border-divider);
+  border-radius: var(--yf-radius-lg);
+  background: var(--yf-bg-secondary);
+}
+
+.taskboard-route .column-header {
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 13px;
+  border-bottom: 1px solid var(--yf-border-divider);
+  border-radius: var(--yf-radius-lg) var(--yf-radius-lg) 0 0;
+  background: transparent;
+}
+
+.taskboard-route .board-column:not(:first-child) .column-header::before {
+  display: none;
+}
+
+.taskboard-route .column-heading h2 {
+  color: var(--yf-text-primary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.taskboard-route .board-column.status-todo .column-header,
+.taskboard-route .board-column.status-in_progress .column-header,
+.taskboard-route .board-column.status-in_review .column-header,
+.taskboard-route .board-column.status-blocked .column-header {
+  background: transparent;
+}
+
+.taskboard-route .board-column.status-todo .column-header { color: var(--yf-semantic-info); }
+.taskboard-route .board-column.status-in_progress .column-header { color: var(--yf-semantic-warning); }
+.taskboard-route .board-column.status-in_review .column-header { color: var(--yf-semantic-success); }
+.taskboard-route .board-column.status-blocked .column-header { color: var(--yf-semantic-error); }
+
+.taskboard-route .column-list {
+  gap: 10px;
+  min-height: 0;
+  margin: 0;
+  padding: 12px;
+  border-radius: 0 0 var(--yf-radius-lg) var(--yf-radius-lg);
+  background: transparent;
+}
+
+.taskboard-route .column-empty {
+  min-height: 140px;
+  border: 1px solid var(--yf-border-divider);
+  border-radius: var(--yf-radius-md);
+  background: color-mix(in srgb, var(--yf-bg-elevated) 72%, transparent);
+  color: var(--yf-text-tertiary);
+}
+
+.taskboard-route .task-card {
+  min-height: 96px;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid var(--yf-border-default);
+  border-radius: var(--yf-radius-md);
+  background: var(--yf-bg-elevated);
+  box-shadow: var(--yf-shadow-sm);
+  transition: border-color 180ms var(--motion-ease), box-shadow 180ms var(--motion-ease), transform 180ms var(--motion-ease);
+}
+
+.taskboard-route .task-card:hover,
+.taskboard-route .task-card.is-context-open {
+  border-color: color-mix(in srgb, var(--yf-brand-primary) 45%, var(--yf-border-default));
+  background: var(--yf-bg-elevated);
+  box-shadow: var(--yf-shadow-md);
+  transform: translateY(-1px);
+}
+
+.taskboard-route .task-card h3,
+.taskboard-route .app-shell.embedded .task-card h3 {
+  color: var(--yf-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.taskboard-route .task-identifier,
+.taskboard-route .card-reference {
+  color: var(--yf-text-tertiary);
+}
+
+.taskboard-route .error-banner {
+  margin: 16px 24px 0;
+  border: 1px solid color-mix(in srgb, var(--yf-semantic-error) 42%, var(--yf-border-default));
+  border-radius: var(--yf-radius-md);
+  background: color-mix(in srgb, var(--yf-semantic-error) 6%, var(--yf-bg-elevated));
+  color: var(--yf-semantic-error);
+  box-shadow: none;
+}
+
+.taskboard-route .error-banner strong {
+  color: var(--yf-text-primary);
+}
+
+.taskboard-route .error-banner button {
+  border-radius: var(--yf-radius-sm);
+  color: var(--yf-semantic-error);
+}
+
+@media (max-width: 840px) {
+  .taskboard-route .app-shell {
+    display: block;
+  }
+
+  .taskboard-route .workspace-header {
+    height: 54px;
+    padding: 0 16px 0 56px;
+  }
+
+  .taskboard-route .board-toolbar {
+    height: auto;
+    min-height: 56px;
+    padding: 10px 16px;
+  }
+
+  .taskboard-route .issue-board-layout {
+    padding: 14px 16px 18px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -11747,6 +12172,63 @@ kbd {
   .dashboard-metrics { grid-template-columns: minmax(0, 1fr); }
   .dashboard-metric { border-left: 0; border-top: var(--border-hairline) solid var(--border); }
   .dashboard-metric:first-child { border-top: 0; }
+}
+
+/* Keep the Yunfeng surface authoritative after imported taskboard presentation rules. */
+.taskboard-route .app-shell { grid-template-columns: 228px minmax(0, 1fr); background: var(--yf-bg-canvas); }
+.taskboard-route .app-nav { padding: 16px 12px 14px; border-right: 1px solid var(--yf-border-divider); background: var(--yf-bg-secondary); }
+.taskboard-route .brand-row { height: 42px; gap: 10px; padding: 0 10px; color: var(--yf-text-primary); font-size: 15px; font-weight: 650; }
+.taskboard-route .brand-mark { width: 24px; height: 24px; border-radius: var(--yf-radius-sm); background: var(--yf-brand-primary); color: var(--yf-brand-on-primary); }
+.taskboard-route .brand-mark svg { width: 15px; height: 15px; }
+.taskboard-route .primary-nav { margin-top: 28px; gap: 5px; }
+.taskboard-route .nav-label { padding: 0 10px 7px; color: var(--yf-text-tertiary); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
+.taskboard-route .nav-item, .taskboard-route .project-nav-item, .taskboard-route .theme-toggle { min-height: 38px; padding: 7px 10px; border-radius: var(--yf-radius-sm); color: var(--yf-text-secondary); font-size: 13px; }
+.taskboard-route .nav-item.active, .taskboard-route .project-nav-item.active { background: color-mix(in srgb, var(--yf-brand-primary) 10%, var(--yf-bg-elevated)); color: var(--yf-brand-primary); font-weight: 600; }
+.taskboard-route .nav-item:hover, .taskboard-route .project-nav-item:hover, .taskboard-route .theme-toggle:hover { background: color-mix(in srgb, var(--yf-brand-primary) 5%, var(--yf-bg-elevated)); color: var(--yf-text-primary); }
+.taskboard-route .nav-footer { margin: 0 2px; padding: 12px 8px 0; border-top: 1px solid var(--yf-border-divider); }
+.taskboard-route .workspace { background: var(--yf-bg-canvas); }
+.taskboard-route .workspace-header { flex-basis: 64px; height: 64px; padding: 0 24px 0 132px; border-bottom: 1px solid var(--yf-border-divider); background: color-mix(in srgb, var(--yf-bg-elevated) 88%, transparent); backdrop-filter: blur(18px); }
+.taskboard-route .header-project-button { max-width: min(40vw, 420px); height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--yf-radius-sm); color: var(--yf-text-primary); font-size: 14px; }
+.taskboard-route .header-project-button .project-name { color: var(--yf-text-primary); font-weight: 650; }
+.taskboard-route .header-project-button:hover, .taskboard-route .header-project-button[aria-expanded="true"] { border-color: var(--yf-border-divider); background: var(--yf-bg-secondary); }
+.taskboard-route .project-automation-trigger, .taskboard-route .header-create-button { border: 1px solid var(--yf-border-default); background: var(--yf-bg-elevated); color: var(--yf-text-secondary); box-shadow: none; }
+.taskboard-route .project-automation-trigger { height: 34px; padding: 0 12px; border-radius: var(--yf-radius-pill); font-size: 12px; }
+.taskboard-route .header-create-button { width: 34px; height: 34px; border-radius: var(--yf-radius-sm); }
+.taskboard-route .project-automation-trigger:hover, .taskboard-route .header-create-button:hover { border-color: color-mix(in srgb, var(--yf-brand-primary) 44%, var(--yf-border-default)); background: color-mix(in srgb, var(--yf-brand-primary) 5%, var(--yf-bg-elevated)); color: var(--yf-brand-primary); }
+.taskboard-route .board-toolbar { flex-basis: 60px; height: 60px; padding: 0 24px; border-bottom: 1px solid var(--yf-border-divider); background: var(--yf-bg-elevated); }
+.taskboard-route .view-tabs { height: 38px; gap: 4px; padding: 3px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-pill); background: var(--yf-bg-secondary); }
+.taskboard-route .view-tab, .taskboard-route .view-tab:first-child, .taskboard-route .view-tab:nth-child(2) { height: 30px; padding: 0 13px; border: 0; border-radius: var(--yf-radius-pill); color: var(--yf-text-secondary); font-size: 12px; font-weight: 550; }
+.taskboard-route .view-tab:hover { background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-elevated)); color: var(--yf-text-primary); }
+.taskboard-route .view-tab.active, .taskboard-route .view-tab.active:hover { border: 0; background: var(--yf-bg-elevated); box-shadow: var(--yf-shadow-sm); color: var(--yf-brand-primary); font-weight: 650; }
+.taskboard-route .search-field, .taskboard-route .task-filter-trigger, .taskboard-route .other-tasks-trigger { width: 34px; height: 34px; min-width: 34px; border: 1px solid transparent; border-radius: var(--yf-radius-sm); background: transparent; color: var(--yf-text-secondary); }
+.taskboard-route .search-field:focus-within, .taskboard-route .search-field.has-value { width: min(240px, 30vw); border-color: var(--yf-border-default); background: var(--yf-bg-elevated); }
+.taskboard-route .issue-board-layout { padding: 22px 24px 24px; background: var(--yf-bg-canvas); }
+.taskboard-route .board-scroll { max-width: none; padding: 0; background: transparent; }
+.taskboard-route .board { grid-template-columns: repeat(var(--main-column-count, 3), minmax(284px, 1fr)); min-width: 900px; gap: 16px; }
+.taskboard-route .board-column { max-width: none; min-width: 284px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-secondary); }
+.taskboard-route .column-header { height: 44px; min-height: 44px; margin: 0; padding: 0 13px; border-bottom: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg) var(--yf-radius-lg) 0 0; background: transparent; }
+.taskboard-route .board-column:not(:first-child) .column-header::before { display: none; }
+.taskboard-route .column-heading h2 { color: var(--yf-text-primary); font-size: 12px; font-weight: 650; }
+.taskboard-route .board-column.status-todo .column-header, .taskboard-route .board-column.status-in_progress .column-header, .taskboard-route .board-column.status-in_review .column-header, .taskboard-route .board-column.status-blocked .column-header { background: transparent; }
+.taskboard-route .board-column.status-todo .column-header { color: var(--yf-semantic-info); }
+.taskboard-route .board-column.status-in_progress .column-header { color: var(--yf-semantic-warning); }
+.taskboard-route .board-column.status-in_review .column-header { color: var(--yf-semantic-success); }
+.taskboard-route .board-column.status-blocked .column-header { color: var(--yf-semantic-error); }
+.taskboard-route .column-list { gap: 10px; min-height: 0; margin: 0; padding: 12px; border-radius: 0 0 var(--yf-radius-lg) var(--yf-radius-lg); background: transparent; }
+.taskboard-route .column-empty { min-height: 140px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); background: color-mix(in srgb, var(--yf-bg-elevated) 72%, transparent); color: var(--yf-text-tertiary); }
+.taskboard-route .task-card { min-height: 96px; gap: 8px; padding: 13px; border: 1px solid var(--yf-border-default); border-radius: var(--yf-radius-md); background: var(--yf-bg-elevated); box-shadow: var(--yf-shadow-sm); transition: border-color 180ms var(--motion-ease), box-shadow 180ms var(--motion-ease), transform 180ms var(--motion-ease); }
+.taskboard-route .task-card:hover, .taskboard-route .task-card.is-context-open { border-color: color-mix(in srgb, var(--yf-brand-primary) 45%, var(--yf-border-default)); background: var(--yf-bg-elevated); box-shadow: var(--yf-shadow-md); transform: translateY(-1px); }
+.taskboard-route .task-card h3, .taskboard-route .app-shell.embedded .task-card h3 { color: var(--yf-text-primary); font-size: 13px; font-weight: 600; line-height: 1.5; }
+.taskboard-route .task-identifier, .taskboard-route .card-reference { color: var(--yf-text-tertiary); }
+.taskboard-route .error-banner { margin: 16px 24px 0; border: 1px solid color-mix(in srgb, var(--yf-semantic-error) 42%, var(--yf-border-default)); border-radius: var(--yf-radius-md); background: color-mix(in srgb, var(--yf-semantic-error) 6%, var(--yf-bg-elevated)); color: var(--yf-semantic-error); box-shadow: none; }
+.taskboard-route .error-banner strong { color: var(--yf-text-primary); }
+.taskboard-route .error-banner button { border-radius: var(--yf-radius-sm); color: var(--yf-semantic-error); }
+
+@media (max-width: 840px) {
+  .taskboard-route .app-shell { display: block; }
+  .taskboard-route .workspace-header { height: 54px; padding: 0 16px 0 56px; }
+  .taskboard-route .board-toolbar { height: auto; min-height: 56px; padding: 10px 16px; }
+  .taskboard-route .issue-board-layout { padding: 14px 16px 18px; }
 }
 
 }

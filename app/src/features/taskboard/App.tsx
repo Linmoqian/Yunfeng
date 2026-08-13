@@ -2093,7 +2093,7 @@ export function App() {
     }
   }
 
-  const headerProjectName = selectedProject?.name ?? "任务面板";
+  const headerProjectName = selectedProject?.name ?? "任务看板";
   const appShellStyle = embedded
     ? { "--codex-titlebar-left-inset": `${hostContext?.titlebarLeftInset ?? 0}px` } as CSSProperties
     : undefined;
@@ -2116,7 +2116,7 @@ export function App() {
         <aside className="app-nav" aria-label="Taskboard navigation">
           <div className="brand-row">
             <span className="brand-mark" aria-hidden="true"><LinearIcon name="project" /></span>
-            <span>任务面板</span>
+            <span>任务看板</span>
           </div>
 
           <nav className="primary-nav" aria-label="Views">
@@ -2268,7 +2268,7 @@ export function App() {
               aria-pressed={boardView === "dashboard"}
               onClick={() => selectBoardView("dashboard")}
             >
-              Dashboard
+              概览
             </button>
             <button
               className={`view-tab${boardView === "issues" ? " active" : ""}`}
@@ -2276,7 +2276,7 @@ export function App() {
               aria-pressed={boardView === "issues"}
               onClick={() => selectBoardView("issues")}
             >
-              议题看板
+              看板
             </button>
             <button
               className={`view-tab${boardView === "list" ? " active" : ""}`}
@@ -2284,7 +2284,7 @@ export function App() {
               aria-pressed={boardView === "list"}
               onClick={() => selectBoardView("list")}
             >
-              列表视图
+              列表
             </button>
             <button
               className={`view-tab${boardView === "gantt" ? " active" : ""}`}
