@@ -88,7 +88,6 @@ export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, m
         const commandType = running ? mode : "prompt";
         await sendTaskCommand(activeTask.id, { type: commandType, message: next });
         setMessageStatus(optimisticId, "sent");
-        message.success(running ? `已 ${commandType === "steer" ? "作为转向指令影响当前运行" : "排入下一轮"}。` : "已发送，正在等待 Agent 回复。");
       }
     } catch (error) {
       setMessageStatus(optimisticId, "failed");
@@ -106,7 +105,6 @@ export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, m
       const commandType = running ? "steer" : "prompt";
       await sendTaskCommand(activeTask.id, { type: commandType, message: text });
       setMessageStatus(itemId, "sent");
-      message.success("已重新发送。");
     } catch (error) {
       setMessageStatus(itemId, "failed");
       message.error(error instanceof Error ? error.message : "重新发送失败。");

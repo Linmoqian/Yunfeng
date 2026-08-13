@@ -3644,6 +3644,24 @@
   display: none;
 }
 
+.conversation-message__delivery {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.conversation-message__delivery .message-dot {
+  margin-left: 0;
+}
+
+.conversation-message__delivery--failed {
+  color: var(--attention);
+}
+
 .conversation-message--user .conversation-message__actions {
   justify-content: flex-end;
 }

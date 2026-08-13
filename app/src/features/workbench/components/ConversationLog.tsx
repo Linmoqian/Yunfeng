@@ -223,7 +223,6 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
           <span className="conversation-message__role">
             <RoleIcon role={item.role} />
             <span className="conversation-message__role-label">{ROLE_LABEL[item.role]}</span>
-            {item.status ? <span className={`message-dot message-dot--${item.status}`} aria-label={item.status === "failed" ? "发送失败" : item.status === "sending" ? "发送中" : "已发送"} /> : null}
           </span>
           <div className="conversation-message__content">
             {showThinking && item.thinking ? (
@@ -233,6 +232,12 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
               </div>
             ) : null}
             {item.text ? <ConversationMarkdown text={item.text} /> : null}
+            {item.role === "user" && item.status ? (
+              <span className={`conversation-message__delivery conversation-message__delivery--${item.status}`}>
+                <span className={`message-dot message-dot--${item.status}`} aria-hidden="true" />
+                {item.status === "failed" ? "发送失败" : item.status === "sending" ? "发送中" : "已发送"}
+              </span>
+            ) : null}
           </div>
           <div className="conversation-message__actions">
             <button type="button" className="text-button" onClick={() => onCopy(item.text)}>
