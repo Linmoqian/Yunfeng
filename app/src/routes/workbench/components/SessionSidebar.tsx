@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { Input, Button } from "antd";
-import { ArrowUpRight, ChevronRight, Cloud, LayoutDashboard, Plus, Search, X } from "lucide-react";
+import { ArrowUpRight, ChevronRight, LayoutDashboard, Plus, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import yuncongCloud from "../../../assets/generated/yuncong-cloud.png";
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 import { TaskRow } from "../../../features/workbench/TaskRow";
 import type { TaskSectionGroup, TaskSummary } from "../../../features/workbench/taskPresentation";
@@ -154,7 +155,7 @@ export function SessionSidebar({
                           ? "session-sidebar__legacy-chevron session-sidebar__legacy-chevron--open"
                           : "session-sidebar__legacy-chevron"}
                       />
-                      <Cloud size={13} aria-hidden="true" />
+                      <img className="session-sidebar__legacy-project-cloud" src={yuncongCloud} alt="" />
                       <span className="session-sidebar__legacy-project-name">{project}</span>
                       <span className="session-sidebar__legacy-project-count">{tasks.length}</span>
                     </button>

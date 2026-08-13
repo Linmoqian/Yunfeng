@@ -1768,6 +1768,13 @@
   transform: rotate(90deg);
 }
 
+.session-sidebar__legacy-project-cloud {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
 .session-sidebar__legacy-project-name {
   flex: 1;
   overflow: hidden;
