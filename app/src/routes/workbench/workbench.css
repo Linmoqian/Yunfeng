@@ -1,7 +1,7 @@
 .app-shell {
   min-height: 100vh;
-  background: var(--canvas);
-  color: var(--text-primary);
+  background: var(--yf-bg-canvas);
+  color: var(--yf-text-primary);
 }
 
 .workbench-header,
@@ -65,15 +65,15 @@
 }
 
 .connection-state--connected .connection-state__dot {
-  background: var(--positive);
+  background: var(--yf-semantic-success);
 }
 
 .connection-state--connecting .connection-state__dot {
-  background: var(--accent);
+  background: var(--yf-semantic-info);
 }
 
 .connection-state--offline .connection-state__dot {
-  background: var(--attention);
+  background: var(--yf-semantic-error);
 }
 
 .button,
@@ -86,7 +86,7 @@
 .button {
   min-height: 40px;
   padding: 0 18px;
-  border-radius: 10px;
+  border-radius: var(--yf-radius-sm);
   transition: background 180ms var(--motion-ease), color 180ms var(--motion-ease), transform 180ms var(--motion-ease);
 }
 
@@ -95,13 +95,13 @@
 }
 
 .button--primary {
-  background: var(--accent);
-  color: var(--surface);
+  background: var(--yf-brand-primary);
+  color: var(--yf-brand-on-primary);
   font-weight: 600;
 }
 
 .button--primary:hover:not(:disabled) {
-  background: var(--attention);
+  background: var(--yf-brand-hover);
 }
 
 .button--quiet {
@@ -192,8 +192,8 @@
   margin-top: 32px;
   padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--attention) 38%, var(--border-subtle));
-  border-radius: 10px;
-  color: var(--attention);
+  border-radius: var(--yf-radius-md);
+  color: var(--yf-semantic-error);
   font-size: 13px;
 }
 
@@ -250,7 +250,7 @@
   min-height: 88px;
   overflow: hidden;
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--yf-radius-md);
   background: transparent;
   transition: border-color 180ms var(--motion-ease), background 180ms var(--motion-ease), box-shadow 240ms var(--motion-ease), transform 240ms var(--motion-ease);
 }
@@ -362,7 +362,7 @@
   margin: 0 16px 0 0;
   padding: 8px 12px;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: var(--yf-radius-sm);
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
@@ -421,7 +421,7 @@
   margin: 96px auto 0;
   padding: 72px 32px;
   border: 1px dashed var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--yf-radius-lg);
   text-align: center;
 }
 
@@ -459,7 +459,7 @@
   padding: 0;
   border: 0;
   border-left: 1px solid var(--border-subtle);
-  box-shadow: -20px 0 50px rgb(0 0 0 / 10%);
+  box-shadow: var(--yf-shadow-xl);
 }
 
 .focus-panel::backdrop,
@@ -766,7 +766,7 @@
   min-width: min(76%, 650px);
   max-width: 100%;
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  border-radius: var(--yf-radius-sm);
 }
 
 .tool-card--running {
@@ -1294,8 +1294,8 @@
   max-width: none;
   padding: 0;
   border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  box-shadow: var(--shadow-attention);
+  border-radius: var(--yf-radius-xl);
+  box-shadow: var(--yf-shadow-xl);
 }
 
 .new-task-dialog__form {
@@ -1332,8 +1332,8 @@
   max-width: none;
   padding: 0;
   border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  box-shadow: var(--shadow-attention);
+  border-radius: var(--yf-radius-xl);
+  box-shadow: var(--yf-shadow-xl);
 }
 
 .settings-dialog__body {
@@ -3433,7 +3433,7 @@
   margin: 1px 0 0;
   place-content: center;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: var(--yf-radius-sm);
   background: var(--surface);
 }
 
@@ -3452,7 +3452,7 @@
   max-width: min(78%, 620px);
   padding: 11px 16px;
   border: 0;
-  border-radius: 18px;
+  border-radius: var(--yf-radius-lg);
   background: color-mix(in srgb, var(--accent) 11%, var(--surface));
 }
 
@@ -3490,9 +3490,9 @@
   margin: 0 auto;
   padding: 0 0 14px;
   border: 1px solid var(--border-subtle);
-  border-radius: 22px;
+  border-radius: var(--yf-radius-xl);
   background: var(--surface);
-  box-shadow: 0 12px 34px rgb(0 0 0 / 14%);
+  box-shadow: var(--yf-shadow-lg);
 }
 
 .focus-panel__composer textarea {
@@ -3500,7 +3500,7 @@
   padding: 14px 16px 8px;
   resize: none;
   border: 0 !important;
-  border-radius: 22px;
+  border-radius: var(--yf-radius-xl);
   background: transparent !important;
   box-shadow: none !important;
   font-size: 15px;
@@ -3545,9 +3545,9 @@
   max-height: calc(100dvh - 96px);
   overflow: hidden auto;
   border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
-  border-radius: 18px;
+  border-radius: var(--yf-radius-lg);
   background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
-  box-shadow: 0 18px 48px rgb(0 0 0 / 14%);
+  box-shadow: var(--yf-shadow-lg);
   scrollbar-width: none;
 }
 

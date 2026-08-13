@@ -1,0 +1,121 @@
+/* ============================================================
+ * 云枫 Yunfeng Design Tokens
+ * 颜色 / 圆角 / 阴影 · 支持明暗双主题
+ *
+ * 主题切换：
+ *   <html data-theme="light">  强制浅色
+ *   <html data-theme="dark">   强制深色
+ *   不设置 data-theme 时，自动跟随系统 prefers-color-scheme
+ * ========================================================== */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* ---- Brand 品牌色 ---- */
+  --yf-brand-primary: #0066CC;
+  --yf-brand-hover: #0071E3;
+  --yf-brand-on-primary: #FFFFFF;
+
+  /* ---- Background 背景 ---- */
+  --yf-bg-canvas: #FFFFFF;    /* 画布底色 */
+  --yf-bg-secondary: #F5F5F7; /* 次级背景 */
+  --yf-bg-surface: #FAFAFC;   /* 卡片表面 */
+  --yf-bg-elevated: #FFFFFF;  /* 浮层表面 */
+
+  /* ---- Text 文本 ---- */
+  --yf-text-primary: #1D1D1F;
+  --yf-text-secondary: #6E6E73;
+  --yf-text-tertiary: #86868B;
+
+  /* ---- Border 边框 ---- */
+  --yf-border-default: #D2D2D7;
+  --yf-border-divider: #F0F0F0;
+
+  /* ---- Semantic 语义色 ---- */
+  --yf-semantic-success: #34C759;
+  --yf-semantic-warning: #FF9500;
+  --yf-semantic-error: #FF3B30;
+  --yf-semantic-info: #0066CC;
+
+  /* ---- Shadow 阴影（颜色 12% 黑） ---- */
+  --yf-shadow-color: rgb(0 0 0 / 12%);
+  --yf-shadow-sm: 0 1px 3px 0 var(--yf-shadow-color);
+  --yf-shadow-md: 0 4px 12px -2px var(--yf-shadow-color);
+  --yf-shadow-lg: 0 12px 32px -4px var(--yf-shadow-color);
+  --yf-shadow-xl: 0 24px 64px -8px var(--yf-shadow-color);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ---- Brand 品牌色 ---- */
+  --yf-brand-primary: #2997FF;
+  --yf-brand-hover: #4DA3FF;
+  --yf-brand-on-primary: #FFFFFF;
+
+  /* ---- Background 背景 ---- */
+  --yf-bg-canvas: #000000;
+  --yf-bg-secondary: #1C1C1E;
+  --yf-bg-surface: #2C2C2E;
+  --yf-bg-elevated: #333336;
+
+  /* ---- Text 文本 ---- */
+  --yf-text-primary: #F5F5F7;
+  --yf-text-secondary: #98989D;
+  --yf-text-tertiary: #636366;
+
+  /* ---- Border 边框 ---- */
+  --yf-border-default: #3A3A3C;
+  --yf-border-divider: #2C2C2E;
+
+  /* ---- Semantic 语义色 ---- */
+  --yf-semantic-success: #30D158;
+  --yf-semantic-warning: #FF9F0A;
+  --yf-semantic-error: #FF453A;
+  --yf-semantic-info: #2997FF;
+
+  /* ---- Shadow 阴影（颜色 50% 黑） ---- */
+  --yf-shadow-color: rgb(0 0 0 / 50%);
+}
+
+/* 未显式设置 data-theme 时跟随系统 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --yf-brand-primary: #2997FF;
+    --yf-brand-hover: #4DA3FF;
+    --yf-brand-on-primary: #FFFFFF;
+
+    --yf-bg-canvas: #000000;
+    --yf-bg-secondary: #1C1C1E;
+    --yf-bg-surface: #2C2C2E;
+    --yf-bg-elevated: #333336;
+
+    --yf-text-primary: #F5F5F7;
+    --yf-text-secondary: #98989D;
+    --yf-text-tertiary: #636366;
+
+    --yf-border-default: #3A3A3C;
+    --yf-border-divider: #2C2C2E;
+
+    --yf-semantic-success: #30D158;
+    --yf-semantic-warning: #FF9F0A;
+    --yf-semantic-error: #FF453A;
+    --yf-semantic-info: #2997FF;
+
+    --yf-shadow-color: rgb(0 0 0 / 50%);
+  }
+}
+
+/* ---- Radius 圆角（主题无关） ---- */
+:root {
+  --yf-radius-none: 0;
+  --yf-radius-xs: 5px;   /* 标签 / 徽章 */
+  --yf-radius-sm: 8px;   /* 按钮 / 输入框 */
+  --yf-radius-md: 11px;  /* 卡片 / 列表项 */
+  --yf-radius-lg: 18px;  /* 面板 / 弹层 */
+  --yf-radius-xl: 24px;  /* 模态窗口 */
+  --yf-radius-pill: 9999px; /* 胶囊按钮 / 头像 */
+}

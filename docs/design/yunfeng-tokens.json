@@ -1,0 +1,63 @@
+{
+  "$description": "云枫 Yunfeng Design Tokens — 颜色 / 圆角 / 阴影，支持 Light / Dark 双主题。可作为 Style Dictionary 等构建链的源数据。",
+  "color": {
+    "brand": {
+      "primary": { "$type": "color", "$value": { "light": "#0066CC", "dark": "#2997FF" } },
+      "hover": { "$type": "color", "$value": { "light": "#0071E3", "dark": "#4DA3FF" } },
+      "on-primary": { "$type": "color", "$value": { "light": "#FFFFFF", "dark": "#FFFFFF" } }
+    },
+    "bg": {
+      "canvas": { "$type": "color", "$value": { "light": "#FFFFFF", "dark": "#000000" }, "$comment": "画布底色" },
+      "secondary": { "$type": "color", "$value": { "light": "#F5F5F7", "dark": "#1C1C1E" }, "$comment": "次级背景" },
+      "surface": { "$type": "color", "$value": { "light": "#FAFAFC", "dark": "#2C2C2E" }, "$comment": "卡片表面" },
+      "elevated": { "$type": "color", "$value": { "light": "#FFFFFF", "dark": "#333336" }, "$comment": "浮层表面" }
+    },
+    "text": {
+      "primary": { "$type": "color", "$value": { "light": "#1D1D1F", "dark": "#F5F5F7" } },
+      "secondary": { "$type": "color", "$value": { "light": "#6E6E73", "dark": "#98989D" } },
+      "tertiary": { "$type": "color", "$value": { "light": "#86868B", "dark": "#636366" } }
+    },
+    "border": {
+      "default": { "$type": "color", "$value": { "light": "#D2D2D7", "dark": "#3A3A3C" } },
+      "divider": { "$type": "color", "$value": { "light": "#F0F0F0", "dark": "#2C2C2E" } }
+    },
+    "semantic": {
+      "success": { "$type": "color", "$value": { "light": "#34C759", "dark": "#30D158" } },
+      "warning": { "$type": "color", "$value": { "light": "#FF9500", "dark": "#FF9F0A" } },
+      "error": { "$type": "color", "$value": { "light": "#FF3B30", "dark": "#FF453A" } },
+      "info": { "$type": "color", "$value": { "light": "#0066CC", "dark": "#2997FF" } }
+    }
+  },
+  "radius": {
+    "none": { "$type": "dimension", "$value": "0px", "$comment": "数据表格 / 容器" },
+    "xs": { "$type": "dimension", "$value": "5px", "$comment": "标签 / 徽章" },
+    "sm": { "$type": "dimension", "$value": "8px", "$comment": "按钮 / 输入框" },
+    "md": { "$type": "dimension", "$value": "11px", "$comment": "卡片 / 列表项" },
+    "lg": { "$type": "dimension", "$value": "18px", "$comment": "面板 / 弹层" },
+    "xl": { "$type": "dimension", "$value": "24px", "$comment": "模态窗口" },
+    "pill": { "$type": "dimension", "$value": "9999px", "$comment": "胶囊按钮 / 头像" }
+  },
+  "shadow": {
+    "color": { "$type": "color", "$value": { "light": "rgba(0, 0, 0, 0.12)", "dark": "rgba(0, 0, 0, 0.5)" } },
+    "sm": {
+      "$type": "shadow",
+      "$value": { "offsetX": "0px", "offsetY": "1px", "blur": "3px", "spread": "0px", "color": "{shadow.color}" },
+      "$comment": "按钮悬停"
+    },
+    "md": {
+      "$type": "shadow",
+      "$value": { "offsetX": "0px", "offsetY": "4px", "blur": "12px", "spread": "-2px", "color": "{shadow.color}" },
+      "$comment": "卡片 / 列表"
+    },
+    "lg": {
+      "$type": "shadow",
+      "$value": { "offsetX": "0px", "offsetY": "12px", "blur": "32px", "spread": "-4px", "color": "{shadow.color}" },
+      "$comment": "下拉 / 弹层"
+    },
+    "xl": {
+      "$type": "shadow",
+      "$value": { "offsetX": "0px", "offsetY": "24px", "blur": "64px", "spread": "-8px", "color": "{shadow.color}" },
+      "$comment": "模态窗口"
+    }
+  }
+}

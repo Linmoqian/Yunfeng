@@ -1,4 +1,4 @@
-// Ant Design 主题令牌：与 tokens.css 的 CSS 变量同源（暖色丝缎系）。
+// Ant Design 主题令牌：与 tokens.css 的 Yunfeng Design Token 同源。
 // 定义在 src-tauri-less 的 CSS 变量由 global.css 导入，ConfigProvider 通过
 // algorithm + token 映射这些语义，保持 Ant 组件与手写样式视觉一致。
 
@@ -30,61 +30,62 @@ export function useThemeMode(): ThemeContextValue {
   return useContext(ThemeContext);
 }
 
-/** 生成 Ant Design 主题配置。明暗由 algorithm 切换，token 映射暖色丝缎系语义。 */
+/** 生成 Ant Design 主题配置。明暗由 algorithm 切换，token 映射 Yunfeng 语义。 */
 export function buildAntdTheme(isDark: boolean, baseToken: Record<string, string | undefined>): ThemeConfig {
-  const canvas = baseToken["--canvas"] ?? (isDark ? "#171a18" : "#f2f3ef");
-  const surface = baseToken["--surface"] ?? (isDark ? "#20231f" : "#fbfaf6");
-  const raised = baseToken["--surface-raised"] ?? (isDark ? "#292c27" : "#fffdf9");
-  const textPrimary = baseToken["--text-primary"] ?? (isDark ? "#f2efe7" : "#292720");
-  const textSecondary = baseToken["--text-secondary"] ?? (isDark ? "#b8b6ac" : "#67675f");
-  const borderSubtle = baseToken["--border-subtle"] ?? (isDark ? "#3a3e37" : "#dad8cf");
-  const borderStrong = baseToken["--border-strong"] ?? (isDark ? "#53584e" : "#b9b4a7");
-  const accent = baseToken["--accent"] ?? (isDark ? "#d39366" : "#a35f3b");
-  const attention = baseToken["--attention"] ?? (isDark ? "#e07a6e" : "#8b3e35");
-  const positive = baseToken["--positive"] ?? (isDark ? "#86ad8e" : "#55705a");
+  const canvas = baseToken["--yf-bg-canvas"] ?? (isDark ? "#000000" : "#ffffff");
+  const surface = baseToken["--yf-bg-surface"] ?? (isDark ? "#2c2c2e" : "#fafafc");
+  const raised = baseToken["--yf-bg-elevated"] ?? (isDark ? "#333336" : "#ffffff");
+  const textPrimary = baseToken["--yf-text-primary"] ?? (isDark ? "#f5f5f7" : "#1d1d1f");
+  const textSecondary = baseToken["--yf-text-secondary"] ?? (isDark ? "#98989d" : "#6e6e73");
+  const borderDivider = baseToken["--yf-border-divider"] ?? (isDark ? "#2c2c2e" : "#f0f0f0");
+  const borderDefault = baseToken["--yf-border-default"] ?? (isDark ? "#3a3a3c" : "#d2d2d7");
+  const brand = baseToken["--yf-brand-primary"] ?? (isDark ? "#2997ff" : "#0066cc");
+  const error = baseToken["--yf-semantic-error"] ?? (isDark ? "#ff453a" : "#ff3b30");
+  const success = baseToken["--yf-semantic-success"] ?? (isDark ? "#30d158" : "#34c759");
+  const warning = baseToken["--yf-semantic-warning"] ?? (isDark ? "#ff9f0a" : "#ff9500");
 
   return {
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: {
-      colorPrimary: accent,
-      colorInfo: accent,
-      colorSuccess: positive,
-      colorError: attention,
-      colorWarning: "#d97706",
+      colorPrimary: brand,
+      colorInfo: brand,
+      colorSuccess: success,
+      colorError: error,
+      colorWarning: warning,
       colorBgLayout: canvas,
       colorBgContainer: surface,
       colorBgElevated: raised,
       colorTextBase: textPrimary,
       colorText: textPrimary,
       colorTextSecondary: textSecondary,
-      colorBorder: borderStrong,
-      colorBorderSecondary: borderSubtle,
-      borderRadius: 10,
+      colorBorder: borderDefault,
+      colorBorderSecondary: borderDivider,
+      borderRadius: 8,
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif',
       controlHeight: 36,
     },
     components: {
       Button: {
         controlHeight: 40,
-        borderRadius: 10,
+        borderRadius: 8,
       },
       Input: {
         controlHeight: 40,
-        borderRadius: 10,
+        borderRadius: 8,
       },
       Select: {
         controlHeight: 36,
         borderRadius: 8,
       },
       Modal: {
-        borderRadiusLG: 14,
+        borderRadiusLG: 24,
       },
       Segmented: {
         borderRadius: 8,
         controlHeight: 32,
       },
       Tag: {
-        borderRadiusSM: 6,
+        borderRadiusSM: 5,
       },
     },
   };
@@ -128,16 +129,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const computed = getComputedStyle(document.documentElement);
     const read = (name: string): string => computed.getPropertyValue(name).trim();
     return {
-      "--canvas": read("--canvas") || undefined,
-      "--surface": read("--surface") || undefined,
-      "--surface-raised": read("--surface-raised") || undefined,
-      "--text-primary": read("--text-primary") || undefined,
-      "--text-secondary": read("--text-secondary") || undefined,
-      "--border-subtle": read("--border-subtle") || undefined,
-      "--border-strong": read("--border-strong") || undefined,
-      "--accent": read("--accent") || undefined,
-      "--attention": read("--attention") || undefined,
-      "--positive": read("--positive") || undefined,
+      "--yf-bg-canvas": read("--yf-bg-canvas") || undefined,
+      "--yf-bg-surface": read("--yf-bg-surface") || undefined,
+      "--yf-bg-elevated": read("--yf-bg-elevated") || undefined,
+      "--yf-text-primary": read("--yf-text-primary") || undefined,
+      "--yf-text-secondary": read("--yf-text-secondary") || undefined,
+      "--yf-border-divider": read("--yf-border-divider") || undefined,
+      "--yf-border-default": read("--yf-border-default") || undefined,
+      "--yf-brand-primary": read("--yf-brand-primary") || undefined,
+      "--yf-semantic-error": read("--yf-semantic-error") || undefined,
+      "--yf-semantic-success": read("--yf-semantic-success") || undefined,
+      "--yf-semantic-warning": read("--yf-semantic-warning") || undefined,
     };
   }, [resolvedMode]);
 

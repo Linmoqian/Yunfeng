@@ -7,8 +7,8 @@
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  background: var(--canvas);
-  color: var(--text-primary);
+  background: var(--yf-bg-canvas);
+  color: var(--yf-text-primary);
 }
 
 * {
@@ -18,14 +18,14 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: var(--canvas);
+  background: var(--yf-bg-canvas);
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: var(--canvas);
+  background: var(--yf-bg-canvas);
 }
 
 button,

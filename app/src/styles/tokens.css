@@ -1,56 +1,97 @@
-:root {
+:root,
+:root[data-theme="light"] {
   color-scheme: light;
-  --canvas: #f2f3ef;
-  --surface: #fbfaf6;
-  --surface-raised: #fffdf9;
-  --text-primary: #292720;
-  --text-secondary: #67675f;
-  --border-subtle: #dad8cf;
-  --border-strong: #b9b4a7;
-  --accent: #a35f3b;
-  --attention: #8b3e35;
-  --positive: #55705a;
+
+  --yf-brand-primary: #0066cc;
+  --yf-brand-hover: #0071e3;
+  --yf-brand-on-primary: #ffffff;
+  --yf-bg-canvas: #ffffff;
+  --yf-bg-secondary: #f5f5f7;
+  --yf-bg-surface: #fafafc;
+  --yf-bg-elevated: #ffffff;
+  --yf-text-primary: #1d1d1f;
+  --yf-text-secondary: #6e6e73;
+  --yf-text-tertiary: #86868b;
+  --yf-border-default: #d2d2d7;
+  --yf-border-divider: #f0f0f0;
+  --yf-semantic-success: #34c759;
+  --yf-semantic-warning: #ff9500;
+  --yf-semantic-error: #ff3b30;
+  --yf-semantic-info: #0066cc;
+  --yf-shadow-color: rgb(0 0 0 / 12%);
+
+  --yf-radius-none: 0;
+  --yf-radius-xs: 5px;
+  --yf-radius-sm: 8px;
+  --yf-radius-md: 11px;
+  --yf-radius-lg: 18px;
+  --yf-radius-xl: 24px;
+  --yf-radius-pill: 9999px;
+  --yf-shadow-sm: 0 1px 3px 0 var(--yf-shadow-color);
+  --yf-shadow-md: 0 4px 12px -2px var(--yf-shadow-color);
+  --yf-shadow-lg: 0 12px 32px -4px var(--yf-shadow-color);
+  --yf-shadow-xl: 0 24px 64px -8px var(--yf-shadow-color);
+
+  /* 兼容现有功能样式；所有语义均由上面的 yf token 派生。 */
+  --canvas: var(--yf-bg-canvas);
+  --surface: var(--yf-bg-surface);
+  --surface-raised: var(--yf-bg-elevated);
+  --text-primary: var(--yf-text-primary);
+  --text-secondary: var(--yf-text-secondary);
+  --border-subtle: var(--yf-border-divider);
+  --border-strong: var(--yf-border-default);
+  --accent: var(--yf-brand-primary);
+  --attention: var(--yf-semantic-error);
+  --positive: var(--yf-semantic-success);
   --font-display: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
   --font-body: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", monospace;
-  --shadow-attention: 0 12px 30px rgb(89 58 36 / 10%);
-  --focus-ring: 0 0 0 3px rgb(163 95 59 / 24%);
-  --scrim: rgb(41 39 32 / 30%);
+  --shadow-attention: var(--yf-shadow-md);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--yf-brand-primary) 24%, transparent);
+  --scrim: color-mix(in srgb, var(--yf-text-primary) 30%, transparent);
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     color-scheme: dark;
-    --canvas: #171a18;
-    --surface: #20231f;
-    --surface-raised: #292c27;
-    --text-primary: #f2efe7;
-    --text-secondary: #b8b6ac;
-    --border-subtle: #3a3e37;
-    --border-strong: #53584e;
-    --accent: #d39366;
-    --attention: #e07a6e;
-    --positive: #86ad8e;
-    --shadow-attention: 0 16px 40px rgb(0 0 0 / 25%);
-    --focus-ring: 0 0 0 3px rgb(211 147 102 / 30%);
-    --scrim: rgb(0 0 0 / 55%);
+    --yf-brand-primary: #2997ff;
+    --yf-brand-hover: #4da3ff;
+    --yf-brand-on-primary: #ffffff;
+    --yf-bg-canvas: #000000;
+    --yf-bg-secondary: #1c1c1e;
+    --yf-bg-surface: #2c2c2e;
+    --yf-bg-elevated: #333336;
+    --yf-text-primary: #f5f5f7;
+    --yf-text-secondary: #98989d;
+    --yf-text-tertiary: #636366;
+    --yf-border-default: #3a3a3c;
+    --yf-border-divider: #2c2c2e;
+    --yf-semantic-success: #30d158;
+    --yf-semantic-warning: #ff9f0a;
+    --yf-semantic-error: #ff453a;
+    --yf-semantic-info: #2997ff;
+    --yf-shadow-color: rgb(0 0 0 / 50%);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #171a18;
-  --surface: #20231f;
-  --surface-raised: #292c27;
-  --text-primary: #f2efe7;
-  --text-secondary: #b8b6ac;
-  --border-subtle: #3a3e37;
-  --border-strong: #53584e;
-  --accent: #d39366;
-  --attention: #e07a6e;
-  --positive: #86ad8e;
-  --shadow-attention: 0 16px 40px rgb(0 0 0 / 25%);
-  --focus-ring: 0 0 0 3px rgb(211 147 102 / 30%);
-  --scrim: rgb(0 0 0 / 55%);
+  --yf-brand-primary: #2997ff;
+  --yf-brand-hover: #4da3ff;
+  --yf-brand-on-primary: #ffffff;
+  --yf-bg-canvas: #000000;
+  --yf-bg-secondary: #1c1c1e;
+  --yf-bg-surface: #2c2c2e;
+  --yf-bg-elevated: #333336;
+  --yf-text-primary: #f5f5f7;
+  --yf-text-secondary: #98989d;
+  --yf-text-tertiary: #636366;
+  --yf-border-default: #3a3a3c;
+  --yf-border-divider: #2c2c2e;
+  --yf-semantic-success: #30d158;
+  --yf-semantic-warning: #ff9f0a;
+  --yf-semantic-error: #ff453a;
+  --yf-semantic-info: #2997ff;
+  --yf-shadow-color: rgb(0 0 0 / 50%);
 }
