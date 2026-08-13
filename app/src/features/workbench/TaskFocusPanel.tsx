@@ -64,8 +64,6 @@ export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskU
     conversationLoading,
     streamStatus,
     streamError,
-    toolActivity,
-    toolCalls,
     approvals,
     setMessageStatus,
     removeApproval,
@@ -83,11 +81,11 @@ export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskU
   const projectName = activeTask ? getProjectName(activeTask.cwd) : getProjectName(legacySession?.cwd);
   const running = activeTask?.status === "running" || activeTask?.status === "waiting_approval";
 
-  // 新消息/工具活动到达时，会话区自动滚到底部。
+  // 新消息到达时，会话区自动滚到底部。
   useEffect(() => {
     const log = conversationLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
-  }, [conversation, toolActivity]);
+  }, [conversation]);
 
   useEffect(() => {
     window.localStorage.setItem("yunfeng-show-thinking", String(showThinking));
@@ -238,8 +236,6 @@ export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskU
             items={conversation}
             loading={conversationLoading}
             streamStatus={streamStatus}
-            toolActivity={toolActivity}
-            toolCalls={toolCalls}
             approvals={approvals}
             streamError={streamError}
             busyCommand={busyCommand}

@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, Check, ChevronDown, Loader2, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
+import { Bot, Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState } from "react";
 
 export type ConversationRole = "user" | "assistant" | "tool";
@@ -42,8 +42,6 @@ interface ConversationLogProps {
   items: ConversationItem[];
   loading: boolean;
   streamStatus: "connecting" | "idle" | "streaming" | "error";
-  toolActivity: string | null;
-  toolCalls: ToolCallInfo[];
   approvals: ApprovalInfo[];
   streamError: string | null;
   busyCommand: string | null;
@@ -150,44 +148,6 @@ function RoleIcon({ role }: { role: ConversationRole }) {
   return <Bot size={14} aria-hidden="true" />;
 }
 
-function formatToolOutput(value: unknown, max = 800): string {
-  if (value === undefined || value === null) return "";
-  let text: string;
-  if (typeof value === "string") text = value;
-  else {
-    try { text = JSON.stringify(value, null, 2); } catch { text = String(value); }
-  }
-  return text.length > max ? `${text.slice(0, max)}…[截断]` : text;
-}
-
-function ToolCallCard({ call }: { call: ToolCallInfo }) {
-  const running = !call.finishedAt;
-  const args = formatToolOutput(call.args, 400);
-  const output = call.result !== undefined ? formatToolOutput(call.result) : "";
-  const tone = call.isError ? "error" : running ? "running" : "done";
-  return (
-    <details className={`tool-card tool-card--${tone}`} open={running}>
-      <summary className="tool-card__summary">
-        <span className="tool-card__name">
-          <Wrench size={12} aria-hidden="true" /> {call.name}
-        </span>
-        <span className="tool-card__status">
-          {running ? <Loader2 size={11} className="spin" aria-hidden="true" /> : null}
-          {call.isError ? "失败" : running ? "运行中" : "完成"}
-        </span>
-      </summary>
-      <div className="tool-card__body">
-        {args ? <pre className="tool-card__args"><code>{args}</code></pre> : null}
-        {output ? (
-          <pre className="tool-card__output"><code>{output}</code></pre>
-        ) : (
-          <p className="tool-card__empty">该工具调用没有输出。</p>
-        )}
-      </div>
-    </details>
-  );
-}
-
 function ApprovalCard({
   approval,
   busy,
@@ -242,53 +202,18 @@ function ApprovalCard({
   );
 }
 
-function ToolCallGroup({ calls }: { calls: ToolCallInfo[] }) {
-  const hasRunning = calls.some((c) => !c.finishedAt);
-  const hasError = calls.some((c) => c.isError);
-  const defaultOpen = calls.length <= 2 || hasRunning;
-  const [open, setOpen] = useState(defaultOpen);
-
-  const summaryTone = hasError ? "error" : hasRunning ? "running" : "done";
-  const summaryLabel = hasError
-    ? `${calls.length} 次工具调用 · 有失败`
-    : hasRunning
-      ? `${calls.length} 次工具调用 · 运行中`
-      : `${calls.length} 次工具调用`;
-
-  return (
-    <div className={`tool-group tool-group--${summaryTone}`}>
-      <button
-        type="button"
-        className="tool-group__toggle"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <ChevronDown size={13} className={open ? "tool-group__chevron" : "tool-group__chevron tool-group__chevron--closed"} aria-hidden="true" />
-        <Wrench size={12} aria-hidden="true" />
-        <span className="tool-group__label">{summaryLabel}</span>
-        {hasRunning ? <Loader2 size={11} className="spin" aria-hidden="true" /> : null}
-      </button>
-      {open ? (
-        <div className="tool-group__items">
-          {calls.map((call) => (
-            <ToolCallCard key={call.callId} call={call} />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
-  { items, loading, streamStatus, toolActivity, toolCalls, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
+  { items, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
   ref,
 ) {
+  const visibleItems = items.filter((item) => item.role !== "tool");
+
   return (
     <div ref={ref} className="conversation-log" role="log" aria-label="任务对话" aria-live="polite">
       {loading ? <p className="conversation-placeholder">正在读取会话记录…</p> : null}
-      {!loading && items.length === 0 ? <p className="conversation-placeholder">这段会话还没有可展示的消息。</p> : null}
+      {!loading && visibleItems.length === 0 ? <p className="conversation-placeholder">这段会话还没有可展示的消息。</p> : null}
 
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <article
           key={item.id}
           className={`conversation-message conversation-message--${item.role} ${item.streaming ? "conversation-message--streaming" : ""} ${item.status === "failed" ? "conversation-message--failed" : ""}`.trim()}
@@ -335,9 +260,6 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
         />
       ))}
 
-      {toolCalls.length > 0 ? <ToolCallGroup calls={toolCalls} /> : null}
-
-      {toolActivity ? <p className="conversation-tool-status" role="status">{toolActivity}</p> : null}
       {streamError ? <p className="conversation-error" role="alert">{streamError}</p> : null}
       <span className="sr-only">{streamStatus === "streaming" ? "Agent 正在回复" : "对话实时同步"}</span>
     </div>

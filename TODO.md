@@ -32,6 +32,7 @@
 - [x] 移除侧栏空态补充文案与设置文字
 - [x] 精简看板入口与侧栏空态布局
 - [x] 调整侧栏搜索聚焦、看板表面与分组命名
+- [x] 隐藏对话流中的工具调用记录
 - [x] yunfeng-cli TUI：新增云朵吉祥物组件（Mascot + 浮动动画 + demo）
 - [x] yunfeng-cli TUI P0：flex 布局、逐行差分、消息滚动、选择器交互、编辑器键位、全屏模式
 - [x] yunfeng-cli TUI P1：Scroll/Overlay/键位扩展/颜色降级/全局快捷键；P2 部分（visibleWidth 统一/测试/dispose）
