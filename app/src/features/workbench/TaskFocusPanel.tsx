@@ -46,6 +46,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     conversationLoading,
     streamStatus,
     streamError,
+    toolCalls,
     approvals,
     setMessageStatus,
     removeApproval,
@@ -67,7 +68,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
   useEffect(() => {
     const log = conversationLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
-  }, [conversation]);
+  }, [conversation, toolCalls]);
 
   useEffect(() => {
     window.localStorage.setItem("yunfeng-show-thinking", String(showThinking));
@@ -192,6 +193,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
           <ConversationLog
             ref={conversationLogRef}
             items={conversation}
+            toolCalls={toolCalls}
             loading={conversationLoading}
             streamStatus={streamStatus}
             approvals={approvals}

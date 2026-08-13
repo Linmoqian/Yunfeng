@@ -42,6 +42,7 @@ interface ApprovalInfo {
 
 interface ConversationLogProps {
   items: ConversationItem[];
+  toolCalls: ToolCallInfo[];
   loading: boolean;
   streamStatus: "connecting" | "idle" | "streaming" | "error";
   approvals: ApprovalInfo[];
@@ -205,7 +206,7 @@ function ApprovalCard({
 }
 
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
-  { items, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
+  { items, toolCalls, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
   ref,
 ) {
   const visibleItems = items.filter((item) => item.role !== "tool");
@@ -253,6 +254,15 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
                 <RefreshCw size={12} aria-hidden="true" /> 重新发送
               </button>
             ) : null}
+          </div>
+        </article>
+      ))}
+
+      {toolCalls.map((call) => (
+        <article key={call.callId} className="tool-card tool-card--running" aria-label={`正在调用工具：${call.name}`}>
+          <div className="tool-card__summary">
+            <span className="tool-card__name"><Wrench size={13} aria-hidden="true" /> {call.name}</span>
+            <span className="tool-card__status">调用中</span>
           </div>
         </article>
       ))}

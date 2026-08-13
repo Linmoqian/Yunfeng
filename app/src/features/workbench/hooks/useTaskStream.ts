@@ -145,15 +145,11 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
       }
     }
     if (event.type === "tool_finished") {
-      const data = event.data as { callId?: string; name?: string; result?: unknown; isError?: boolean } | undefined;
+      const data = event.data as { callId?: string } | undefined;
       const callId = typeof data?.callId === "string" ? data.callId : "";
       setToolActivity(null);
       if (callId) {
-        setToolCalls((current) => current.map((call) =>
-          call.callId === callId
-            ? { ...call, name: data?.name ?? call.name, result: data?.result, isError: Boolean(data?.isError), finishedAt: new Date().toISOString() }
-            : call,
-        ));
+        setToolCalls((current) => current.filter((call) => call.callId !== callId));
       }
     }
     if (event.type === "run_failed") {
