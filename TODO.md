@@ -34,6 +34,7 @@
 - [x] 调整侧栏搜索聚焦、看板表面与分组命名
 - [x] 隐藏对话流中的工具调用记录
 - [x] 使用 Yunfeng 枫叶标识助手消息
+- [x] 移除任务会话头部与详情入口
 - [x] yunfeng-cli TUI：新增云朵吉祥物组件（Mascot + 浮动动画 + demo）
 - [x] yunfeng-cli TUI P0：flex 布局、逐行差分、消息滚动、选择器交互、编辑器键位、全屏模式
 - [x] yunfeng-cli TUI P1：Scroll/Overlay/键位扩展/颜色降级/全局快捷键；P2 部分（visibleWidth 统一/测试/dispose）

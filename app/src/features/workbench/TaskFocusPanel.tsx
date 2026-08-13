@@ -1,6 +1,5 @@
-import { App, Button } from "antd";
+import { App } from "antd";
 import { motion } from "motion/react";
-import { Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -11,8 +10,6 @@ import {
   type SessionSnapshot,
   type TaskState,
 } from "../../services/taskService";
-import { getProjectName } from "./taskPresentation";
-import { TaskDetailsDrawer } from "./TaskDetailsDrawer";
 import { Composer } from "./components/Composer";
 import { ConversationInfoCard } from "./components/ConversationInfoCard";
 import { ConversationLog } from "./components/ConversationLog";
@@ -22,36 +19,15 @@ interface TaskFocusPanelProps {
   task?: TaskState;
   legacySession?: SessionSnapshot;
   sessions: SessionSnapshot[];
-  onClose: () => void;
   onTaskUpdated: (task: TaskState) => void;
   modelCatalog?: ModelCatalog;
 }
 
-const STATUS_TEXT: Record<TaskState["status"], { label: string; tone: string }> = {
-  running: { label: "Agent 正在工作", tone: "running" },
-  waiting_input: { label: "等待继续", tone: "waiting" },
-  waiting_approval: { label: "等待审批", tone: "attention" },
-  failed: { label: "本轮运行失败", tone: "attention" },
-  completed: { label: "任务已完成", tone: "completed" },
-  archived: { label: "已归档", tone: "completed" },
-};
-
-const PHASE_LABELS: Record<TaskState["phase"], string> = {
-  understanding: "理解需求",
-  planning: "规划方案",
-  implementing: "实现中",
-  verifying: "验证中",
-  committing: "提交中",
-  done: "已完成",
-  unknown: "",
-};
-
 /** 单任务聚焦面板：编排会话流、工具、审批、运行控制、配置与 Git 改动。 */
-export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskUpdated, modelCatalog }: TaskFocusPanelProps) {
+export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, modelCatalog }: TaskFocusPanelProps) {
   const { message } = App.useApp();
   const [sending, setSending] = useState(false);
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [showThinking, setShowThinking] = useState(() => window.localStorage.getItem("yunfeng-show-thinking") === "true");
   const conversationLogRef = useRef<HTMLDivElement>(null);
 
@@ -76,9 +52,7 @@ export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskU
     onTaskUpdated,
   });
 
-  const statusInfo = activeTask ? STATUS_TEXT[activeTask.status] : null;
   const currentTitle = activeTask?.title ?? (legacySession?.name?.trim() || legacySession?.firstMessage || "当前对话");
-  const projectName = activeTask ? getProjectName(activeTask.cwd) : getProjectName(legacySession?.cwd);
   const running = activeTask?.status === "running" || activeTask?.status === "waiting_approval";
 
   // 新消息到达时，会话区自动滚到底部。
@@ -202,34 +176,6 @@ export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskU
       transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="focus-panel__body">
-        <header className="focus-panel__header">
-          <div className="focus-panel__task-meta">
-            <span className="focus-panel__project">{projectName}</span>
-            {statusInfo ? (
-              <span className={`focus-panel__status focus-panel__status--${statusInfo.tone}`}>
-                {statusInfo.label}
-                {activeTask?.phase && activeTask.phase !== "unknown" ? ` · ${PHASE_LABELS[activeTask.phase]}` : ""}
-                {activeTask?.attentionReason ? ` · ${activeTask.attentionReason}` : ""}
-              </span>
-            ) : (
-              <span className="focus-panel__status focus-panel__status--legacy">旧会话 · 首次发送消息后接入任务</span>
-            )}
-          </div>
-          <div className="focus-panel__header-actions">
-            {activeTask ? (
-              <Button
-                type="text"
-                className="focus-panel__details-button"
-                onClick={() => setDetailsOpen(true)}
-                icon={<Settings2 size={16} />}
-              >
-                任务详情
-              </Button>
-            ) : null}
-            <Button type="text" className="icon-button-slim" onClick={onClose} aria-label="关闭任务" icon={<X size={18} />} />
-          </div>
-        </header>
-
         <section className="conversation-section" aria-label="对话">
           <ConversationLog
             ref={conversationLogRef}
@@ -269,14 +215,6 @@ export function TaskFocusPanel({ task, legacySession, sessions, onClose, onTaskU
         onShowThinkingChange={setShowThinking}
         onTaskUpdated={onTaskUpdated}
       />
-      {activeTask ? (
-        <TaskDetailsDrawer
-          open={detailsOpen}
-          task={activeTask}
-          modelCatalog={modelCatalog}
-          onClose={() => setDetailsOpen(false)}
-        />
-      ) : null}
     </motion.section>
   );
 }

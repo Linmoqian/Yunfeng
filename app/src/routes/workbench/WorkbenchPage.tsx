@@ -325,7 +325,6 @@ export function WorkbenchPage() {
             <TaskFocusPanel
               task={currentTask}
               sessions={sessions}
-              onClose={() => dispatch(workbenchActions.selectTask(null))}
               onTaskUpdated={(task) => dispatch(workbenchActions.taskUpdated(task))}
               modelCatalog={modelCatalog}
             />
@@ -333,7 +332,6 @@ export function WorkbenchPage() {
             <TaskFocusPanel
               legacySession={currentSession}
               sessions={sessions}
-              onClose={() => dispatch(workbenchActions.selectSession(null))}
               onTaskUpdated={(task) => {
                 dispatch(workbenchActions.taskUpdated(task));
                 dispatch(workbenchActions.selectTask(task.id));
