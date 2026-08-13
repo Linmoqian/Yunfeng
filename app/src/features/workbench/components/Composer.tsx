@@ -5,6 +5,7 @@ import { useState } from "react";
 type StreamStatus = "connecting" | "idle" | "streaming" | "error";
 
 interface ComposerProps {
+  isDraft: boolean;
   running: boolean;
   isLegacy: boolean;
   sending: boolean;
@@ -14,7 +15,7 @@ interface ComposerProps {
   onStop: () => Promise<void>;
 }
 
-export function Composer({ running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
+export function Composer({ isDraft, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [nextActionMode, setNextActionMode] = useState<"steer" | "followUp">("steer");
@@ -55,7 +56,7 @@ export function Composer({ running, isLegacy, sending, streamStatus, stopping, o
             void handleSubmit();
           }
         }}
-        placeholder={running ? "Agent 正在运行，可停止后继续输入" : "给 Yunfeng 发送消息"}
+        placeholder={running ? "Agent 正在运行，可停止后继续输入" : isDraft ? "输入后建立新对话" : "给 Yunfeng 发送消息"}
         autoSize={{ minRows: 1, maxRows: 6 }}
         disabled={sending}
         maxLength={10000}

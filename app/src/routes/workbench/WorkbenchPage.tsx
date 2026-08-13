@@ -1,8 +1,6 @@
-import { App } from "antd";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  createConversation,
   loadLegacySessions,
   loadModelCatalog,
   loadTasks,
@@ -51,10 +49,8 @@ function formatConnectionNotice(error: string): string {
 
 export function WorkbenchPage() {
   const dispatch = useAppDispatch();
-  const { message } = App.useApp();
   const { setMode, mode: themeMode } = useThemeMode();
   const initialTaskResolved = useRef(false);
-  const creatingConversation = useRef(false);
 
   const tasks = useAppSelector((state) => state.workbench.tasks);
   const sessions = useAppSelector((state) => state.workbench.sessions);
@@ -66,6 +62,7 @@ export function WorkbenchPage() {
   const projectFilter = useAppSelector((state) => state.workbench.projectFilter);
   const archivedFilter = useAppSelector((state) => state.workbench.archivedFilter);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [draftTask, setDraftTask] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     window.matchMedia("(max-width: 720px)").matches ||
       resolveSidebarCollapsed(window.localStorage.getItem("yunfeng-sidebar-collapsed")),
@@ -199,7 +196,7 @@ export function WorkbenchPage() {
 
   // 模型目录
   useEffect(() => {
-    if (!settingsOpen && !currentTask) return;
+    if (!settingsOpen && !currentTask && !draftTask) return;
     const controller = new AbortController();
     setModelLoading(true);
     setModelError(null);
@@ -221,7 +218,7 @@ export function WorkbenchPage() {
 
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelCwd, modelReloadKey, currentTask?.id, settingsOpen]);
+  }, [draftTask, modelCwd, modelReloadKey, currentTask?.id, settingsOpen]);
 
   async function handleRename(taskId: string, name: string) {
     const updated = await renameTask(taskId, name);
@@ -239,6 +236,7 @@ export function WorkbenchPage() {
   }
 
   function handleOpenTask(task: TaskSummary) {
+    setDraftTask(false);
     if (task.isLegacy) {
       dispatch(workbenchActions.selectSession(task.sessionId));
     } else {
@@ -247,26 +245,11 @@ export function WorkbenchPage() {
     if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
   }
 
-  async function handleOpenNewTask() {
+  function handleOpenNewTask() {
     if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
-    if (creatingConversation.current) return;
-
-    creatingConversation.current = true;
-    message.loading({ content: "正在新建对话…", key: "new-conversation" });
-    try {
-      const { task } = await createConversation(modelSelection);
-      dispatch(workbenchActions.taskUpdated(task));
-      dispatch(workbenchActions.selectTask(task.id));
-      await refreshSnapshot();
-      message.success({ content: "已新建对话", key: "new-conversation" });
-    } catch (error) {
-      message.error({
-        content: error instanceof Error ? error.message : "创建对话失败，请稍后重试。",
-        key: "new-conversation",
-      });
-    } finally {
-      creatingConversation.current = false;
-    }
+    dispatch(workbenchActions.selectTask(null));
+    dispatch(workbenchActions.selectSession(null));
+    setDraftTask(true);
   }
 
   function handleModelChange(nextModel: ModelSelection | null) {
@@ -321,7 +304,21 @@ export function WorkbenchPage() {
             </div>
           ) : null}
 
-          {currentTask ? (
+          {draftTask ? (
+            <TaskFocusPanel
+              draft
+              sessions={sessions}
+              modelCatalog={modelCatalog}
+              modelSelection={modelSelection}
+              onTaskUpdated={(task) => dispatch(workbenchActions.taskUpdated(task))}
+              onTaskCreated={(task) => {
+                dispatch(workbenchActions.taskUpdated(task));
+                dispatch(workbenchActions.selectTask(task.id));
+                setDraftTask(false);
+                void refreshSnapshot();
+              }}
+            />
+          ) : currentTask ? (
             <TaskFocusPanel
               task={currentTask}
               sessions={sessions}

@@ -73,3 +73,25 @@ test("createConversation 不要求目录或首条消息", async (context) => {
   assert.equal(result.task.id, "task-conversation");
   assert.equal(result.sessionId, "session-conversation");
 });
+
+test("createConversation 在首条输入时携带消息创建会话", async (context) => {
+  const originalFetch = globalThis.fetch;
+  let payload: unknown;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = (async (_input, init) => {
+    payload = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({
+      task: { id: "task-first-message" },
+      sessionId: "session-first-message",
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  await createConversation({ provider: "openai", modelId: "gpt-5" }, "你好，开始新的对话。");
+
+  assert.deepEqual(payload, {
+    model: { provider: "openai", modelId: "gpt-5" },
+    message: "你好，开始新的对话。",
+  });
+});

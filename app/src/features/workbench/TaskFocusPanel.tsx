@@ -3,10 +3,12 @@ import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import {
+  createConversation,
   importLegacySession,
   resolveIntervention,
   sendTaskCommand,
   type ModelCatalog,
+  type ModelSelection,
   type SessionSnapshot,
   type TaskState,
 } from "../../services/taskService";
@@ -16,15 +18,18 @@ import { ConversationLog } from "./components/ConversationLog";
 import { useTaskStream } from "./hooks/useTaskStream";
 
 interface TaskFocusPanelProps {
+  draft?: boolean;
   task?: TaskState;
   legacySession?: SessionSnapshot;
   sessions: SessionSnapshot[];
   onTaskUpdated: (task: TaskState) => void;
+  onTaskCreated?: (task: TaskState) => void;
   modelCatalog?: ModelCatalog;
+  modelSelection?: ModelSelection | null;
 }
 
 /** 单任务聚焦面板：编排会话流、工具、审批、运行控制、配置与 Git 改动。 */
-export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, modelCatalog }: TaskFocusPanelProps) {
+export function TaskFocusPanel({ draft = false, task, legacySession, sessions, onTaskUpdated, onTaskCreated, modelCatalog, modelSelection }: TaskFocusPanelProps) {
   const { message } = App.useApp();
   const [sending, setSending] = useState(false);
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
@@ -32,7 +37,7 @@ export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, m
   const conversationLogRef = useRef<HTMLDivElement>(null);
 
   const sessionId = task?.sessionId ?? legacySession?.id ?? "";
-  const isLegacy = !task;
+  const isLegacy = !draft && !task;
   const {
     activeTask,
     setLocalTask,
@@ -47,12 +52,13 @@ export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, m
   } = useTaskStream({
     task,
     legacySession,
+    isDraft: draft,
     isLegacy,
     sessionId,
     onTaskUpdated,
   });
 
-  const currentTitle = activeTask?.title ?? (legacySession?.name?.trim() || legacySession?.firstMessage || "当前对话");
+  const currentTitle = activeTask?.title ?? (legacySession?.name?.trim() || legacySession?.firstMessage || "新对话");
   const running = activeTask?.status === "running" || activeTask?.status === "waiting_approval";
 
   // 新消息到达时，会话区自动滚到底部。
@@ -81,7 +87,13 @@ export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, m
     setSending(true);
 
     try {
-      if (isLegacy) {
+      if (draft) {
+        const { task: createdTask } = await createConversation(modelSelection, next);
+        setLocalTask(createdTask);
+        setMessageStatus(optimisticId, "sent");
+        onTaskUpdated(createdTask);
+        onTaskCreated?.(createdTask);
+      } else if (isLegacy) {
         const imported = await ensureTaskForLegacy();
         await sendTaskCommand(imported.id, { type: "prompt", message: next });
       } else if (activeTask) {
@@ -193,6 +205,7 @@ export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, m
         </section>
 
         <Composer
+          isDraft={draft}
           running={running}
           isLegacy={isLegacy}
           sending={sending}
@@ -202,17 +215,19 @@ export function TaskFocusPanel({ task, legacySession, sessions, onTaskUpdated, m
           onStop={() => handleStop()}
         />
       </div>
-      <ConversationInfoCard
-        sessionId={sessionId}
-        currentTitle={currentTitle}
-        sessions={sessions}
-        task={activeTask}
-        modelCatalog={modelCatalog}
-        refreshKey={streamStatus}
-        showThinking={showThinking}
-        onShowThinkingChange={setShowThinking}
-        onTaskUpdated={onTaskUpdated}
-      />
+      {!draft ? (
+        <ConversationInfoCard
+          sessionId={sessionId}
+          currentTitle={currentTitle}
+          sessions={sessions}
+          task={activeTask}
+          modelCatalog={modelCatalog}
+          refreshKey={streamStatus}
+          showThinking={showThinking}
+          onShowThinkingChange={setShowThinking}
+          onTaskUpdated={onTaskUpdated}
+        />
+      ) : null}
     </motion.section>
   );
 }

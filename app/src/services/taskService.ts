@@ -225,11 +225,12 @@ export async function createTask(
   return createTaskRequest({ cwd, message, model });
 }
 
-/** 创建一段尚未发送首条消息的对话。 */
+/** 以首条消息创建一段对话；未提供消息时仅兼容旧调用。 */
 export async function createConversation(
   model?: ModelSelection | null,
+  message?: string,
 ): Promise<{ task: TaskState; sessionId: string }> {
-  return createTaskRequest({ model });
+  return createTaskRequest({ model, message });
 }
 
 async function createTaskRequest({

@@ -29,6 +29,7 @@ export type ApprovalKind = "confirm" | "select" | "input";
 export interface StreamHandlerOptions {
   task?: TaskState;
   legacySession?: SessionSnapshot;
+  isDraft: boolean;
   isLegacy: boolean;
   sessionId: string;
   onTaskUpdated: (task: TaskState) => void;
@@ -52,7 +53,7 @@ export interface StreamResult {
   beginOptimisticSend: (text: string) => string;
 }
 
-export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: StreamHandlerOptions): StreamResult {
+export function useTaskStream({ task, isDraft, isLegacy, sessionId, onTaskUpdated }: StreamHandlerOptions): StreamResult {
   const [conversation, setConversation] = useState<ConversationItem[]>([]);
   const [conversationLoading, setConversationLoading] = useState(true);
   const [streamStatus, setStreamStatus] = useState<StreamStatus>("connecting");
@@ -199,6 +200,12 @@ export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: Stre
     resetForTask();
     const controller = new AbortController();
 
+    if (isDraft) {
+      setConversationLoading(false);
+      setStreamStatus("idle");
+      return () => controller.abort();
+    }
+
     if (isLegacy) {
       void loadSessionConversation(sessionId, controller.signal)
         .then((messages) => {
@@ -257,7 +264,7 @@ export function useTaskStream({ task, isLegacy, sessionId, onTaskUpdated }: Stre
       unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, isLegacy, handleStreamEvent, resetForTask]);
+  }, [sessionId, isDraft, isLegacy, handleStreamEvent, resetForTask]);
 
   // localTask 变化时上报父级；用微任务避开渲染期间 setState 父组件的问题。
   const prevTaskRef = useRef<TaskState | null | undefined>(task);
