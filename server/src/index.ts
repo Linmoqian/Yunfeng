@@ -52,6 +52,9 @@ import {
   handleTasksGet,
 } from "./task/task-routes.js";
 import { getTaskContext } from "./task/task-context.js";
+import { getPluginRegistry } from "./plugin/instance.js";
+import type { CollectedRoute } from "./plugin/registry.js";
+import type { RouteContext } from "./plugin/types.js";
 
 interface CliArgs {
   port: number;
@@ -104,6 +107,31 @@ function sendResult(res: ServerResponse, result: RouteResult): void {
     return;
   }
   res.end(JSON.stringify(result.body ?? null));
+}
+
+/** 插件贡献的 HTTP 路由（模块级收集一次；路由是静态的）。 */
+const pluginRoutes = getPluginRegistry().collectRoutes();
+
+/** 匹配插件路由：支持精确路径与单段 :id 参数。 */
+function matchPluginRoute(candidates: CollectedRoute[], method: string, path: string): CollectedRoute | undefined {
+  for (const candidate of candidates) {
+    if (candidate.method !== method) continue;
+    if (candidate.path === path) return candidate;
+    const templateSegs = candidate.path.split("/").filter(Boolean);
+    const pathSegs = path.split("/").filter(Boolean);
+    if (templateSegs.length !== pathSegs.length) continue;
+    let matched = true;
+    for (let i = 0; i < templateSegs.length; i += 1) {
+      const seg = templateSegs[i];
+      if (seg.startsWith(":")) continue;
+      if (seg !== pathSegs[i]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return candidate;
+  }
+  return undefined;
 }
 
 const server = createServer(async (req, res) => {
@@ -289,6 +317,14 @@ const server = createServer(async (req, res) => {
       return sendResult(res, await handleSkillsGet(query));
     }
 
+    // 插件路由（插件贡献的 HTTP API）
+    const pluginRoute = matchPluginRoute(pluginRoutes, method.toLowerCase(), route);
+    if (pluginRoute) {
+      const body = method === "GET" || method === "DELETE" ? {} : await readJsonBody(req);
+      const context: RouteContext = { method, path: route, query, body };
+      return sendResult(res, await pluginRoute.handler(context));
+    }
+
     return sendResult(res, jsonError("Not found", 404));
   } catch (e) {
     return sendResult(res, jsonError(e instanceof Error ? e.message : String(e), 500));
@@ -297,10 +333,15 @@ const server = createServer(async (req, res) => {
 
 const args = parseArgs(process.argv.slice(2));
 
-server.listen(args.port, "127.0.0.1", () => {
-  console.log(`[server] listening on http://127.0.0.1:${args.port}`);
-  console.log(`PI_SERVER_READY ${args.port}`);
-});
+// 插件异步初始化完成后才开始监听（插件 init 失败只记录日志，不阻断启动）
+void getPluginRegistry()
+  .initAll()
+  .finally(() => {
+    server.listen(args.port, "127.0.0.1", () => {
+      console.log(`[server] listening on http://127.0.0.1:${args.port}`);
+      console.log(`PI_SERVER_READY ${args.port}`);
+    });
+  });
 
 function shutdown(): void {
   for (const cleanup of activeSse) {
@@ -308,7 +349,7 @@ function shutdown(): void {
   }
   destroyAllSessions();
   server.close();
-  process.exit(0);
+  void getPluginRegistry().disposeAll().finally(() => process.exit(0));
 }
 
 process.on("SIGINT", shutdown);

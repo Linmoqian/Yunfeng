@@ -20,6 +20,7 @@ import { resolveVisibleModels, selectInitialModelScope } from "./model-scope.js"
 import { getProjectTrustStatus, projectTrustReloadOptions } from "./project-trust.js";
 import { persistExplicitStartupPreferences } from "./startup-preferences.js";
 import { getInterventionHandlerOrReject } from "./task/intervention-bridge.js";
+import { getPluginRegistry } from "./plugin/instance.js";
 
 const CODING_TOOL_NAMES = ["read", "bash", "edit", "write", "grep", "find", "ls"];
 
@@ -76,6 +77,17 @@ export class AgentSessionWrapper {
       this.resetIdleTimer();
       if (event.type === "agent_end") {
         invalidateSessionListCache();
+        // 插件分发：会话结束（沉淀候选记忆等）
+        void getPluginRegistry().dispatch("agent_end", {
+          sessionId: this.inner.sessionId,
+          cwd: this.cwd,
+        });
+      }
+      if (event.type === "agent_settled") {
+        void getPluginRegistry().dispatch("agent_settled", {
+          sessionId: this.inner.sessionId,
+          cwd: this.cwd,
+        });
       }
       this.emit(event as AgentEvent);
       notifyRunningChange();
@@ -519,6 +531,11 @@ export class AgentSessionWrapper {
     if (this.inner.isBashRunning) this.inner.abortBash();
     this.unsubscribe?.();
     this.onDestroyCallback?.();
+    // 插件分发：会话关闭
+    void getPluginRegistry().dispatch("session_shutdown", {
+      reason: "quit",
+      sessionId: this.inner.sessionId,
+    });
     notifyRunningChange();
   }
 

@@ -3,6 +3,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { AgentSessionWrapper } from "../rpc-manager.js";
+import { getPluginRegistry } from "../plugin/instance.js";
 import type { TaskEventHub } from "./task-event-hub.js";
 import type { TaskStore } from "./task-store.js";
 import {
@@ -215,9 +216,21 @@ export class TaskRuntime {
         this.transition(state, "running");
         state.phase = "planning";
         await this.hub.emit(state.id, "task_updated", { status: state.status, phase: state.phase, currentAction: "接收你的指令" });
+        // 插件注入：before_agent_start（第一版：聚合返回的 message 拼接到 prompt 文本前）。
+        // 持久消息注入与系统提示词修改待 pi 适配层打通。
+        let message = command.message;
+        const injected = await getPluginRegistry().dispatch("before_agent_start", {
+          prompt: command.message,
+          systemPrompt: "",
+          sessionId: state.sessionId,
+          cwd: state.cwd,
+        });
+        if (injected?.message?.content) {
+          message = `${injected.message.content}\n\n${command.message}`;
+        }
         const result = await wrapper.send({
           type: "prompt",
-          message: command.message,
+          message,
           ...(command.images?.length ? { images: command.images } : {}),
           streamingBehavior: "followUp",
         });
