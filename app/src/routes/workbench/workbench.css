@@ -3415,6 +3415,34 @@
   font-size: 0;
 }
 
+.session-sidebar .task-row--legacy .task-row__main {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+}
+
+.session-sidebar .task-row--legacy .task-row__legacy-mark {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.session-sidebar .task-row--legacy .task-row__content {
+  min-width: 0;
+}
+
+.session-sidebar .task-row--legacy .task-row__title {
+  display: block;
+  text-align: center;
+}
+
+.task-row__legacy-spacer {
+  width: 18px;
+  height: 18px;
+}
+
 .session-main .workbench-header {
   min-height: 64px;
   padding: 12px 20px;

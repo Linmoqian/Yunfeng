@@ -2,6 +2,7 @@ import { App } from "antd";
 import { Archive, Check, Pencil, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { MapleStatusMark } from "./MapleStatusMark";
 import { formatRelativeTime, type TaskSummary } from "./taskPresentation";
 
 interface TaskRowProps {
@@ -62,13 +63,17 @@ export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onR
         onClick={() => onOpen(task)}
         aria-label={`打开任务：${task.title}`}
       >
-        <span className="task-row__mark" aria-hidden="true">
-          {attention ? (
-            <Check size={14} className="task-row__attention-check" />
-          ) : (
-            <span className="task-row__quiet-mark" />
-          )}
-        </span>
+        {task.isLegacy ? (
+          <MapleStatusMark className="task-row__legacy-mark" />
+        ) : (
+          <span className="task-row__mark" aria-hidden="true">
+            {attention ? (
+              <Check size={14} className="task-row__attention-check" />
+            ) : (
+              <span className="task-row__quiet-mark" />
+            )}
+          </span>
+        )}
         <span className="task-row__content">
           {renaming ? (
             <input
@@ -97,6 +102,7 @@ export function TaskRow({ task, active = false, onOpen, onRename, onArchive, onR
             <span className="task-row__reason">{task.attentionReason}</span>
           ) : null}
         </span>
+        {task.isLegacy ? <span className="task-row__legacy-spacer" aria-hidden="true" /> : null}
       </button>
 
       <div className="task-row__actions">

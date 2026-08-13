@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Input, Button } from "antd";
-import { ArrowUpRight, ChevronRight, LayoutDashboard, Plus, Search, FolderGit2, X } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Cloud, LayoutDashboard, Plus, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
@@ -154,7 +154,7 @@ export function SessionSidebar({
                           ? "session-sidebar__legacy-chevron session-sidebar__legacy-chevron--open"
                           : "session-sidebar__legacy-chevron"}
                       />
-                      <FolderGit2 size={13} />
+                      <Cloud size={13} aria-hidden="true" />
                       <span className="session-sidebar__legacy-project-name">{project}</span>
                       <span className="session-sidebar__legacy-project-count">{tasks.length}</span>
                     </button>
