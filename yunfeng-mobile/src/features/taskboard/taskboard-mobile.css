@@ -1,0 +1,162 @@
+/* ============================================================
+   任务看板移动端适配覆盖（方案 A：液态玻璃浅色）
+   在 tokens.css 与 styles.css 之后加载。
+   所有覆盖均以 .taskboard-route 提升特异性，确保在 vite 聚合
+   CSS 顺序不保证时仍能胜出。
+   ============================================================ */
+
+/* ---- 质感统一：styles.css 硬编码的纸张米色 → 液态玻璃中性色 ---- */
+.taskboard-route {
+  --surface-muted: #f2f2f4;
+  --surface-hover: #ececf0;
+  --surface-active: #e3e3e8;
+  --column-header: #f2f2f4;
+  --text-tertiary: #8b93a1;
+  --text-quaternary: #aeaeb2;
+  --priority-urgent: #c2410c;
+  --priority-high: #c2410c;
+  --priority-medium: #b45309;
+  --priority-low: #b45309;
+  --status-backlog: #8b93a1;
+  --status-todo: #8b93a1;
+  --status-progress: #b45309;
+  --status-review: #15803d;
+  --danger: #c2410c;
+  --danger-soft: rgb(194 65 12 / 10%);
+  --success: #15803d;
+}
+
+/* ---- 修复：app-shell 使用 100vh 溢出容器，底部被应用 TabBar 遮挡 ---- */
+.taskboard-route .app-shell {
+  height: 100%;
+  max-height: 100%;
+}
+
+/* ---- 移动端布局（≤719px，与 Dashi 断点一致） ---- */
+@media (max-width: 719px) {
+  /* 导航收敛：隐藏 app-nav 顶条，workspace 占满 */
+  .taskboard-route .app-nav {
+    display: none;
+  }
+  .taskboard-route .app-shell:not(.embedded) .workspace {
+    height: 100%;
+  }
+
+  /* 头部：项目切换为主，操作按钮触控加大 */
+  .taskboard-route .workspace-header {
+    min-height: 50px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+  .taskboard-route .header-project-button {
+    font-size: 16px;
+  }
+  .taskboard-route .workspace-header .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* 视图切换横向滚动 */
+  .taskboard-route .board-toolbar {
+    gap: 8px;
+    padding: 0 12px 10px;
+  }
+  .taskboard-route .view-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .taskboard-route .view-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .taskboard-route .view-tab {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 999px;
+  }
+
+  /* 列宽贴合移动视口，保留吸附 */
+  .taskboard-route .board-column {
+    flex: 0 0 min(84vw, 340px);
+  }
+
+  /* 卡片触控密度 */
+  .taskboard-route .task-card {
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .taskboard-route .task-card h3 {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  /* 详情：全屏页更宽松的间距 */
+  .taskboard-route .issue-detail-layout {
+    gap: 20px;
+    padding: 16px 16px 56px;
+  }
+}
+
+/* 触控目标下限（通用） */
+@media (pointer: coarse) {
+  .taskboard-route .task-card,
+  .taskboard-route .view-tab,
+  .taskboard-route .header-project-button,
+  .taskboard-route .board-column button,
+  .taskboard-route .icon-button {
+    min-height: 44px;
+  }
+}
+
+/* ---- Phase 2：布局优化（390 视口实测后收敛） ---- */
+@media (max-width: 719px) {
+  /* 头部：更紧凑，隐藏低价值的自动化触发 */
+  .taskboard-route .workspace-header {
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .taskboard-route .header-project-button {
+    font-size: 15px;
+    gap: 4px;
+  }
+  .taskboard-route .project-automation-trigger {
+    display: none;
+  }
+
+  /* 工具栏：更紧凑，视图切换横向滚动保留 */
+  .taskboard-route .board-toolbar {
+    min-height: 40px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  /* 列头：紧凑 */
+  .taskboard-route .column-header {
+    min-height: 32px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  /* 列宽：单列 + 相邻列明显预览 */
+  .taskboard-route .board-column {
+    flex: 0 0 min(88vw, 360px);
+  }
+
+  /* 卡片：更大的触控与阅读密度 */
+  .taskboard-route .task-card {
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+  .taskboard-route .task-card h3 {
+    font-size: 15px;
+    line-height: 22px;
+  }
+  .taskboard-route .task-card .card-topline {
+    margin-bottom: 2px;
+  }
+}

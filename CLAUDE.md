@@ -164,3 +164,12 @@
 ## 15. 最终汇报
 
 完成任务后简洁汇报改动、实际运行的验证、提交信息和未解决风险。没有提交或没有运行测试时，明确说明原因，不得虚假声称已验证。
+
+## 集成工作树目录
+
+* `app/`：桌面端 Web UI + Tauri 壳（托盘 + server 自动拉起 + RustDesk 进程管理）。
+* `mobile-app/`：移动端薄客户端（UI + API 调用；任务/对话直连 gateway，远程桌面走移动后端 RustDesk sidecar）。
+* `server/`：桌面 Agent 服务（内嵌 pi SDK，任务/对话事实来源）。
+* `gateway/`：对外 API 网关（Bearer token、路径白名单、关键日志）。
+* `yunfeng-mobile-backend/`：电脑侧移动后端（配对码/设备 token/RustDesk sidecar）。
+* `vendor/rustdesk`：RustDesk 源码 submodule（固定 1.4.9，AGPL-3.0）。

@@ -1,0 +1,71 @@
+import { useRef } from "react";
+import type { KeyboardEvent } from "react";
+import { ArrowUp, Square } from "lucide-react";
+
+interface ComposerProps {
+  disabled: boolean;
+  isStreaming: boolean;
+  onSend: (text: string) => Promise<void>;
+  onAbort: () => Promise<void>;
+}
+
+/** 移动端输入条：只发送文本指令，不再桥接本地文件。 */
+export function Composer({ disabled, isStreaming, onSend, onAbort }: ComposerProps) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const submit = () => {
+    const el = ref.current;
+    if (!el) return;
+    const text = el.value.trim();
+    if (!text || disabled) return;
+    el.value = "";
+    el.style.height = "auto";
+    void onSend(text);
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  };
+
+  const autoSize = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  };
+
+  return (
+    <div className="composer">
+      <div className="composer-inner">
+        <textarea
+          ref={ref}
+          rows={1}
+          placeholder="向电脑中的 Agent 发送指令…"
+          onKeyDown={onKeyDown}
+          onInput={(e) => autoSize(e.currentTarget)}
+        />
+        {isStreaming ? (
+          <button
+            type="button"
+            className="composer-button is-danger"
+            title="停止生成"
+            onClick={() => void onAbort()}
+          >
+            <Square size={15} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="composer-button"
+            title="发送"
+            disabled={disabled}
+            onClick={submit}
+          >
+            <ArrowUp size={16} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

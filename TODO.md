@@ -46,3 +46,11 @@
 - [x] 修复任务 API 错误返回 HTTP 200 的问题（结构化错误恢复真实 4xx/5xx）
 - [x] 修复文件访问可通过符号链接越出允许根的问题（真实路径二次校验）
 - [x] 修复任务事件流重连语义：缺省仅实时、Last-Event-ID 补发、快照不再覆盖旧会话
+
+## 集成分支追加
+
+- [x] 合并 gateway / 移动薄客户端 / 桌面 Tauri 壳到集成工作树
+- [x] 移动端迁移到 mobile-app/，移除旧 yunfeng-mobile/ 原型目录
+- [ ] 桌面壳接入可写 HOME / PI_CODING_AGENT_DIR
+- [ ] 桌面壳一键启动编排（server + gateway + mobile-backend + RustDesk）
+- [ ] 生产打包（包含后端运行时与 RustDesk）
