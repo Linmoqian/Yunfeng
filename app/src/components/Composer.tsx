@@ -1,17 +1,16 @@
 import { useRef } from "react";
 import type { KeyboardEvent } from "react";
-import { ArrowUp, Paperclip, Square } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 
 interface ComposerProps {
   disabled: boolean;
   isStreaming: boolean;
   onSend: (text: string) => Promise<void>;
   onAbort: () => Promise<void>;
-  onAttach: () => void;
 }
 
-/** 浮动输入条：附件 + 自增高 textarea + 发送/停止。 */
-export function Composer({ disabled, isStreaming, onSend, onAbort, onAttach }: ComposerProps) {
+/** 移动端输入条：只发送文本指令，不再桥接本地文件。 */
+export function Composer({ disabled, isStreaming, onSend, onAbort }: ComposerProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const submit = () => {
@@ -39,18 +38,10 @@ export function Composer({ disabled, isStreaming, onSend, onAbort, onAttach }: C
   return (
     <div className="composer">
       <div className="composer-inner">
-        <button
-          type="button"
-          className="composer-attach"
-          title="附加上下文（选择项目目录）"
-          onClick={onAttach}
-        >
-          <Paperclip size={16} />
-        </button>
         <textarea
           ref={ref}
           rows={1}
-          placeholder="向 Yunfeng 发送指令…"
+          placeholder="向电脑中的 Agent 发送指令…"
           onKeyDown={onKeyDown}
           onInput={(e) => autoSize(e.currentTarget)}
         />

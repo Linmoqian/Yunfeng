@@ -1,7 +1,7 @@
-import { FolderTree, MessageSquare, Settings } from "lucide-react";
+import { MessageSquare, Settings } from "lucide-react";
 import { WindowControls } from "./WindowControls";
 
-export type SidebarView = "sessions" | "files";
+export type SidebarView = "tasks";
 
 interface ActivityBarProps {
   active: SidebarView;
@@ -9,7 +9,7 @@ interface ActivityBarProps {
   onOpenSettings: () => void;
 }
 
-/** VS Code 风活动栏：顶部窗口控制 + 会话/文件切换 + 底部设置。 */
+/** 活动栏：窗口控制 + 任务 + 设置。文件树入口已随 sidecar 桥接移除。 */
 export function ActivityBar({ active, onChange, onOpenSettings }: ActivityBarProps) {
   return (
     <div className="activity-bar">
@@ -17,19 +17,11 @@ export function ActivityBar({ active, onChange, onOpenSettings }: ActivityBarPro
       <div className="activity-icons">
         <button
           type="button"
-          className={`activity-icon${active === "sessions" ? " is-active" : ""}`}
-          title="会话"
-          onClick={() => onChange("sessions")}
+          className={`activity-icon${active === "tasks" ? " is-active" : ""}`}
+          title="任务"
+          onClick={() => onChange("tasks")}
         >
           <MessageSquare size={20} />
-        </button>
-        <button
-          type="button"
-          className={`activity-icon${active === "files" ? " is-active" : ""}`}
-          title="工作区"
-          onClick={() => onChange("files")}
-        >
-          <FolderTree size={20} />
         </button>
       </div>
       <div className="activity-spacer" />

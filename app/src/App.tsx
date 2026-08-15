@@ -1,165 +1,101 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSidecar } from "@/hooks/useSidecar";
-import { useSessions } from "@/hooks/useSessions";
-import { useSession } from "@/hooks/useSession";
-import { useFileTree } from "@/hooks/useFileTree";
+import { useGateway } from "@/hooks/useGateway";
+import { useTasks } from "@/hooks/useTasks";
+import { useTask } from "@/hooks/useTask";
 import { useModels } from "@/hooks/useModels";
+import { useRemoteDesktop } from "@/hooks/useRemoteDesktop";
 import { useTheme } from "@/hooks/useTheme";
-import { openSessionAndSyncTree } from "@/lib/sessionActions";
-import type { SessionInfo } from "@/lib/types";
-import type { FileTreeNode } from "@/hooks/useFileTree";
+import type { TaskState } from "@/lib/types";
 import { AppShell } from "@/components/AppShell";
-import type { SidebarView } from "@/components/ActivityBar";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatPanel } from "@/components/ChatPanel";
-import { Spotlight } from "@/components/Spotlight";
-import { FilePreview } from "@/components/FilePreview";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { RemoteDesktopPanel } from "@/components/RemoteDesktopPanel";
 import { Toast } from "@/components/Toast";
 
 function App() {
-  const sidecar = useSidecar();
-  const sessions = useSessions(sidecar.client);
-  const session = useSession(sidecar.client);
-  const fileTree = useFileTree(sidecar.client);
-  const models = useModels(sidecar.client);
+  const gateway = useGateway();
+  const tasks = useTasks(gateway.client);
+  const task = useTask(gateway.client);
+  const models = useModels(gateway.client);
+  const remote = useRemoteDesktop();
   const { theme, setTheme } = useTheme();
 
-  const [toast, setToast] = useState<string | null>(null);
-  const [spotlightOpen, setSpotlightOpen] = useState(false);
-  const [filePreviewOpen, setFilePreviewOpen] = useState(false);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activeView, setActiveView] = useState<SidebarView>("sessions");
+  const [remoteOpen, setRemoteOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), 2000);
+    toastTimer.current = window.setTimeout(() => setToast(null), 2400);
   }, []);
 
-  // 启动 sidecar
+  // 首次使用时引导配置网关；不启动任何设备内后端。
   useEffect(() => {
-    if (sidecar.status === "idle") {
-      sidecar.start().catch((e: unknown) => {
-        showToast(e instanceof Error ? e.message : String(e));
-      });
-    }
-  }, [sidecar, showToast]);
+    if (!gateway.configured) setSettingsOpen(true);
+  }, [gateway.configured]);
 
-  // sidecar 就绪后恢复 projectRoot
   useEffect(() => {
-    if (sidecar.status === "ready") {
-      const saved = localStorage.getItem("pi-project-root");
-      if (saved) {
-        sessions.restoreProject(saved);
-        fileTree.setRoot(saved);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sidecar.status]);
-
-  // ⌘K 打开/关闭命令面板
+    if (task.error) showToast(task.error);
+  }, [task.error, showToast]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setSpotlightOpen((o) => !o);
-      }
-      if (e.key === "Escape") setSpotlightOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    if (tasks.error) showToast(tasks.error);
+  }, [tasks.error, showToast]);
 
-  const pickDirectory = useCallback(() => {
-    void sessions.pickDirectory().then((d) => {
-      if (d) {
-        localStorage.setItem("pi-project-root", d);
-        fileTree.setRoot(d);
-      }
-    });
-  }, [sessions, fileTree]);
-
-  const pickSession = useCallback(
-    async (s: SessionInfo) => {
-      try {
-        await openSessionAndSyncTree(s, sessions, session, fileTree);
-      } catch {
-        // 错误由 session.error 呈现
-      }
+  const pickTask = useCallback(
+    (next: TaskState) => {
+      setActiveTaskId(next.id);
+      void task.openTask(next);
     },
-    [sessions, session, fileTree],
+    [task],
   );
 
-  const newSession = useCallback(() => {
-    const root = sessions.projectRoot;
-    if (!root) {
-      pickDirectory();
-      return;
+  const newTask = useCallback(async () => {
+    const created = await tasks.createTask();
+    if (created) {
+      setActiveTaskId(created.id);
+      await task.openTask(created);
+      showToast("已新建任务");
     }
-    void session.newSession(root);
-  }, [sessions, session, pickDirectory]);
-
-  const openFile = useCallback(
-    (n: FileTreeNode) => {
-      void fileTree.selectFile(n);
-      setFilePreviewOpen(true);
-      showToast(`已引用文件上下文: ${n.name}`);
-    },
-    [fileTree, showToast],
-  );
+  }, [task, tasks, showToast]);
 
   return (
     <>
       <AppShell
-        activeView={activeView}
-        onActiveViewChange={setActiveView}
+        activeView="tasks"
+        onActiveViewChange={() => {}}
         onOpenSettings={() => setSettingsOpen(true)}
         sidebar={
           <Sidebar
-            activeView={activeView}
-            sessions={sessions}
-            session={session}
-            fileTree={fileTree}
-            onPickSession={(s) => void pickSession(s)}
-            onNewSession={newSession}
-            onOpenFile={openFile}
-            onPickDirectory={pickDirectory}
+            tasks={tasks}
+            activeTaskId={activeTaskId}
+            onPickTask={(t) => void pickTask(t)}
+            onNewTask={() => void newTask()}
           />
         }
       >
-        <ChatPanel session={session} models={models} onPickDirectory={pickDirectory} />
+        <ChatPanel task={task} models={models} />
       </AppShell>
-
-      {filePreviewOpen && fileTree.selectedFile && (
-        <FilePreview
-          file={fileTree.selectedFile}
-          content={fileTree.fileContent?.content ?? ""}
-          loading={fileTree.fileLoading}
-          onClose={() => setFilePreviewOpen(false)}
-        />
-      )}
-
-      <Spotlight
-        open={spotlightOpen}
-        onClose={() => setSpotlightOpen(false)}
-        sessions={sessions.sessions}
-        onPickSession={pickSession}
-        models={models.grouped}
-        activeModel={session.state?.model}
-        onSelectModel={(p, m) => session.setModel(p, m)}
-        onNewSession={newSession}
-      />
 
       <SettingsSheet
         open={settingsOpen}
         theme={theme}
         onThemeChange={setTheme}
-        projectRoot={sessions.projectRoot}
-        onPickDirectory={pickDirectory}
+        gateway={gateway}
+        remote={remote}
+        onOpenRemote={() => {
+          setSettingsOpen(false);
+          setRemoteOpen(true);
+        }}
         onClose={() => setSettingsOpen(false)}
       />
+
+      {remoteOpen && (
+        <RemoteDesktopPanel remote={remote} onClose={() => setRemoteOpen(false)} />
+      )}
 
       <Toast message={toast} />
     </>

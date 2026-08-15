@@ -1,4 +1,6 @@
-// 装配：HTTP(REST) + WebSocket 服务、账号、sidecar 桥接、远程桌面、生命周期。
+// 装配：HTTP(REST 配对/设备) + WebSocket（远程桌面）、账号、生命周期。
+// 职责收敛为“轻量移动后端”：配对与设备 token + 调用电脑屏幕。
+// 任务与对话由电脑侧 yunfeng-server + yunfeng-gateway 提供，移动端直连网关。
 
 import { mkdtempSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -16,12 +18,10 @@ import {
   type InputSender,
 } from "./desktop.ts";
 import { Hub } from "./hub.ts";
-import { SidecarClient } from "./sidecar.ts";
 
 export interface Backend {
   server: Server;
   accounts: Accounts;
-  sidecar: SidecarClient;
   hub: Hub;
   config: Config;
   close: () => Promise<void>;
@@ -73,7 +73,7 @@ async function handleHttp(
     const pairing = accounts.currentPairing();
     json(res, 200, {
       ok: true,
-      version: 1,
+      version: 2,
       pairing: pairing
         ? { active: true, expiresIn: Math.max(0, Math.round((pairing.expiresAt - Date.now()) / 1000)) }
         : { active: false, expiresIn: 0 },
@@ -124,7 +124,6 @@ async function handleHttp(
 export function createBackend(config: Config, overrides: BackendOverrides = {}): Backend {
   const db = openDb(config.dbPath);
   const accounts = new Accounts(db, config.pairTtlMs);
-  const sidecar = new SidecarClient(config.sidecarUrl, config.sidecarToken);
   const tmpDir = mkdtempSync(join(tmpdir(), "yf-desktop-"));
   const captureOnce =
     overrides.captureOnce ??
@@ -140,7 +139,6 @@ export function createBackend(config: Config, overrides: BackendOverrides = {}):
 
   const hub = new Hub(server, "/ws", {
     accounts,
-    sidecar,
     captureOnce,
     inputSender,
     defaultFps: config.fps,
@@ -155,7 +153,7 @@ export function createBackend(config: Config, overrides: BackendOverrides = {}):
       });
     });
 
-  return { server, accounts, sidecar, hub, config, close };
+  return { server, accounts, hub, config, close };
 }
 
 const isMain =

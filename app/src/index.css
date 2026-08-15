@@ -1413,6 +1413,99 @@ button:not(:disabled):active {
   }
 }
 
+/* ---------- 薄客户端新增：任务状态、审批提示、远程屏幕 ---------- */
+.task-list-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+.task-status {
+  font-size: 11px;
+  color: var(--text-secondary, #8e8e93);
+}
+.task-status.is-running {
+  color: var(--accent, #2f5cff);
+}
+.chat-status-dot.is-busy {
+  animation: status-pulse 1.4s ease-in-out infinite;
+}
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.task-notice {
+  margin: 0 18px;
+  padding: 8px 12px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--text-primary, #1d1d1f);
+  font-size: 13px;
+}
+.remote-panel {
+  position: relative;
+  width: min(92vw, 760px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  background: var(--surface, #ffffff);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.remote-header,
+.remote-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+}
+.remote-header h2 {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.remote-body {
+  flex: 1;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+.remote-frame {
+  display: block;
+  max-width: 100%;
+  max-height: 66vh;
+  object-fit: contain;
+}
+.remote-footer {
+  justify-content: flex-end;
+}
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary, #8e8e93);
+}
+.field-label input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 8px;
+  background: var(--surface, #ffffff);
+  color: var(--text-primary, #1d1d1f);
+  font-size: 13px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

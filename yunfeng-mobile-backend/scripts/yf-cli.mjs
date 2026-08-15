@@ -1,11 +1,11 @@
-// yunfeng-mobile 后端调试 CLI：以移动端同款协议（REST 配对 + WS 实时通道）与服务端通讯。
+// yunfeng-mobile 后端调试 CLI：配对、设备管理与远程桌面。
+// Agent 对话请直接调用电脑侧 yunfeng-gateway 的 /api/tasks 接口。
 // 用法：
 //   node scripts/yf-cli.mjs health <baseUrl>
 //   node scripts/yf-cli.mjs rotate <baseUrl>
 //   node scripts/yf-cli.mjs pair <baseUrl> <code> [name]
 //   node scripts/yf-cli.mjs devices <baseUrl> [token]
 //   node scripts/yf-cli.mjs revoke <baseUrl> <token> <deviceId>
-//   node scripts/yf-cli.mjs chat <baseUrl> "<text>" [--cwd /path] [--timeout 20] [--token xxx]
 //   node scripts/yf-cli.mjs desktop <baseUrl> [--fps 2] [--frames 3] [--save-dir dir] [--token xxx]
 
 import { createRequire } from "node:module";
@@ -123,57 +123,6 @@ async function revoke(baseUrl, token, deviceId) {
   console.log(`已吊销 ${deviceId}`);
 }
 
-async function chat(baseUrl, token, text, opts) {
-  const ws = await connectWs(baseUrl, token);
-  const timeout = opts.timeout * 1000;
-  try {
-    console.log(`已连接 ${normalize(baseUrl)}/ws`);
-    ws.send(JSON.stringify({ type: "rpc.start", id: "start", payload: { cwd: opts.cwd } }));
-    const ack = await nextMessage(ws, (m) => m.type === "rpc.response" && m.id === "start", timeout);
-    if (!ack.ok) fail(`启动会话失败: ${ack.error}`);
-    const sessionId = ack.data.sessionId;
-    console.log(`会话已启动 sessionId=${sessionId}，发送指令：${text}`);
-
-    ws.send(
-      JSON.stringify({ type: "rpc.command", id: "cmd", sessionId, command: { type: "prompt", text } }),
-    );
-    let done = false;
-    const deadline = setTimeout(() => {
-      done = true;
-      console.error("[yf-cli] 超时未收到完成事件");
-      process.exitCode = 2;
-      ws.close();
-    }, timeout);
-    ws.on("message", (data) => {
-      const msg = JSON.parse(data.toString());
-      if (msg.type === "rpc.event") {
-        const evt = msg.event;
-        if (evt.type === "message_update" && typeof evt.text === "string") {
-          process.stdout.write(evt.text);
-        } else if (evt.type === "message_complete" || evt.type === "session_completed" || evt.type === "done") {
-          if (!done) {
-            done = true;
-            clearTimeout(deadline);
-            console.log("\n[完成]");
-            ws.close();
-          }
-        } else if (evt.type !== "connected") {
-          console.log(`\n[事件] ${evt.type}`);
-        }
-      } else if (msg.type === "error") {
-        console.error(`\n[错误] ${msg.message}`);
-        done = true;
-        clearTimeout(deadline);
-        process.exitCode = 1;
-        ws.close();
-      }
-    });
-    await new Promise((resolve) => ws.on("close", resolve));
-  } finally {
-    ws.close();
-  }
-}
-
 async function desktop(baseUrl, token, opts) {
   const ws = await connectWs(baseUrl, token);
   const frames = opts.frames;
@@ -216,9 +165,7 @@ function parseFlags(argv) {
   const opts = {};
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
-    if (a === "--cwd") opts.cwd = argv[++i];
-    else if (a === "--timeout") opts.timeout = Number(argv[++i]);
-    else if (a === "--fps") opts.fps = Number(argv[++i]);
+    if (a === "--fps") opts.fps = Number(argv[++i]);
     else if (a === "--frames") opts.frames = Number(argv[++i]);
     else if (a === "--save-dir") opts.saveDir = argv[++i];
     else if (a === "--token") opts.token = argv[++i];
@@ -227,7 +174,7 @@ function parseFlags(argv) {
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
-const args = rest.filter((a) => !a.startsWith("--"));
+const args = rest.filter((a) => a.startsWith("--") === false);
 const opts = parseFlags(rest);
 
 async function main() {
@@ -258,13 +205,6 @@ async function main() {
       await revoke(args[0], token, args[2]);
       break;
     }
-    case "chat": {
-      const state = loadState();
-      const token = opts.token ?? state?.token;
-      if (args.length < 2 || !token) fail("用法: chat <baseUrl> \"<text>\"（token 读 ~/.yunfeng-mobile/client.json 或 --token）");
-      await chat(args[0], token, args[1], { cwd: opts.cwd ?? "/", timeout: opts.timeout ?? 20 });
-      break;
-    }
     case "desktop": {
       const state = loadState();
       const token = opts.token ?? state?.token;
@@ -273,7 +213,7 @@ async function main() {
       break;
     }
     default:
-      fail("未知命令，支持: health / rotate / pair / devices / revoke / chat / desktop");
+      fail("未知命令，支持: health / rotate / pair / devices / revoke / desktop");
   }
 }
 

@@ -1,5 +1,5 @@
 // 验证用后端入口：注入演示捕获源（生成 PNG 帧，无需屏幕录制权限），其余装配与真实入口一致。
-// 用法：node scripts/dev-backend.mjs --host 0.0.0.0 --port 8787 --sidecar-url http://127.0.0.1:8600 --sidecar-token demo-token
+// 用法：node scripts/dev-backend.mjs --host 0.0.0.0 --port 8787
 
 import { deflateSync } from "node:zlib";
 import { createBackend } from "../src/index.ts";

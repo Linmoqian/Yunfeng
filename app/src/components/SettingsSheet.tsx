@@ -1,13 +1,17 @@
-import { Check, X } from "lucide-react";
+import { useState } from "react";
+import { Check, Monitor, X } from "lucide-react";
 import type { Theme } from "@/hooks/useTheme";
+import type { UseGatewayResult } from "@/hooks/useGateway";
+import type { RemoteDesktopState } from "@/hooks/useRemoteDesktop";
 import { Button } from "./ui/button";
 
 interface SettingsSheetProps {
   open: boolean;
   theme: Theme;
   onThemeChange: (t: Theme) => void;
-  projectRoot: string | null;
-  onPickDirectory: () => void;
+  gateway: UseGatewayResult;
+  remote: RemoteDesktopState;
+  onOpenRemote: () => void;
   onClose: () => void;
 }
 
@@ -16,15 +20,23 @@ const THEMES: { id: Theme; label: string; bg: string; border: string }[] = [
   { id: "dark", label: "深色", bg: "#161617", border: "#3a3a3c" },
 ];
 
-/** 设置弹层：主题切换 + 项目目录。 */
+/** 设置弹层：主题、网关连接（Agent 任务/对话）、移动后端（远程屏幕）。 */
 export function SettingsSheet({
   open,
   theme,
   onThemeChange,
-  projectRoot,
-  onPickDirectory,
+  gateway,
+  remote,
+  onOpenRemote,
   onClose,
 }: SettingsSheetProps) {
+  const [gatewayUrl, setGatewayUrl] = useState(gateway.settings.baseUrl);
+  const [gatewayToken, setGatewayToken] = useState(gateway.settings.token);
+  const [backendUrl, setBackendUrl] = useState(remote.backendUrl);
+  const [pairCode, setPairCode] = useState("");
+  const [pairMessage, setPairMessage] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
   if (!open) return null;
 
   return (
@@ -47,10 +59,7 @@ export function SettingsSheet({
                 className={`theme-option${theme === t.id ? " is-selected" : ""}`}
                 onClick={() => onThemeChange(t.id)}
               >
-                <span
-                  className="theme-swatch"
-                  style={{ background: t.bg, borderColor: t.border }}
-                />
+                <span className="theme-swatch" style={{ background: t.bg, borderColor: t.border }} />
                 {t.label}
                 {theme === t.id && <Check size={15} />}
               </button>
@@ -59,11 +68,81 @@ export function SettingsSheet({
         </div>
 
         <div className="settings-group">
-          <div className="settings-label">项目目录</div>
+          <div className="settings-label">Agent 网关（任务与对话）</div>
+          <label className="field-label" htmlFor="gateway-url">
+            地址
+            <input
+              id="gateway-url"
+              value={gatewayUrl}
+              placeholder="http://192.168.1.10:8787"
+              onChange={(e) => setGatewayUrl(e.target.value)}
+            />
+          </label>
+          <label className="field-label" htmlFor="gateway-token">
+            Token
+            <input
+              id="gateway-token"
+              value={gatewayToken}
+              placeholder="YF_GATEWAY_READY 行中的 token"
+              onChange={(e) => setGatewayToken(e.target.value)}
+            />
+          </label>
           <div className="field-row">
-            <span title={projectRoot ?? ""}>{projectRoot ?? "未选择"}</span>
-            <Button size="sm" onClick={onPickDirectory}>
-              选择目录
+            <span>{testResult ?? gateway.testError ?? ""}</span>
+            <Button
+              size="sm"
+              disabled={gateway.testing}
+              onClick={() => {
+                gateway.save({ baseUrl: gatewayUrl, token: gatewayToken });
+                void gateway.testConnection().then((ok) => setTestResult(ok ? "连接成功" : "连接失败"));
+              }}
+            >
+              {gateway.testing ? "测试中…" : "保存并测试"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="settings-group">
+          <div className="settings-label">移动后端（配对与远程屏幕）</div>
+          <label className="field-label" htmlFor="backend-url">
+            地址
+            <input
+              id="backend-url"
+              value={backendUrl}
+              placeholder="http://192.168.1.10:8788"
+              onChange={(e) => setBackendUrl(e.target.value)}
+            />
+          </label>
+          <label className="field-label" htmlFor="pair-code">
+            配对码（电脑端启动日志）
+            <input
+              id="pair-code"
+              value={pairCode}
+              inputMode="numeric"
+              placeholder="6 位数字"
+              onChange={(e) => setPairCode(e.target.value)}
+            />
+          </label>
+          <div className="field-row">
+            <span>{pairMessage ?? (remote.token ? "设备已配对" : "未配对")}</span>
+            <Button
+              size="sm"
+              onClick={() => {
+                remote.setBackendUrl(backendUrl);
+                void remote
+                  .pair(backendUrl, pairCode, "yunfeng-mobile")
+                  .then(() => setPairMessage("配对成功"))
+                  .catch((e: unknown) => setPairMessage(e instanceof Error ? e.message : String(e)));
+              }}
+            >
+              配对
+            </Button>
+          </div>
+          <div className="field-row">
+            <span>查看电脑屏幕（远程桌面）</span>
+            <Button size="sm" onClick={onOpenRemote}>
+              <Monitor size={14} />
+              打开屏幕
             </Button>
           </div>
         </div>

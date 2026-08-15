@@ -1,60 +1,68 @@
 import { useEffect, useRef } from "react";
 import { Sparkles } from "lucide-react";
-import type { UseSessionResult } from "@/hooks/useSession";
+import type { UseTaskResult } from "@/hooks/useTask";
 import type { UseModelsResult } from "@/hooks/useModels";
 import { MessageRow } from "./MessageRow";
 import { Composer } from "./Composer";
 import { ModelMenu } from "./ModelMenu";
 
 interface ChatPanelProps {
-  session: UseSessionResult;
+  task: UseTaskResult;
   models: UseModelsResult;
-  onPickDirectory: () => void;
 }
 
 const QUICK_PROMPTS = [
-  { label: "⚡ 分析项目架构", text: "分析当前项目结构并给出优化方案" },
-  { label: "💡 解释核心逻辑", text: "解释当前项目的核心代码逻辑" },
+  { label: "继续执行", text: "继续执行当前任务" },
+  { label: "汇报进度", text: "简要汇报当前任务的进度" },
 ];
 
-/** 主区：对话头部（会话名 + 模型）+ 消息流 + 输入条。 */
-export function ChatPanel({ session, models, onPickDirectory }: ChatPanelProps) {
+function statusText(task: UseTaskResult["task"]): string {
+  if (!task) return "未选择任务";
+  if (task.status === "running") return task.currentAction || "运行中";
+  if (task.status === "waiting_approval") return "等待审批";
+  return task.phase && task.phase !== "unknown" ? task.phase : "就绪";
+}
+
+/** 主区：任务标题 + 对话流 + 输入条。 */
+export function ChatPanel({ task, models }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [session.messages, session.streamingMessage]);
+  }, [task.messages, task.streamingMessage]);
 
-  const currentModel = models.findModel(session.state?.model?.provider, session.state?.model?.id);
-  const allMessages = session.streamingMessage
-    ? [...session.messages, session.streamingMessage]
-    : session.messages;
-  const hasSession = Boolean(session.rpcSessionId);
-  const isBusy = session.isStreaming || session.runningTools.length > 0;
+  const currentModel = models.findModel(task.task?.model?.provider, task.task?.model?.modelId);
+  const allMessages = task.streamingMessage
+    ? [...task.messages, task.streamingMessage]
+    : task.messages;
+  const hasTask = Boolean(task.task);
+  const isBusy = task.isStreaming || task.runningTools.length > 0;
 
   return (
     <>
       <div className="chat-header" data-tauri-drag-region>
         <div className="chat-header-inner">
           <div className="chat-title">
-            <strong>{session.session?.name || (hasSession ? "当前会话" : "Yunfeng")}</strong>
+            <strong>{task.task?.title || (hasTask ? "当前任务" : "Yunfeng")}</strong>
             <span>
-              {hasSession && <span className="chat-status-dot" />}
+              {hasTask && <span className={`chat-status-dot${isBusy ? " is-busy" : ""}`} />}
               {isBusy
-                ? session.runningTools.map((t) => t.name).join(", ") || "思考中…"
+                ? task.runningTools.map((t) => t.name).join(", ") || "思考中…"
                 : currentModel
                   ? currentModel.name
-                  : "未选择模型"}
+                  : statusText(task.task)}
             </span>
           </div>
           <ModelMenu
-            grouped={models.grouped}
+            options={models.options}
             currentModel={currentModel}
-            disabled={!hasSession}
-            onSelect={session.setModel}
+            disabled={!hasTask}
+            onSelect={task.setModel}
           />
         </div>
       </div>
+
+      {task.notice && <div className="task-notice">{task.notice}</div>}
 
       <div ref={scrollRef} className="message-stream">
         {allMessages.length === 0 ? (
@@ -63,15 +71,15 @@ export function ChatPanel({ session, models, onPickDirectory }: ChatPanelProps) 
               <Sparkles size={22} />
             </div>
             <h2>Yunfeng 编码助手</h2>
-            <p>选择左侧会话或新建会话开始对话，可随时切换基座模型。</p>
+            <p>选择左侧任务查看对话，或直接向电脑中的 Agent 发送指令。</p>
             <div className="quick-prompts">
               {QUICK_PROMPTS.map((p) => (
                 <button
                   key={p.text}
                   type="button"
                   className="quick-prompt"
-                  disabled={!hasSession}
-                  onClick={() => void session.sendPrompt(p.text)}
+                  disabled={!hasTask}
+                  onClick={() => void task.sendPrompt(p.text)}
                 >
                   {p.label}
                 </button>
@@ -79,18 +87,17 @@ export function ChatPanel({ session, models, onPickDirectory }: ChatPanelProps) 
             </div>
           </div>
         ) : (
-          allMessages.map((m, i) => (
-            <MessageRow key={i} message={m} streaming={session.streamingMessage === m} />
+          allMessages.map((m) => (
+            <MessageRow key={m.id ?? `${m.role}-${String(m.timestamp)}`} message={m} streaming={task.streamingMessage === m} />
           ))
         )}
       </div>
 
       <Composer
-        disabled={!hasSession}
-        isStreaming={session.isStreaming}
-        onSend={session.sendPrompt}
-        onAbort={session.abort}
-        onAttach={onPickDirectory}
+        disabled={!hasTask}
+        isStreaming={task.isStreaming}
+        onSend={task.sendPrompt}
+        onAbort={task.abort}
       />
     </>
   );

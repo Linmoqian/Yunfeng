@@ -1,11 +1,10 @@
-// 后端集成测试：REST 配对/设备、WS 认证、rpc 桥接与事件转发、远程桌面帧与输入。
+// 移动后端集成测试：REST 配对/设备、WS 认证、远程桌面帧与输入。
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { WebSocket } from "ws";
 import { createBackend, type Backend } from "../src/index.ts";
 import type { Config } from "../src/types.ts";
-import { MockSidecar } from "./mock-sidecar.ts";
 
 type AnyMsg = Record<string, unknown>;
 
@@ -14,13 +13,11 @@ interface Conn {
   buffer: AnyMsg[];
 }
 
-function makeConfig(sidecarUrl: string): Config {
+function makeConfig(): Config {
   return {
     host: "127.0.0.1",
     port: 0,
     dbPath: ":memory:",
-    sidecarUrl,
-    sidecarToken: "test-token",
     fps: 10,
     pairTtlMs: 600_000,
   };
@@ -81,15 +78,24 @@ function nextMessage(
   });
 }
 
+async function pairDevice(backend: Backend, port: number, name?: string): Promise<{ token: string; deviceId: string }> {
+  const pairing = backend.accounts.rotatePairing();
+  const res = await httpJson(port, "/api/pair", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: pairing.code, name }),
+  });
+  assert.equal(res.status, 200);
+  return { token: res.body.token as string, deviceId: res.body.deviceId as string };
+}
+
 describe("backend integration", () => {
-  let mock: MockSidecar;
   let backend: Backend;
   let port: number;
   const recordedInputs: unknown[] = [];
 
   before(async () => {
-    mock = await MockSidecar.start();
-    backend = createBackend(makeConfig(mock.baseUrl), {
+    backend = createBackend(makeConfig(), {
       captureOnce: async () => ({ mime: "image/jpeg", data: Buffer.from("FAKEJPEG") }),
       inputSender: async (input) => {
         recordedInputs.push(input);
@@ -101,7 +107,6 @@ describe("backend integration", () => {
 
   after(async () => {
     await backend.close();
-    await mock.close();
   });
 
   test("健康检查与配对码", async () => {
@@ -113,7 +118,6 @@ describe("backend integration", () => {
   });
 
   test("配对流程：错误码 400，正确码返回 token，设备列表可见", async () => {
-    const pairing = backend.accounts.rotatePairing();
     const bad = await httpJson(port, "/api/pair", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -121,80 +125,35 @@ describe("backend integration", () => {
     });
     assert.equal(bad.status, 400);
 
-    const ok = await httpJson(port, "/api/pair", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: pairing.code, name: "iPhone" }),
-    });
-    assert.equal(ok.status, 200);
-    const token = ok.body.token as string;
+    const { token } = await pairDevice(backend, port, "iPhone");
     assert.ok(token.length >= 32);
 
     const devices = await httpJson(port, "/api/devices", {
       headers: { "X-Device-Token": token },
     });
     assert.equal(devices.status, 200);
-    assert.equal((devices.body.devices as unknown[]).length, 1);
-    assert.equal((devices.body.devices as { name: string }[])[0].name, "iPhone");
+    const list = devices.body.devices as { name: string }[];
+    assert.ok(list.some((d) => d.name === "iPhone"));
   });
 
-  test("WS 认证与 rpc 桥接、事件转发", async () => {
-    const pairing = backend.accounts.rotatePairing();
-    const pair = await httpJson(port, "/api/pair", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: pairing.code }),
-    });
-    const token = pair.body.token as string;
-
+  test("WS 心跳与未知消息处理", async () => {
+    const { token } = await pairDevice(backend, port);
     const conn = await connect(port, token);
     try {
-      conn.ws.send(JSON.stringify({ type: "rpc.start", id: "r1", payload: { cwd: "/tmp/proj" } }));
-      const ack = await nextMessage(conn, (m) => m.type === "rpc.response" && m.id === "r1");
-      assert.equal(ack.ok, true);
-      assert.equal((ack.data as { sessionId: string }).sessionId, "s1");
-      assert.equal(mock.started.length, 1);
-      // 等待 SSE 订阅建立（connected 事件到达即已注册），避免 pushEvent 竞态
-      await nextMessage(
-        conn,
-        (m) => m.type === "rpc.event" && (m.event as { type: string }).type === "connected",
-      );
+      conn.ws.send(JSON.stringify({ type: "ping", id: "p1" }));
+      const pong = await nextMessage(conn, (m) => m.type === "pong");
+      assert.equal(pong.id, "p1");
 
-      mock.pushEvent("s1", { type: "message_update", text: "hi" });
-      const evt = await nextMessage(
-        conn,
-        (m) => m.type === "rpc.event" && (m.event as { type: string }).type === "message_update",
-      );
-      assert.equal((evt.event as { type: string }).type, "message_update");
-
-      conn.ws.send(
-        JSON.stringify({
-          type: "rpc.command",
-          id: "r2",
-          sessionId: "s1",
-          command: { type: "prompt", text: "你好" },
-        }),
-      );
-      const cmdAck = await nextMessage(conn, (m) => m.type === "rpc.response" && m.id === "r2");
-      assert.equal(cmdAck.ok, true);
-      assert.deepEqual((cmdAck.data as { echo: unknown }).echo, {
-        type: "prompt",
-        text: "你好",
-      });
+      conn.ws.send(JSON.stringify({ type: "no.such.thing" }));
+      const err = await nextMessage(conn, (m) => m.type === "error");
+      assert.match(String(err.message), /unknown message type/);
     } finally {
       conn.ws.close();
     }
   });
 
   test("远程桌面：帧流与输入转发", async () => {
-    const pairing = backend.accounts.rotatePairing();
-    const pair = await httpJson(port, "/api/pair", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: pairing.code }),
-    });
-    const token = pair.body.token as string;
-
+    const { token } = await pairDevice(backend, port);
     const conn = await connect(port, token);
     try {
       conn.ws.send(JSON.stringify({ type: "desktop.start", id: "d1", fps: 10 }));
@@ -233,15 +192,7 @@ describe("backend integration", () => {
   });
 
   test("吊销设备后 token 失效", async () => {
-    const pairing = backend.accounts.rotatePairing();
-    const pair = await httpJson(port, "/api/pair", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: pairing.code }),
-    });
-    const token = pair.body.token as string;
-    const deviceId = pair.body.deviceId as string;
-
+    const { token, deviceId } = await pairDevice(backend, port);
     const del = await httpJson(port, `/api/devices/${deviceId}`, {
       method: "DELETE",
       headers: { "X-Device-Token": token },

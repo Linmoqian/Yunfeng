@@ -1,4 +1,5 @@
-// WebSocket 服务：token 认证、消息路由（rpc 桥接 / 远程桌面 / 心跳）。
+// WebSocket 服务：token 认证、心跳与远程桌面消息路由。
+// Agent 会话桥接已移除；移动端对话/任务直接调用电脑侧 yunfeng-gateway。
 
 import type { IncomingMessage, Server } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
@@ -8,13 +9,10 @@ import {
   type CaptureOnce,
   type InputSender,
 } from "./desktop.ts";
-import { RpcRelay } from "./relay.ts";
-import type { SidecarClient } from "./sidecar.ts";
 import type { ClientMessage, DesktopInput, ServerMessage } from "./types.ts";
 
 export interface HubDeps {
   accounts: Accounts;
-  sidecar: SidecarClient;
   captureOnce?: CaptureOnce;
   inputSender?: InputSender;
   defaultFps: number;
@@ -38,7 +36,6 @@ function errorMessage(e: unknown): string {
 }
 
 class Connection {
-  readonly relay: RpcRelay;
   desktop: DesktopSession | null = null;
   private readonly socket: WebSocket;
   private readonly deps: HubDeps;
@@ -46,7 +43,6 @@ class Connection {
   constructor(socket: WebSocket, deps: HubDeps) {
     this.socket = socket;
     this.deps = deps;
-    this.relay = new RpcRelay(deps.sidecar, (msg) => this.send(msg as ServerMessage));
   }
 
   send(msg: ServerMessage): void {
@@ -67,15 +63,6 @@ class Connection {
       case "ping":
         this.send({ type: "pong", id: msg.id });
         break;
-      case "rpc.start":
-        await this.relay.start(msg.id, msg.payload);
-        break;
-      case "rpc.command":
-        await this.relay.command(msg.id, msg.sessionId, msg.command);
-        break;
-      case "rpc.destroy":
-        await this.relay.destroy(msg.id, msg.sessionId);
-        break;
       case "desktop.start":
         this.startDesktop(msg.id, msg.fps);
         break;
@@ -87,7 +74,10 @@ class Connection {
         await this.handleInput(msg.id, msg.input);
         break;
       default:
-        this.send({ type: "error", message: `unknown message type: ${String((msg as { type: string }).type)}` });
+        this.send({
+          type: "error",
+          message: `unknown message type: ${String((msg as { type: string }).type)}`,
+        });
     }
   }
 
@@ -133,7 +123,6 @@ class Connection {
   }
 
   close(): void {
-    this.relay.close();
     this.desktop?.stop("disconnect");
     this.desktop = null;
   }
