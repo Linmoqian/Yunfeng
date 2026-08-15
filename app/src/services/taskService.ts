@@ -369,8 +369,9 @@ export async function loadTaskCapabilities(taskId: string, signal?: AbortSignal)
 // ---------------------------------------------------------------------------
 
 /**
- * 任务详情事件流。带 Last-Event-ID 重连语义：
- * 断线后 EventSource 自动重连，服务端按最后 seq 补发。
+ * 任务详情事件流。
+ * 首次订阅默认只收实时事件；EventSource 断线重连会自动携带 Last-Event-ID，
+ * 服务端据此只补发缺失的 seq。需要显式补发历史时使用 ?afterSeq=N。
  */
 export function subscribeTaskEvents(
   taskId: string,

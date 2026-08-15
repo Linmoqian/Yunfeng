@@ -45,3 +45,4 @@
 - [x] yunfeng-cli TUI 模仿 pi：提交语义 onSubmit / 主题系统 / 自动补全 / Loader spinner
 - [x] 修复任务 API 错误返回 HTTP 200 的问题（结构化错误恢复真实 4xx/5xx）
 - [x] 修复文件访问可通过符号链接越出允许根的问题（真实路径二次校验）
+- [x] 修复任务事件流重连语义：缺省仅实时、Last-Event-ID 补发、快照不再覆盖旧会话

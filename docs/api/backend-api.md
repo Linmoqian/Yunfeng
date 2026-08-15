@@ -541,9 +541,13 @@ server-rpc 通过官方 RpcCommand 透传，额外支持：`cycle_model`、`get_
 
 #### `GET /tasks/:id/events` -- 单任务事件流（SSE）
 
-**查询参数：** `afterSeq`（数字，断线重连补发）
+**查询参数：** `afterSeq`（数字，可选，显式补发该 seq 之后的历史事件）
 
-连接时自动补发 `afterSeq` 之后的历史事件。
+**重连语义：**
+
+- 首次订阅未携带 `afterSeq` 或 `Last-Event-ID` 时，只推送实时事件，不重放历史；如需全量历史，显式传 `afterSeq=0`。
+- EventSource 断线自动重连时浏览器携带 `Last-Event-ID`，服务端只补发该 seq 之后的事件。
+- `afterSeq` 与 `Last-Event-ID` 同时存在时取较大值；非法值忽略；结果不超过任务当前最新 seq。
 
 #### TaskEvent 结构
 
@@ -971,5 +975,6 @@ Sessions API 直接读取 pi 的 JSONL 会话文件，无需启动 Agent 运行�
 
 | 日期 | 版本 | 变更 |
 | --- | --- | --- |
+| 2026-08-15 | 0.1.0 | 不兼容（实验性）：`GET /tasks/:id/events` 未传 `afterSeq`/`Last-Event-ID` 时从全量补发改为仅推送实时事件，重连按 `Last-Event-ID` 补发；`afterSeq=0` 保留全量补发 |
 | 2026-08-15 | 0.1.0 | 修复任务 API 错误响应：结构化错误此前错误返回 HTTP 200，现与错误码表一致返回 400/404/409/500 |
 | 2026-08-10 | 0.1.0 | 初始文档：基于 server/src 和 server-rpc/src 全量源码编写，覆盖全部路由 |

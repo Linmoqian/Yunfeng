@@ -47,6 +47,10 @@ const workbenchSlice = createSlice({
       state.sessions = action.payload.sessions;
       state.attentionCount = selectAttentionCount(action.payload.tasks);
     },
+    tasksSnapshot: (state, action: PayloadAction<TaskState[]>) => {
+      state.tasks = action.payload;
+      state.attentionCount = selectAttentionCount(action.payload);
+    },
     taskUpdated: (state, action: PayloadAction<TaskState>) => {
       const task = action.payload;
       const exists = state.tasks.some((existing) => existing.id === task.id);

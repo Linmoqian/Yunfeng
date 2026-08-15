@@ -86,7 +86,9 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
   const handleStreamEvent = useCallback((event: TaskStreamEvent) => {
     const currentTask = activeTaskRef.current;
     if (event.type === "task_updated") {
-      const data = event.data as Partial<TaskState> | undefined;
+      const data = event.data as Partial<TaskState> & { kind?: string } | undefined;
+      // 服务端连接帧只携带补发元信息，不更新本地任务状态。
+      if (data?.kind === "connected") return;
       if (data && typeof data === "object" && currentTask) {
         setLocalTask((current) => ({ ...(current?.id === currentTask.id ? current : currentTask), ...data }) as TaskState);
       }

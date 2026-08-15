@@ -186,7 +186,9 @@ const server = createServer(async (req, res) => {
     }
     const taskEventsMatch = route.match(/^\/tasks\/([^/]+)\/events$/);
     if (taskEventsMatch && method === "GET") {
-      return sendResult(res, handleTaskEvents(decodeURIComponent(taskEventsMatch[1]), query));
+      const lastEventIdHeader = req.headers["last-event-id"];
+      const lastEventId = typeof lastEventIdHeader === "string" ? lastEventIdHeader : lastEventIdHeader?.[0];
+      return sendResult(res, handleTaskEvents(decodeURIComponent(taskEventsMatch[1]), query, lastEventId));
     }
     const taskConversationMatch = route.match(/^\/tasks\/([^/]+)\/conversation$/);
     if (taskConversationMatch && method === "GET") {

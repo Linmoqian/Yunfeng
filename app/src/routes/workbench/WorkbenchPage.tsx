@@ -152,8 +152,10 @@ export function WorkbenchPage() {
     void refreshSnapshot();
     return subscribeTaskSummary(
       (event: TaskStreamEvent) => {
+        // 任务快照只更新 tasks；sessions 由 refreshSnapshot 的 REST 结果独立维护，
+        // 避免 SSE 连接/重连时用旧闭包覆盖旧会话列表。
         if (event.type === "task_snapshot" && Array.isArray(event.tasks)) {
-          dispatch(workbenchActions.snapshot({ tasks: event.tasks as TaskState[], sessions }));
+          dispatch(workbenchActions.tasksSnapshot(event.tasks as TaskState[]));
           return;
         }
         if (event.type === "task_updated" && event.taskId && isTaskStateLike(event.data)) {
@@ -162,8 +164,7 @@ export function WorkbenchPage() {
       },
       (connected) => dispatch(workbenchActions.connection({ state: connected ? "connected" : "offline" })),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshSnapshot]);
+  }, [dispatch, refreshSnapshot]);
 
   // 同步 URL 深链接
   useEffect(() => {

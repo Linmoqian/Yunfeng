@@ -410,8 +410,38 @@ export function handleTaskEventsGlobal(): RouteResult {
   };
 }
 
-/** 任务详情事件流（支持 Last-Event-ID 补发）。 */
-export function handleTaskEvents(id: string, query: URLSearchParams): RouteResult {
+function parseAfterSeq(value: string | null | undefined): number | null {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+/**
+ * 计算任务事件补发起始 seq。
+ * - query 的 afterSeq 与 SSE 的 Last-Event-ID 均为可选，非法值忽略；
+ * - 两者都缺失时返回 latestSeq，首次订阅只收实时事件，不重放历史；
+ * - 两者并存取较大值；结果限制在 [0, latestSeq]。
+ */
+export function resolveTaskAfterSeq(
+  rawQuery: string | null,
+  rawHeader: string | null | undefined,
+  latestSeq: number,
+): number {
+  const querySeq = parseAfterSeq(rawQuery);
+  const headerSeq = parseAfterSeq(rawHeader);
+  if (querySeq === null && headerSeq === null) return latestSeq;
+  return Math.min(Math.max(querySeq ?? 0, headerSeq ?? 0), latestSeq);
+}
+
+/**
+ * 任务详情事件流。
+ * 重连时浏览器 EventSource 自动携带 Last-Event-ID；也可通过 ?afterSeq=N 显式补发。
+ */
+export function handleTaskEvents(
+  id: string,
+  query: URLSearchParams,
+  lastEventId?: string | null,
+): RouteResult {
   const { hub, store } = getTaskContext();
   const state = store.get(id);
   if (!state) return {
@@ -420,8 +450,7 @@ export function handleTaskEvents(id: string, query: URLSearchParams): RouteResul
     body: toApiErrorBody(apiError("task_not_found", "任务不存在", { status: 404 })),
   };
 
-  const afterSeqRaw = query.get("afterSeq");
-  const afterSeq = afterSeqRaw && /^\d+$/.test(afterSeqRaw) ? Number(afterSeqRaw) : 0;
+  const afterSeq = resolveTaskAfterSeq(query.get("afterSeq"), lastEventId, state.lastEventSeq);
 
   return {
     status: 200,
