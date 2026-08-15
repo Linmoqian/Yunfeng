@@ -337,7 +337,9 @@ export abstract class TuiBase extends Container {
 			content.push(...c.render(width, contentHeight));
 		});
 		const visible = content.slice(-contentHeight);
-		const allLines = [...visible, ...footerLines];
+		// 内容不足一屏时，在内容与 footer 之间补空行，保证 footer 永远钉在屏幕最后一行
+		const bottomPad = Math.max(0, contentHeight - visible.length);
+		const allLines = [...visible, ...Array<string>(bottomPad).fill(''), ...footerLines];
 		const cursorPos = this.extractCursorPosition(allLines, height);
 		const lines = allLines.map((l) => l.split(CURSOR_MARKER).join(''));
 

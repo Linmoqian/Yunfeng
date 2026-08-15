@@ -95,6 +95,7 @@ TuiBase 维护单一焦点组件；`setFocus` 切换时互斥设置 `focused`。
 `StatusBar` 是单行固定 footer：左侧工作目录，右侧按优先级收纳会话 / 模型 / 思考强度 / 上下文 / 开销。
 
 - 宽度全部按终端可见列计算（CJK=2、emoji 展示形态=2、ANSI=0），单行永不换行或溢出。
+- `renderFrame` 保证 footer 永远占据屏幕最后一行：内容不足时在内容与 footer 之间补空行。
 - 窄屏先截断长路径；仍不足时从右向左丢弃开销、上下文等低优先级信息。
 - 上下文占用 ≥70% 使用 `warning` 色，≥90% 使用 `error` 色；其余片段跟随 Yunfeng 语义 token。
 - 路径与状态文本先做单行 sanitize（换行/制表符转空格）。
