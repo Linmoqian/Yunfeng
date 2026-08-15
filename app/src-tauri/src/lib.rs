@@ -1,13 +1,14 @@
 // Yunfeng 桌面端外壳：
-// - 窗口 + 系统托盘（显示/退出）
-// - 自动拉起 yunfeng-server（Node 进程，等待 PI_SERVER_READY）
-// - Rust 后端管理 RustDesk 进程（启动/停止/状态）
+// - 窗口 + 系统托盘
+// - 一键启动编排：yunfeng-server + yunfeng-gateway + yunfeng-mobile-backend + RustDesk
+// - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 PI_CODING_AGENT_DIR
 
 use std::{
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::{Arc, Mutex},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use serde::Serialize;
@@ -18,24 +19,41 @@ use tauri::{
 };
 
 const SERVER_PORT: u16 = 8000;
+const GATEWAY_PORT: u16 = 8787;
+const MOBILE_BACKEND_PORT: u16 = 8788;
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..")
         .canonicalize()
-        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join(".."))
+        .unwrap_or_else(|_| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+        })
 }
 
-struct ServerChild {
+struct ServiceChild {
     child: Child,
     pid: u32,
     port: u16,
+    info: Option<String>,
 }
 
 #[derive(Default)]
 struct ServerState {
-    inner: Arc<Mutex<Option<ServerChild>>>,
+    inner: Arc<Mutex<Option<ServiceChild>>>,
+}
+
+#[derive(Default)]
+struct GatewayState {
+    inner: Arc<Mutex<Option<ServiceChild>>>,
+}
+
+#[derive(Default)]
+struct MobileBackendState {
+    inner: Arc<Mutex<Option<ServiceChild>>>,
 }
 
 #[derive(Default)]
@@ -45,9 +63,10 @@ struct RustDeskState {
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct ServerStatus {
+struct ServiceStatus {
     running: bool,
     port: Option<u16>,
+    info: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -58,51 +77,325 @@ struct RustDeskStatus {
     binary: Option<String>,
 }
 
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct OrchestrationStatus {
+    server: ServiceStatus,
+    gateway: ServiceStatus,
+    mobile_backend: ServiceStatus,
+    rustdesk: RustDeskStatus,
+}
+
+fn node_service_entry(
+    dir: &Path,
+    dist_entry: &str,
+    src_entry: &str,
+) -> Result<Vec<String>, String> {
+    let dist = dir.join(dist_entry);
+    if dist.exists() {
+        return Ok(vec![dist.to_string_lossy().into_owned()]);
+    }
+    let tsx = dir
+        .join("node_modules")
+        .join("tsx")
+        .join("dist")
+        .join("cli.mjs");
+    if tsx.exists() {
+        return Ok(vec![
+            tsx.to_string_lossy().into_owned(),
+            src_entry.to_string(),
+        ]);
+    }
+    // Node 22+ 可直接运行 TypeScript（类型剥离），适配 yunfeng-mobile-backend 的 dev 运行方式。
+    if dir.join(src_entry).exists() {
+        return Ok(vec![src_entry.to_string()]);
+    }
+    Err(format!(
+        "{} 未安装依赖：请先在对应目录执行 npm install && npm run build",
+        dir.display()
+    ))
+}
+
+fn runtime_home() -> Option<PathBuf> {
+    std::env::var("YUNFENG_RUNTIME_HOME")
+        .ok()
+        .map(PathBuf::from)
+        .filter(|path| !path.as_os_str().is_empty())
+}
+
+fn apply_runtime_env(command: &mut Command) {
+    if let Some(home) = runtime_home() {
+        let _ = std::fs::create_dir_all(&home);
+        let home_string = home.to_string_lossy().into_owned();
+        command.env("HOME", &home_string);
+        command.env("USERPROFILE", &home_string);
+        // server 需要可写的 pi agent 配置目录；显式 YUNFENG_AGENT_DIR 优先。
+        if std::env::var("YUNFENG_AGENT_DIR").is_err() {
+            command.env(
+                "PI_CODING_AGENT_DIR",
+                home.join(".pi")
+                    .join("agent")
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
+    }
+    if let Ok(agent_dir) = std::env::var("YUNFENG_AGENT_DIR") {
+        command.env("PI_CODING_AGENT_DIR", agent_dir);
+    }
+}
+
+fn gateway_token() -> String {
+    if let Ok(token) = std::env::var("YUNFENG_GATEWAY_TOKEN") {
+        if !token.is_empty() {
+            return token;
+        }
+    }
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    format!("{:x}{:x}", nanos, std::process::id())
+}
+
+fn service_command(
+    dir: &Path,
+    dist_entry: &str,
+    src_entry: &str,
+    extra_args: &[String],
+    port: u16,
+) -> Result<(Command, Vec<String>), String> {
+    let mut entry = node_service_entry(dir, dist_entry, src_entry)?;
+    let mut args: Vec<String> = Vec::new();
+    args.append(&mut entry);
+    args.extend(extra_args.iter().cloned());
+    args.push("--port".to_string());
+    args.push(port.to_string());
+    let mut command = Command::new("node");
+    command.current_dir(dir);
+    Ok((command, args))
+}
+
 fn server_dir() -> PathBuf {
     repo_root().join("server")
 }
 
-fn server_port() -> u16 {
-    std::env::var("YUNFENG_SERVER_PORT")
-        .ok()
-        .and_then(|value| value.parse().ok())
-        .unwrap_or(SERVER_PORT)
+fn gateway_dir() -> PathBuf {
+    repo_root().join("gateway")
 }
 
-fn server_command(port: u16) -> Result<(Command, Vec<String>), String> {
+fn mobile_backend_dir() -> PathBuf {
+    repo_root().join("yunfeng-mobile-backend")
+}
+
+fn env_port(name: &str, fallback: u16) -> u16 {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(fallback)
+}
+
+fn server_service() -> Result<(Command, Vec<String>), String> {
+    let port = env_port("YUNFENG_SERVER_PORT", SERVER_PORT);
     let dir = server_dir();
-    let mut command = Command::new("node");
-    let mut args: Vec<String> = Vec::new();
-
-    if let Ok(entry) = std::env::var("YUNFENG_SERVER_ENTRY") {
-        if Path::new(&entry).exists() {
-            args.push(entry);
+    let mut entry = if let Ok(value) = std::env::var("YUNFENG_SERVER_ENTRY") {
+        let path = PathBuf::from(&value);
+        if path.exists() {
+            vec![value]
+        } else {
+            Vec::new()
         }
+    } else {
+        Vec::new()
+    };
+    if entry.is_empty() {
+        entry = node_service_entry(&dir, "dist/index.js", "src/index.ts")?;
     }
-    if args.is_empty() {
-        let dist = dir.join("dist").join("index.js");
-        if dist.exists() {
-            args.push(dist.to_string_lossy().into_owned());
-        }
-    }
-    if args.is_empty() {
-        let tsx = dir.join("node_modules").join("tsx").join("dist").join("cli.mjs");
-        if tsx.exists() {
-            args.push(tsx.to_string_lossy().into_owned());
-            args.push("src/index.ts".to_string());
-        }
-    }
-    if args.is_empty() {
-        return Err(
-            "未找到 server/dist/index.js 或 server/node_modules/tsx，请先在 server 目录执行 npm install && npm run build"
-                .into(),
-        );
-    }
-
+    let mut args = entry;
     args.push("--port".to_string());
     args.push(port.to_string());
+    let mut command = Command::new("node");
     command.current_dir(&dir);
     Ok((command, args))
+}
+
+fn gateway_service(server_port: u16) -> Result<(Command, Vec<String>), String> {
+    let port = env_port("YUNFENG_GATEWAY_PORT", GATEWAY_PORT);
+    let token = gateway_token();
+    let args = vec![
+        "--host".to_string(),
+        "127.0.0.1".to_string(),
+        "--port".to_string(),
+        port.to_string(),
+        "--upstream".to_string(),
+        format!("http://127.0.0.1:{server_port}"),
+        "--auth-token".to_string(),
+        token,
+    ];
+    service_command(&gateway_dir(), "dist/index.js", "src/index.ts", &args, port)
+}
+
+fn mobile_backend_service() -> Result<(Command, Vec<String>), String> {
+    let port = env_port("YUNFENG_MOBILE_BACKEND_PORT", MOBILE_BACKEND_PORT);
+    let mut extra = vec!["--host".to_string(), "0.0.0.0".to_string()];
+    if let Ok(db) = std::env::var("YUNFENG_MOBILE_DB") {
+        if !db.is_empty() {
+            extra.push("--db".to_string());
+            extra.push(db);
+        }
+    }
+    service_command(
+        &mobile_backend_dir(),
+        "dist/index.js",
+        "src/index.ts",
+        &extra,
+        port,
+    )
+}
+
+fn spawn_service(
+    state: Arc<Mutex<Option<ServiceChild>>>,
+    app: tauri::AppHandle,
+    (mut command, args): (Command, Vec<String>),
+    port: u16,
+    ready_prefix: &'static str,
+    event_name: &'static str,
+) -> Result<ServiceStatus, String> {
+    {
+        let mut guard = state.lock().unwrap();
+        if let Some(entry) = guard.as_mut() {
+            if entry.child.try_wait().ok().flatten().is_none() {
+                return Ok(ServiceStatus {
+                    running: true,
+                    port: Some(entry.port),
+                    info: entry.info.clone(),
+                });
+            }
+        }
+        *guard = None;
+    }
+
+    apply_runtime_env(&mut command);
+    command
+        .args(&args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .stdin(Stdio::null());
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("启动服务失败: {error}"))?;
+    let pid = child.id();
+    let stdout = child.stdout.take().ok_or("服务 stdout 不可用")?;
+    {
+        let mut guard = state.lock().unwrap();
+        *guard = Some(ServiceChild {
+            child,
+            pid,
+            port,
+            info: None,
+        });
+    }
+    std::thread::spawn(move || {
+        monitor_service(pid, port, stdout, ready_prefix, event_name, state, app);
+    });
+    Ok(ServiceStatus {
+        running: true,
+        port: Some(port),
+        info: None,
+    })
+}
+
+fn monitor_service(
+    pid: u32,
+    port: u16,
+    stdout: std::process::ChildStdout,
+    ready_prefix: &'static str,
+    event_name: &'static str,
+    state: Arc<Mutex<Option<ServiceChild>>>,
+    app: tauri::AppHandle,
+) {
+    let reader = BufReader::new(stdout);
+    for line in reader.lines().map_while(Result::ok) {
+        let trimmed = line.trim();
+        let info = trimmed
+            .strip_prefix(ready_prefix)
+            .map(|rest| rest.trim().to_string());
+        if let Some(info_value) = info {
+            if let Ok(mut guard) = state.lock() {
+                if let Some(entry) = guard.as_mut() {
+                    if entry.pid == pid {
+                        entry.info = Some(info_value.clone());
+                    }
+                }
+            }
+            let _ = app.emit(
+                event_name,
+                ServiceStatus {
+                    running: true,
+                    port: Some(port),
+                    info: Some(info_value),
+                },
+            );
+        }
+        println!("[{event_name}] {trimmed}");
+    }
+
+    let exit_code = {
+        let mut guard = state.lock().unwrap();
+        if let Some(entry) = guard.as_mut() {
+            if entry.pid == pid {
+                let code = entry
+                    .child
+                    .wait()
+                    .ok()
+                    .map(|status| status.code())
+                    .flatten();
+                *guard = None;
+                code
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    };
+    println!("[service-exited {event_name}] pid={pid} code={exit_code:?}");
+    let _ = app.emit(
+        "service-exited",
+        serde_json::json!({ "event": event_name, "pid": pid, "port": port, "exitCode": exit_code }),
+    );
+}
+
+fn service_status(state: &Arc<Mutex<Option<ServiceChild>>>) -> ServiceStatus {
+    let mut guard = state.lock().unwrap();
+    let running = if let Some(entry) = guard.as_mut() {
+        entry.child.try_wait().ok().flatten().is_none()
+    } else {
+        false
+    };
+    let port = if running {
+        guard.as_ref().map(|entry| entry.port)
+    } else {
+        None
+    };
+    let info = if running {
+        guard.as_ref().and_then(|entry| entry.info.clone())
+    } else {
+        None
+    };
+    ServiceStatus {
+        running,
+        port,
+        info,
+    }
+}
+
+fn stop_service(state: &Arc<Mutex<Option<ServiceChild>>>) {
+    let mut guard = state.lock().unwrap();
+    if let Some(mut entry) = guard.take() {
+        let _ = entry.child.kill();
+        let _ = entry.child.wait();
+    }
 }
 
 fn rustdesk_binary() -> Option<PathBuf> {
@@ -138,125 +431,7 @@ fn rustdesk_binary() -> Option<PathBuf> {
     None
 }
 
-fn monitor_server(
-    pid: u32,
-    port: u16,
-    stdout: std::process::ChildStdout,
-    state: Arc<Mutex<Option<ServerChild>>>,
-    app: tauri::AppHandle,
-) {
-    let reader = BufReader::new(stdout);
-    for line in reader.lines().map_while(Result::ok) {
-        let trimmed = line.trim();
-        if let Some(rest) = trimmed.strip_prefix("PI_SERVER_READY ") {
-            let ready_port = rest
-                .split_whitespace()
-                .next()
-                .and_then(|value| value.parse::<u16>().ok());
-            let _ = app.emit(
-                "server-ready",
-                ServerStatus {
-                    running: true,
-                    port: ready_port.or(Some(port)),
-                },
-            );
-        }
-        println!("[yunfeng-server] {trimmed}");
-    }
-
-    let exit_code = {
-        let mut guard = state.lock().unwrap();
-        if let Some(entry) = guard.as_mut() {
-            if entry.pid == pid {
-                let code = entry.child.wait().ok().map(|status| status.code()).flatten();
-                *guard = None;
-                code
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    };
-    let _ = app.emit(
-        "server-exited",
-        serde_json::json!({ "pid": pid, "port": port, "exitCode": exit_code }),
-    );
-}
-
-fn start_server_internal(
-    state: Arc<Mutex<Option<ServerChild>>>,
-    app: tauri::AppHandle,
-) -> Result<ServerStatus, String> {
-    {
-        let mut guard = state.lock().unwrap();
-        if let Some(entry) = guard.as_mut() {
-            if entry.child.try_wait().ok().flatten().is_none() {
-                return Ok(ServerStatus {
-                    running: true,
-                    port: Some(entry.port),
-                });
-            }
-        }
-        *guard = None;
-    }
-
-    let port = server_port();
-    let (mut command, args) = server_command(port)?;
-    command
-        .args(&args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .stdin(Stdio::null());
-    let mut child = command
-        .spawn()
-        .map_err(|error| format!("启动 yunfeng-server 失败: {error}"))?;
-    let pid = child.id();
-    let stdout = child.stdout.take().ok_or("yunfeng-server stdout 不可用")?;
-    {
-        let mut guard = state.lock().unwrap();
-        *guard = Some(ServerChild { child, pid, port });
-    }
-    monitor_server(pid, port, stdout, state, app);
-    Ok(ServerStatus {
-        running: true,
-        port: Some(port),
-    })
-}
-
-#[tauri::command]
-fn server_status(state: State<'_, ServerState>) -> ServerStatus {
-    let mut guard = state.inner.lock().unwrap();
-    let running = if let Some(entry) = guard.as_mut() {
-        entry.child.try_wait().ok().flatten().is_none()
-    } else {
-        false
-    };
-    let port = if running {
-        guard.as_ref().map(|entry| entry.port)
-    } else {
-        None
-    };
-    ServerStatus { running, port }
-}
-
-#[tauri::command]
-fn start_server(app: tauri::AppHandle, state: State<'_, ServerState>) -> Result<ServerStatus, String> {
-    start_server_internal(state.inner.clone(), app)
-}
-
-#[tauri::command]
-fn stop_server(state: State<'_, ServerState>) -> Result<(), String> {
-    let mut guard = state.inner.lock().unwrap();
-    if let Some(mut entry) = guard.take() {
-        let _ = entry.child.kill();
-        let _ = entry.child.wait();
-    }
-    Ok(())
-}
-
-#[tauri::command]
-fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
+fn rustdesk_status_impl(state: &RustDeskState) -> RustDeskStatus {
     let binary = rustdesk_binary();
     let running = state
         .child
@@ -272,8 +447,7 @@ fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
     }
 }
 
-#[tauri::command]
-fn rustdesk_open(state: State<'_, RustDeskState>) -> Result<RustDeskStatus, String> {
+fn rustdesk_open_impl(state: &RustDeskState) -> Result<RustDeskStatus, String> {
     let binary = rustdesk_binary().ok_or_else(|| "未找到 RustDesk".to_string())?;
     let mut child = Command::new(&binary)
         .spawn()
@@ -287,26 +461,167 @@ fn rustdesk_open(state: State<'_, RustDeskState>) -> Result<RustDeskStatus, Stri
     })
 }
 
-#[tauri::command]
-fn rustdesk_close(state: State<'_, RustDeskState>) -> Result<(), String> {
+fn rustdesk_close_impl(state: &RustDeskState) {
     if let Some(mut child) = state.child.lock().unwrap().take() {
         let _ = child.kill();
         let _ = child.wait();
     }
-    Ok(())
+}
+
+#[tauri::command]
+fn server_status(state: State<'_, ServerState>) -> ServiceStatus {
+    service_status(&state.inner)
+}
+
+#[tauri::command]
+fn gateway_status(state: State<'_, GatewayState>) -> ServiceStatus {
+    service_status(&state.inner)
+}
+
+#[tauri::command]
+fn mobile_backend_status(state: State<'_, MobileBackendState>) -> ServiceStatus {
+    service_status(&state.inner)
+}
+
+#[tauri::command]
+fn orchestration_status(
+    server: State<'_, ServerState>,
+    gateway: State<'_, GatewayState>,
+    mobile_backend: State<'_, MobileBackendState>,
+    rustdesk: State<'_, RustDeskState>,
+) -> OrchestrationStatus {
+    OrchestrationStatus {
+        server: service_status(&server.inner),
+        gateway: service_status(&gateway.inner),
+        mobile_backend: service_status(&mobile_backend.inner),
+        rustdesk: rustdesk_status_impl(&rustdesk),
+    }
+}
+
+#[tauri::command]
+fn start_server(
+    app: tauri::AppHandle,
+    state: State<'_, ServerState>,
+) -> Result<ServiceStatus, String> {
+    let (command, args) = server_service()?;
+    spawn_service(
+        state.inner.clone(),
+        app,
+        (command, args),
+        env_port("YUNFENG_SERVER_PORT", SERVER_PORT),
+        "PI_SERVER_READY",
+        "server-ready",
+    )
+}
+
+#[tauri::command]
+fn stop_server(state: State<'_, ServerState>) {
+    stop_service(&state.inner);
+}
+
+#[tauri::command]
+fn start_gateway(
+    app: tauri::AppHandle,
+    state: State<'_, GatewayState>,
+) -> Result<ServiceStatus, String> {
+    let (command, args) = gateway_service(env_port("YUNFENG_SERVER_PORT", SERVER_PORT))?;
+    spawn_service(
+        state.inner.clone(),
+        app,
+        (command, args),
+        env_port("YUNFENG_GATEWAY_PORT", GATEWAY_PORT),
+        "YF_GATEWAY_READY",
+        "gateway-ready",
+    )
+}
+
+#[tauri::command]
+fn stop_gateway(state: State<'_, GatewayState>) {
+    stop_service(&state.inner);
+}
+
+#[tauri::command]
+fn start_mobile_backend(
+    app: tauri::AppHandle,
+    state: State<'_, MobileBackendState>,
+) -> Result<ServiceStatus, String> {
+    let (command, args) = mobile_backend_service()?;
+    spawn_service(
+        state.inner.clone(),
+        app,
+        (command, args),
+        env_port("YUNFENG_MOBILE_BACKEND_PORT", MOBILE_BACKEND_PORT),
+        "YF_MOBILE_READY",
+        "mobile-backend-ready",
+    )
+}
+
+#[tauri::command]
+fn stop_mobile_backend(state: State<'_, MobileBackendState>) {
+    stop_service(&state.inner);
+}
+
+#[tauri::command]
+fn start_all(
+    app: tauri::AppHandle,
+    server: State<'_, ServerState>,
+    gateway: State<'_, GatewayState>,
+    mobile_backend: State<'_, MobileBackendState>,
+    rustdesk: State<'_, RustDeskState>,
+) -> Result<OrchestrationStatus, String> {
+    let server_status = start_server(app.clone(), server)?;
+    let gateway_status = start_gateway(app.clone(), gateway)?;
+    let mobile_backend_status = start_mobile_backend(app.clone(), mobile_backend)?;
+    let rustdesk_status =
+        rustdesk_open_impl(&rustdesk).unwrap_or_else(|_| rustdesk_status_impl(&rustdesk));
+    Ok(OrchestrationStatus {
+        server: server_status,
+        gateway: gateway_status,
+        mobile_backend: mobile_backend_status,
+        rustdesk: rustdesk_status,
+    })
+}
+
+#[tauri::command]
+fn stop_all(
+    server: State<'_, ServerState>,
+    gateway: State<'_, GatewayState>,
+    mobile_backend: State<'_, MobileBackendState>,
+    rustdesk: State<'_, RustDeskState>,
+) {
+    stop_service(&server.inner);
+    stop_service(&gateway.inner);
+    stop_service(&mobile_backend.inner);
+    rustdesk_close_impl(&rustdesk);
+}
+
+#[tauri::command]
+fn rustdesk_open(state: State<'_, RustDeskState>) -> Result<RustDeskStatus, String> {
+    rustdesk_open_impl(&state)
+}
+
+#[tauri::command]
+fn rustdesk_close(state: State<'_, RustDeskState>) {
+    rustdesk_close_impl(&state);
+}
+
+#[tauri::command]
+fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
+    rustdesk_status_impl(&state)
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(ServerState::default());
+    app.manage(GatewayState::default());
+    app.manage(MobileBackendState::default());
     app.manage(RustDeskState::default());
 
     let show = MenuItem::with_id(app, "show", "显示 Yunfeng", true, None::<&str>)?;
+    let start_all_item = MenuItem::with_id(app, "start-all", "启动全部服务", true, None::<&str>)?;
+    let stop_all_item = MenuItem::with_id(app, "stop-all", "停止全部服务", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &quit])?;
-    let icon = app
-        .default_window_icon()
-        .cloned()
-        .ok_or("缺少窗口图标")?;
+    let menu = Menu::with_items(app, &[&show, &start_all_item, &stop_all_item, &quit])?;
+    let icon = app.default_window_icon().cloned().ok_or("缺少窗口图标")?;
     TrayIconBuilder::with_id("main-tray")
         .icon(icon)
         .menu(&menu)
@@ -318,12 +633,26 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     let _ = window.set_focus();
                 }
             }
+            "start-all" => {
+                let _ = start_all(
+                    app.clone(),
+                    app.state::<ServerState>(),
+                    app.state::<GatewayState>(),
+                    app.state::<MobileBackendState>(),
+                    app.state::<RustDeskState>(),
+                );
+            }
+            "stop-all" => stop_all(
+                app.state::<ServerState>(),
+                app.state::<GatewayState>(),
+                app.state::<MobileBackendState>(),
+                app.state::<RustDeskState>(),
+            ),
             "quit" => app.exit(0),
             _ => {}
         })
         .build(app)?;
 
-    // 关闭窗口时隐藏到托盘；托盘菜单可重新显示或退出。
     if let Some(window) = app.get_webview_window("main") {
         let handle = window.clone();
         window.on_window_event(move |event| {
@@ -334,12 +663,18 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    // 自动拉起 yunfeng-server。
-    let server_state = app.state::<ServerState>().inner.clone();
+    // 自动拉起全部后端服务。
     let app_handle = app.handle().clone();
     std::thread::spawn(move || {
-        if let Err(error) = start_server_internal(server_state, app_handle.clone()) {
-            let _ = app_handle.emit("server-start-failed", error);
+        let result = start_all(
+            app_handle.clone(),
+            app_handle.state::<ServerState>(),
+            app_handle.state::<GatewayState>(),
+            app_handle.state::<MobileBackendState>(),
+            app_handle.state::<RustDeskState>(),
+        );
+        if let Err(error) = result {
+            eprintln!("[yunfeng-desktop] start_all failed: {error}");
         }
     });
 
@@ -352,6 +687,15 @@ pub fn run() {
             start_server,
             stop_server,
             server_status,
+            start_gateway,
+            stop_gateway,
+            gateway_status,
+            start_mobile_backend,
+            stop_mobile_backend,
+            mobile_backend_status,
+            start_all,
+            stop_all,
+            orchestration_status,
             rustdesk_open,
             rustdesk_close,
             rustdesk_status
@@ -362,16 +706,13 @@ pub fn run() {
         .run(|app, event| {
             if let RunEvent::Exit = event {
                 let server = app.state::<ServerState>();
-                if let Some(mut entry) = server.inner.lock().unwrap().take() {
-                    let _ = entry.child.kill();
-                    let _ = entry.child.wait();
-                }
+                stop_service(&server.inner);
+                let gateway = app.state::<GatewayState>();
+                stop_service(&gateway.inner);
+                let mobile_backend = app.state::<MobileBackendState>();
+                stop_service(&mobile_backend.inner);
                 let rustdesk = app.state::<RustDeskState>();
-                let mut rustdesk_guard = rustdesk.child.lock().unwrap();
-                if let Some(mut child) = rustdesk_guard.take() {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                }
+                rustdesk_close_impl(&rustdesk);
             }
         });
 }
