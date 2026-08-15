@@ -1,7 +1,7 @@
 // 文件访问授权：允许的根目录集合（会话 cwd + ~/pi-cwd-*）。
 // 移植自 pi-web lib/file-access.ts（简化，不含项目根 worktree 解析）。
 
-import { readdirSync } from "node:fs";
+import { readdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { listAllSessions } from "./session-reader.js";
@@ -67,12 +67,27 @@ export function isFilePathAllowed(target: string, allowedRoots: Set<string>): bo
   return false;
 }
 
-/** 授权已存在的路径：解析符号链接后再校验。 */
+/** 授权已存在的路径：先做词法校验，再把真实路径与真实允许根比较，阻断符号链接越权。 */
 export function isExistingFilePathAllowed(target: string, allowedRoots: Set<string>): boolean {
+  const resolved = path.resolve(target);
+  if (!isFilePathAllowed(resolved, allowedRoots)) return false;
+
+  // POSIX 进程无法解析 Windows 路径；跨平台测试/校验场景保留词法结果。
+  if (isWindowsAbsolutePath(target) && process.platform !== "win32") return true;
+
   try {
-    const real = path.resolve(target);
-    return isFilePathAllowed(real, allowedRoots);
+    const real = realpathSync(resolved);
+    const realRoots = new Set<string>();
+    for (const root of allowedRoots) {
+      try {
+        realRoots.add(realpathSync(root));
+      } catch {
+        realRoots.add(root);
+      }
+    }
+    return isFilePathAllowed(real, realRoots);
   } catch {
-    return false;
+    // 目标不存在时保留词法通过，由后续 stat 返回 404，避免把 404 误报为 403。
+    return true;
   }
 }
