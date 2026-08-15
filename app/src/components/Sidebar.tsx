@@ -7,11 +7,12 @@ interface SidebarProps {
   tasks: UseTasksResult;
   activeTaskId: string | null;
   onPickTask: (task: TaskState) => void;
+  onMoreTask: (task: TaskState) => void;
   onNewTask: () => void;
 }
 
 /** 侧栏：只保留任务列表。 */
-export function Sidebar({ tasks, activeTaskId, onPickTask, onNewTask }: SidebarProps) {
+export function Sidebar({ tasks, activeTaskId, onPickTask, onMoreTask, onNewTask }: SidebarProps) {
   return (
     <div className="sidebar-pane">
       <div className="sidebar-header" data-tauri-drag-region>
@@ -26,6 +27,7 @@ export function Sidebar({ tasks, activeTaskId, onPickTask, onNewTask }: SidebarP
           loading={tasks.loading}
           activeId={activeTaskId}
           onPick={onPickTask}
+          onMore={onMoreTask}
         />
       </div>
     </div>

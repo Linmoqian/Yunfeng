@@ -28,11 +28,16 @@ export function RemoteDesktopPanel({ remote, onClose }: RemoteDesktopPanelProps)
             <div className="empty-hint">尚未配对，请先在设置中填写移动后端地址并输入配对码。</div>
           )}
           {remote.token && remote.frame && (
-            <img
-              className="remote-frame"
-              src={`data:${remote.frame.mime};base64,${remote.frame.data}`}
-              alt={`电脑屏幕帧 ${remote.frame.seq}`}
-            />
+            <div className="remote-frame-wrap">
+              <img
+                className="remote-frame"
+                src={`data:${remote.frame.mime};base64,${remote.frame.data}`}
+                alt={`电脑屏幕帧 ${remote.frame.seq}`}
+              />
+              <span className="remote-frame-badge">
+                {remote.frame.mime.replace("image/", "")} · 帧 {remote.frame.seq}
+              </span>
+            </div>
           )}
           {remote.token && !remote.frame && remote.status !== "error" && (
             <div className="empty-hint">
@@ -48,9 +53,13 @@ export function RemoteDesktopPanel({ remote, onClose }: RemoteDesktopPanelProps)
               停止
             </Button>
           ) : (
-            <Button size="sm" disabled={!remote.token} onClick={() => remote.start(2)}>
+            <Button
+              size="sm"
+              disabled={remote.token === ""}
+              onClick={() => remote.start(2)}
+            >
               <Play size={14} />
-              开始
+              {remote.status === "error" ? "重新连接" : "开始"}
             </Button>
           )}
         </footer>

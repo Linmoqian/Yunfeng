@@ -126,3 +126,40 @@ describe("网关设置持久化", () => {
     expect(isGatewayConfigured(loadGatewaySettings(fakeStorage))).toBe(true);
   });
 });
+
+describe("GatewayClient 任务操作", () => {
+  it("renameTask 使用 PATCH 并返回 task", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ task: { id: "t1", title: "新名字" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const task = await client.renameTask("t1", "新名字");
+    expect(task.title).toBe("新名字");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://192.168.1.10:8787/api/tasks/t1",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ name: "新名字" }),
+      }),
+    );
+  });
+
+  it("resolveIntervention 发送 approve/reject 决策", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    await client.resolveIntervention("t1", "r1", "approve");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://192.168.1.10:8787/api/tasks/t1/interventions/r1",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ decision: "approve" }),
+      }),
+    );
+  });
+
+  it("loadTaskInterventions 返回 pending 列表", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ interventions: [{ id: "r1", status: "pending" }] })),
+    );
+    await expect(client.loadTaskInterventions("t1")).resolves.toEqual([{ id: "r1", status: "pending" }]);
+  });
+});

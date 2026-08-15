@@ -104,6 +104,23 @@ export interface GatewayHealth {
   allowedPaths: string[];
 }
 
+export type InterventionKind = "confirm" | "select" | "input";
+
+export interface TaskIntervention {
+  id: string;
+  taskId: string;
+  kind: InterventionKind;
+  title: string;
+  message: string;
+  options?: string[];
+  defaultValue?: string;
+  safeLabel?: string;
+  impact?: string;
+  status: "pending" | "resolved" | "timed_out";
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 // ---- 移动后端（配对 + 远程桌面）----
 export interface PairResult {
   deviceId: string;

@@ -6,6 +6,7 @@ import type {
   ModelsData,
   SessionMessage,
   TaskCommand,
+  TaskIntervention,
   TaskListResponse,
   TaskState,
   TaskStreamEvent,
@@ -115,6 +116,34 @@ export class GatewayClient {
       method: "POST",
       body: JSON.stringify(command),
     });
+  }
+
+  renameTask(taskId: string, name: string): Promise<TaskState> {
+    return this.request<{ task: TaskState }>(`/api/tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }).then((data) => data.task);
+  }
+
+  loadTaskInterventions(taskId: string): Promise<TaskIntervention[]> {
+    return this.request<{ interventions: TaskIntervention[] }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/interventions`,
+    ).then((data) => data.interventions ?? []);
+  }
+
+  resolveIntervention(
+    taskId: string,
+    requestId: string,
+    decision: "approve" | "reject",
+    value?: string,
+  ): Promise<void> {
+    return this.request(
+      `/api/tasks/${encodeURIComponent(taskId)}/interventions/${encodeURIComponent(requestId)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ decision, ...(value ? { value } : {}) }),
+      },
+    ).then(() => undefined);
   }
 
   loadModels(): Promise<ModelsData> {

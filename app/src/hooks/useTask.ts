@@ -10,19 +10,35 @@ interface RunningTool {
   name: string;
 }
 
+export interface ApprovalCard {
+  requestId: string;
+  kind: "confirm" | "select" | "input";
+  title: string;
+  message: string;
+  safeLabel?: string;
+  impact?: string;
+  options?: string[];
+}
+
+export type TaskStreamStatus = "connecting" | "streaming" | "idle" | "error";
+
 export interface UseTaskResult {
   task: TaskState | null;
   messages: SessionMessage[];
   streamingMessage: SessionMessage | null;
   runningTools: RunningTool[];
+  approvals: ApprovalCard[];
   isStreaming: boolean;
+  streamStatus: TaskStreamStatus;
   notice: string | null;
   error: string | null;
   openTask: (task: TaskState) => Promise<void>;
   closeTask: () => void;
   sendPrompt: (text: string) => Promise<void>;
   abort: () => Promise<void>;
+  retry: () => Promise<void>;
   setModel: (provider: string, modelId: string) => Promise<void>;
+  resolveApproval: (requestId: string, decision: "approve" | "reject", value?: string) => Promise<void>;
   refreshConversation: () => Promise<void>;
 }
 
@@ -40,12 +56,29 @@ function deltaThinking(event: TaskStreamEvent): string | null {
   return typeof data?.delta === "string" ? data.delta : null;
 }
 
+function approvalFromEvent(data: unknown): ApprovalCard | null {
+  if (!data || typeof data !== "object") return null;
+  const raw = data as Partial<ApprovalCard>;
+  if (typeof raw.requestId !== "string") return null;
+  return {
+    requestId: raw.requestId,
+    kind: raw.kind ?? "confirm",
+    title: raw.title ?? "Agent 请求审批",
+    message: raw.message ?? "",
+    ...(raw.safeLabel ? { safeLabel: raw.safeLabel } : {}),
+    ...(raw.impact ? { impact: raw.impact } : {}),
+    ...(raw.options ? { options: raw.options } : {}),
+  };
+}
+
 export function useTask(client: GatewayClient | null): UseTaskResult {
   const [task, setTask] = useState<TaskState | null>(null);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<SessionMessage | null>(null);
   const [runningTools, setRunningTools] = useState<RunningTool[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalCard[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<TaskStreamStatus>("idle");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +112,7 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
     const thinking = deltaThinking(event);
     if (text || thinking) {
       setIsStreaming(true);
+      setStreamStatus("streaming");
       setStreamingMessage((current) => {
         const base: SessionMessage = current ?? {
           id: STREAMING_ID,
@@ -97,6 +131,7 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
       const data = event.data as { callId?: string; name?: string } | undefined;
       const callId = typeof data?.callId === "string" ? data.callId : `tool-${Date.now()}`;
       setIsStreaming(true);
+      setStreamStatus("streaming");
       setRunningTools((current) => [
         ...current.filter((tool) => tool.id !== callId),
         { id: callId, name: data?.name ?? "工具" },
@@ -111,6 +146,7 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
       const data = event.data as { action?: string } | undefined;
       setError(data?.action ?? "Agent 执行失败");
       setIsStreaming(false);
+      setStreamStatus("error");
       setRunningTools([]);
     }
     if (event.type === "message_completed" || event.type === "run_settled" || event.type === "agent_end") {
@@ -126,14 +162,22 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
         return null;
       });
       setIsStreaming(false);
+      setStreamStatus("idle");
       setRunningTools([]);
     }
     if (event.type === "approval_requested") {
-      const data = event.data as { title?: string; message?: string } | undefined;
-      setNotice(data?.title ?? "Agent 请求审批");
+      const card = approvalFromEvent(event.data);
+      if (card) {
+        setApprovals((current) => [...current.filter((item) => item.requestId !== card.requestId), card]);
+        setNotice(card.title);
+      }
     }
     if (event.type === "approval_resolved") {
-      setNotice(null);
+      const data = event.data as { requestId?: string } | undefined;
+      if (data?.requestId) {
+        setApprovals((current) => current.filter((item) => item.requestId !== data.requestId));
+        setNotice(null);
+      }
     }
   }, []);
 
@@ -144,19 +188,43 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
       return;
     }
     unsubscribeRef.current?.();
+    taskRef.current = next;
     setTask(next);
     setMessages([]);
     setStreamingMessage(null);
     setRunningTools([]);
+    setApprovals([]);
     setIsStreaming(false);
+    setStreamStatus("connecting");
     setNotice(null);
     setError(null);
     try {
-      setMessages(await c.loadTaskConversation(next.id));
+      const [conversation, interventions] = await Promise.all([
+        c.loadTaskConversation(next.id),
+        c.loadTaskInterventions(next.id),
+      ]);
+      setMessages(conversation);
+      setApprovals(
+        interventions
+          .filter((item) => item.status === "pending")
+          .map((item) => ({
+            requestId: item.id,
+            kind: item.kind,
+            title: item.title,
+            message: item.message,
+            ...(item.safeLabel ? { safeLabel: item.safeLabel } : {}),
+            ...(item.impact ? { impact: item.impact } : {}),
+            ...(item.options ? { options: item.options } : {}),
+          })),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-    unsubscribeRef.current = c.subscribeTaskEvents(next.id, handleEvent, () => undefined);
+    unsubscribeRef.current = c.subscribeTaskEvents(
+      next.id,
+      handleEvent,
+      (connected) => setStreamStatus(connected ? "idle" : "connecting"),
+    );
   }, [handleEvent]);
 
   const closeTask = useCallback(() => {
@@ -166,7 +234,9 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
     setMessages([]);
     setStreamingMessage(null);
     setRunningTools([]);
+    setApprovals([]);
     setIsStreaming(false);
+    setStreamStatus("idle");
     setNotice(null);
     setError(null);
   }, []);
@@ -194,10 +264,38 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
     try {
       await c.sendTaskCommand(current.id, { type: "abort" });
       setIsStreaming(false);
+      setStreamStatus("idle");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
   }, []);
+
+  const retry = useCallback(async () => {
+    const c = clientRef.current;
+    const current = taskRef.current;
+    if (c === null || current === null) return;
+    setError(null);
+    setStreamStatus("connecting");
+    try {
+      await c.sendTaskCommand(current.id, { type: "retry" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  const resolveApproval = useCallback(async (requestId: string, decision: "approve" | "reject", value?: string) => {
+    const c = clientRef.current;
+    const current = taskRef.current;
+    if (c === null || current === null) return;
+    setApprovals((prev) => prev.filter((item) => item.requestId !== requestId));
+    try {
+      await c.resolveIntervention(current.id, requestId, decision, value);
+      setNotice(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      void openTask(current);
+    }
+  }, [openTask]);
 
   const setModel = useCallback(async (provider: string, modelId: string) => {
     const c = clientRef.current;
@@ -220,14 +318,18 @@ export function useTask(client: GatewayClient | null): UseTaskResult {
     messages,
     streamingMessage,
     runningTools,
+    approvals,
     isStreaming,
+    streamStatus,
     notice,
     error,
     openTask,
     closeTask,
     sendPrompt,
     abort,
+    retry,
     setModel,
+    resolveApproval,
     refreshConversation,
   };
 }

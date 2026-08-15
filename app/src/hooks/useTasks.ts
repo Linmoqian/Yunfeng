@@ -10,6 +10,9 @@ export interface UseTasksResult {
   error: string | null;
   refresh: () => Promise<void>;
   createTask: (message?: string) => Promise<TaskState | null>;
+  renameTask: (taskId: string, name: string) => Promise<TaskState | null>;
+  archiveTask: (taskId: string) => Promise<void>;
+  reopenTask: (taskId: string) => Promise<void>;
 }
 
 export function useTasks(client: GatewayClient | null): UseTasksResult {
@@ -69,5 +72,49 @@ export function useTasks(client: GatewayClient | null): UseTasksResult {
     [client, refresh],
   );
 
-  return { tasks, loading, error, refresh, createTask };
+  const renameTask = useCallback(
+    async (taskId: string, name: string) => {
+      if (!client) return null;
+      setError(null);
+      try {
+        const updated = await client.renameTask(taskId, name);
+        setTasks((prev) => prev.map((task) => (task.id === taskId ? updated : task)));
+        return updated;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        return null;
+      }
+    },
+    [client],
+  );
+
+  const archiveTask = useCallback(
+    async (taskId: string) => {
+      if (!client) return;
+      setError(null);
+      try {
+        await client.sendTaskCommand(taskId, { type: "archive" });
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [client, refresh],
+  );
+
+  const reopenTask = useCallback(
+    async (taskId: string) => {
+      if (!client) return;
+      setError(null);
+      try {
+        await client.sendTaskCommand(taskId, { type: "reopen" });
+        await refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [client, refresh],
+  );
+
+  return { tasks, loading, error, refresh, createTask, renameTask, archiveTask, reopenTask };
 }

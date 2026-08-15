@@ -16,7 +16,7 @@ export interface UseGatewayResult {
   testing: boolean;
   testError: string | null;
   save: (settings: GatewaySettings) => void;
-  testConnection: () => Promise<boolean>;
+  testConnection: (target?: GatewaySettings) => Promise<boolean>;
 }
 
 export function useGateway(): UseGatewayResult {
@@ -35,15 +35,15 @@ export function useGateway(): UseGatewayResult {
     setSettings({ ...next, baseUrl: next.baseUrl.trim().replace(/\/+$/, ""), token: next.token.trim() });
   }, []);
 
-  const testConnection = useCallback(async () => {
-    if (!configured) {
+  const testConnection = useCallback(async (target: GatewaySettings = settings) => {
+    if (isGatewayConfigured(target) === false) {
       setTestError("请先填写网关地址与 token");
       return false;
     }
     setTesting(true);
     setTestError(null);
     try {
-      const health = await new GatewayClient(settings.baseUrl, settings.token).checkHealth();
+      const health = await new GatewayClient(target.baseUrl, target.token).checkHealth();
       return health.ok;
     } catch (e) {
       setTestError(e instanceof Error ? e.message : String(e));
@@ -51,7 +51,7 @@ export function useGateway(): UseGatewayResult {
     } finally {
       setTesting(false);
     }
-  }, [configured, settings.baseUrl, settings.token]);
+  }, [settings]);
 
   return { settings, configured, client, testing, testError, save, testConnection };
 }

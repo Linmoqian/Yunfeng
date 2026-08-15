@@ -93,8 +93,9 @@ export function SettingsSheet({
               size="sm"
               disabled={gateway.testing}
               onClick={() => {
-                gateway.save({ baseUrl: gatewayUrl, token: gatewayToken });
-                void gateway.testConnection().then((ok) => setTestResult(ok ? "连接成功" : "连接失败"));
+                const next = { baseUrl: gatewayUrl, token: gatewayToken };
+                gateway.save(next);
+                void gateway.testConnection(next).then((ok) => setTestResult(ok ? "连接成功" : "连接失败"));
               }}
             >
               {gateway.testing ? "测试中…" : "保存并测试"}
@@ -125,18 +126,32 @@ export function SettingsSheet({
           </label>
           <div className="field-row">
             <span>{pairMessage ?? (remote.token ? "设备已配对" : "未配对")}</span>
-            <Button
-              size="sm"
-              onClick={() => {
-                remote.setBackendUrl(backendUrl);
-                void remote
-                  .pair(backendUrl, pairCode, "yunfeng-mobile")
-                  .then(() => setPairMessage("配对成功"))
-                  .catch((e: unknown) => setPairMessage(e instanceof Error ? e.message : String(e)));
-              }}
-            >
-              配对
-            </Button>
+            <div className="field-row-actions">
+              {remote.token && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    remote.clearToken();
+                    setPairMessage("已解除配对");
+                  }}
+                >
+                  解除
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => {
+                  remote.setBackendUrl(backendUrl);
+                  void remote
+                    .pair(backendUrl, pairCode, "yunfeng-mobile")
+                    .then(() => setPairMessage("配对成功"))
+                    .catch((e: unknown) => setPairMessage(e instanceof Error ? e.message : String(e)));
+                }}
+              >
+                配对
+              </Button>
+            </div>
           </div>
           <div className="field-row">
             <span>查看电脑屏幕（远程桌面）</span>
