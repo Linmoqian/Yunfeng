@@ -176,16 +176,24 @@ fn service_command(
     Ok((command, args))
 }
 
+fn services_root() -> PathBuf {
+    std::env::var("YUNFENG_SERVICES_DIR")
+        .ok()
+        .map(PathBuf::from)
+        .filter(|path| path.exists())
+        .unwrap_or_else(repo_root)
+}
+
 fn server_dir() -> PathBuf {
-    repo_root().join("server")
+    services_root().join("server")
 }
 
 fn gateway_dir() -> PathBuf {
-    repo_root().join("gateway")
+    services_root().join("gateway")
 }
 
 fn mobile_backend_dir() -> PathBuf {
-    repo_root().join("yunfeng-mobile-backend")
+    services_root().join("yunfeng-mobile-backend")
 }
 
 fn env_port(name: &str, fallback: u16) -> u16 {
@@ -407,6 +415,15 @@ fn rustdesk_binary() -> Option<PathBuf> {
     }
     #[cfg(target_os = "macos")]
     {
+        let bundled = services_root()
+            .join("rustdesk")
+            .join("RustDesk.app")
+            .join("Contents")
+            .join("MacOS")
+            .join("RustDesk");
+        if bundled.exists() {
+            return Some(bundled);
+        }
         let app = PathBuf::from("/Applications/RustDesk.app/Contents/MacOS/RustDesk");
         if app.exists() {
             return Some(app);

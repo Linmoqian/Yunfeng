@@ -20,3 +20,6 @@ venv/
 bin/rustdesk/
 src-tauri/target/
 src-tauri/gen/
+
+# 本地打包产物
+release/
