@@ -22,22 +22,22 @@ describe('StatusBar', () => {
 			reasoning: 'high',
 		}));
 		const text = stripTerminalSequences(bar.render(80).join(''));
-		expect(text).toContain('🤖 gpt-5-codex');
-		expect(text).toContain('🧠 high');
-		expect(text).toContain('⨁ 12.5k/128k');
+		expect(text).toContain('模型 gpt-5-codex');
+		expect(text).toContain('思考 high');
+		expect(text).toContain('上下文 12.5k/128k');
 	});
 
 	it('omits absent fields', () => {
 		const bar = new StatusBar(() => ({ cwd: '/proj', sessionName: 's' }));
 		const text = stripTerminalSequences(bar.render(80).join(''));
-		expect(text).not.toContain('🤖');
-		expect(text).not.toContain('🧠');
-		expect(text).not.toContain('⨁');
+		expect(text).not.toContain('模型 ');
+		expect(text).not.toContain('思考 ');
+		expect(text).not.toContain('上下文 ');
 	});
 
 	it('renders context used without limit', () => {
 		const bar = new StatusBar(() => ({ cwd: '/proj', sessionName: 's', contextUsed: 300 }));
-		expect(stripTerminalSequences(bar.render(80).join(''))).toContain('⨁ 300');
+		expect(stripTerminalSequences(bar.render(80).join(''))).toContain('上下文 300');
 	});
 
 	it('keeps every line exactly within terminal width', () => {
@@ -70,7 +70,7 @@ describe('StatusBar', () => {
 		const narrow = stripTerminalSequences(bar.render(40).join(''));
 		expect(narrow).toContain('…');
 		expect(narrow).toContain('新会话');
-		expect(narrow).toContain('🤖'); // 模型优先级高于 reasoning/context/cost
+		expect(narrow).toContain('模型'); // 模型优先级高于 reasoning/context/cost
 		expect(narrow).not.toContain('$0.01'); // 窄屏优先丢弃右侧开销
 	});
 

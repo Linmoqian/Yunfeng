@@ -80,21 +80,21 @@ function buildSegments(info: StatusInfo): StatusSegment[] {
 	const segments: StatusSegment[] = [];
 	const sessionName = sanitizeStatusText(info.sessionName);
 	if (sessionName) {
-		segments.push({ text: `📁 ${sessionName}`, color: (t) => t.textSecondary });
+		segments.push({ text: `会话 ${sessionName}`, color: (t) => t.textSecondary });
 	}
 	const model = sanitizeStatusText(info.model ?? '');
 	if (model) {
-		segments.push({ text: `🤖 ${model}`, color: (t) => t.brand, bold: true });
+		segments.push({ text: `模型 ${model}`, color: (t) => t.brand, bold: true });
 	}
 	const reasoning = info.reasoning;
 	if (reasoning) {
-		segments.push({ text: `🧠 ${reasoning}`, color: (t) => reasoningColor(reasoning, t) });
+		segments.push({ text: `思考 ${reasoning}`, color: (t) => reasoningColor(reasoning, t) });
 	}
 	if (info.contextUsed !== undefined) {
 		const context =
 			info.contextLimit !== undefined
-				? `⨁ ${formatTokens(info.contextUsed)}/${formatTokens(info.contextLimit)}`
-				: `⨁ ${formatTokens(info.contextUsed)}`;
+				? `上下文 ${formatTokens(info.contextUsed)}/${formatTokens(info.contextLimit)}`
+				: `上下文 ${formatTokens(info.contextUsed)}`;
 		segments.push({ text: context, color: (t) => contextColor(info, t) });
 	}
 	if (info.cost !== undefined) {
