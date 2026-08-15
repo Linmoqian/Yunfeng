@@ -7,7 +7,8 @@
     "dev": "tsx watch src/index.ts --port 8000",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test test/*.test.ts",
+    "start:portable": "node scripts/start-portable.mjs"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.83.0",
