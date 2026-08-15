@@ -77,12 +77,12 @@ describe('createApp', () => {
 
 	it('layout pushes editor/status to bottom via grow', () => {
 		const term = new MemoryTerminal();
-		const { tui } = createApp(term);
+		const { tui } = createApp(term, { cwd: '/proj' });
 		tui.start();
 		tui.renderNow(true);
 		const lines = stripTerminalSequences(term.output).split('\n');
-		// 输出含状态栏路径与编辑器提示
-		expect(lines.some((l) => l.includes(process.cwd()))).toBe(true);
+		// 输出含状态栏路径与编辑器提示（短 cwd 避免窄屏截断干扰断言）
+		expect(lines.some((l) => l.includes('/proj'))).toBe(true);
 		expect(lines.some((l) => l.includes('❯'))).toBe(true);
 	});
 

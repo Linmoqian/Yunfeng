@@ -27,7 +27,7 @@ packages/tui/src/
 │   ├── markdown.ts    Markdown 渲染（主题可配置）
 │   ├── loader.ts      spinner 加载指示
 │   ├── selector.ts    选择器（Enter 确认 / Esc 取消 / 禁用态）
-│   ├── status.ts      状态栏
+│   ├── status.ts      状态栏（固定 footer、可见宽度布局、窄屏降级）
 │   ├── overlay.ts     模态弹层（边框 + 标题 + 遮罩 + 可聚焦关闭）
 │   └── mascot.ts      云朵吉祥物（浮动动画）
 ├── tui.ts             TuiBase 核心：焦点、输入分发、全局快捷键、差分渲染、弹层
@@ -89,6 +89,15 @@ TuiBase 维护单一焦点组件；`setFocus` 切换时互斥设置 `focused`。
 - VStack 的可用高度由 `render` 的 `height` 传入；无 `height` 时保持固有尺寸、不补行。
 - `align` 控制交叉轴：`stretch/start/center/end`（HStack 垂直对齐，VStack 水平对齐）。
 - 裁剪不足/超出时，VStack 将子组件行补齐到分配行数（stretch 语义，撑满可用高度）。
+
+## 状态栏
+
+`StatusBar` 是单行固定 footer：左侧工作目录，右侧按优先级收纳会话 / 模型 / 思考强度 / 上下文 / 开销。
+
+- 宽度全部按终端可见列计算（CJK=2、emoji 展示形态=2、ANSI=0），单行永不换行或溢出。
+- 窄屏先截断长路径；仍不足时从右向左丢弃开销、上下文等低优先级信息。
+- 上下文占用 ≥70% 使用 `warning` 色，≥90% 使用 `error` 色；其余片段跟随 Yunfeng 语义 token。
+- 路径与状态文本先做单行 sanitize（换行/制表符转空格）。
 
 ## 主题系统
 
