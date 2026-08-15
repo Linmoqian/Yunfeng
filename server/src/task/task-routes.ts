@@ -25,15 +25,28 @@ import type { RouteResult } from "../routes.js";
 import { json } from "../routes.js";
 
 function jsonApi(result: RouteResult, fallbackError: unknown): RouteResult {
-  if (result.status < 400) return result;
+  const bodyError =
+    isRecord(result.body) && isRecord(result.body.error) ? result.body.error : undefined;
+
+  const normalized =
+    bodyError && typeof bodyError.code === "string"
+      ? {
+          code: bodyError.code,
+          message: typeof bodyError.message === "string" ? bodyError.message : "服务器内部错误",
+          retryable: typeof bodyError.retryable === "boolean" ? bodyError.retryable : false,
+          ...(bodyError.details !== undefined ? { details: bodyError.details } : {}),
+        }
+      : apiError(
+          "internal_error",
+          fallbackError instanceof Error ? fallbackError.message : "服务器内部错误",
+        );
+
+  // apiError 内部携带 status 用于路由决策；公开错误体必须剥离该字段。
+  const requestedStatus = typeof bodyError?.status === "number" ? bodyError.status : result.status;
   return {
-    status: result.status,
+    status: requestedStatus >= 400 ? requestedStatus : 500,
     headers: { "Content-Type": "application/json" },
-    body: toApiErrorBody(
-      isRecord(result.body) && isRecord(result.body.error) && typeof result.body.error.code === "string"
-        ? (result.body.error as never)
-        : apiError("internal_error", fallbackError instanceof Error ? fallbackError.message : "服务器内部错误"),
-    ),
+    body: toApiErrorBody(normalized),
   };
 }
 
