@@ -10,6 +10,7 @@ import { Editor } from '../src/components/editor.js';
 import { Messages } from '../src/components/messages.js';
 import { StatusBar } from '../src/components/status.js';
 import { Mascot } from '../src/components/mascot.js';
+import { Header } from '../src/components/header.js';
 
 const messages = new Messages([
 	{ role: 'system', from: 'yunfeng', content: '欢迎使用 yunfeng-cli TUI（VStack 布局）' },
@@ -20,9 +21,11 @@ const editor = new Editor('');
 const status = new StatusBar(() => ({
 	cwd: process.cwd(),
 	sessionName: 'demo',
+	model: 'yunfeng:demo',
 }));
 
-// 吉祥物：白云，浮动动画（500ms 一帧）
+// 品牌头部与吉祥物：头部展示词标/会话，云朵保持静止（手动模式可 clear 屏幕）
+const header = new Header(() => ({ detail: 'demo · yunfeng:demo' }));
 const mascot = new Mascot();
 
 const tui = new TuiMainScreen({
@@ -30,12 +33,13 @@ const tui = new TuiMainScreen({
 	showHardwareCursor: true,
 });
 
-// VStack 布局：mascot(吉祥物) + messages(可伸缩) + editor + status
+// VStack 布局：header + mascot + messages(可伸缩) + editor；status 固定为 footer
 const layout = new VStack(
-	[{ component: mascot }, { component: messages, grow: 1 }, { component: editor }, { component: status }],
+	[{ component: header }, { component: mascot }, { component: messages, grow: 1 }, { component: editor }],
 	{ gap: 0 },
 );
 tui.addChild(layout);
+tui.setFooter(status);
 tui.setFocus(editor);
 
 // 全局快捷键：Ctrl+C 退出、Ctrl+L 清屏

@@ -6,6 +6,7 @@
  * 参考 pi 的 markdown 方案（含 theme），按 yunfeng-cli 需求精简。
  */
 import { style } from '../terminal/ansi.js';
+import { getYunfengTheme } from '../theme.js';
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from '../utils.js';
 import type { Component } from './component.js';
 
@@ -23,15 +24,15 @@ export interface MarkdownTheme {
 }
 
 export const DEFAULT_MARKDOWN_THEME: MarkdownTheme = {
-	heading: (t) => style(t, { fg: '#f0f6fc', bold: true }),
+	heading: (t) => style(t, { fg: getYunfengTheme().text, bold: true }),
 	bold: (t) => style(t, { bold: true }),
 	italic: (t) => style(t, { italic: true }),
-	code: (t) => style(t, { fg: '#e6edf3', bg: '#161b22' }),
-	codeBlock: (t) => style(t, { fg: '#e6edf3', bg: '#161b22' }),
-	link: (t) => style(t, { fg: '#58a6ff', underline: true }),
-	quote: (t) => style(t, { fg: '#8b949e' }),
-	listBullet: (t) => style(t, { fg: '#58a6ff' }),
-	hr: (t) => style(t, { fg: '#30363d' }),
+	code: (t) => style(t, { fg: getYunfengTheme().text, bg: getYunfengTheme().surface }),
+	codeBlock: (t) => style(t, { fg: getYunfengTheme().text, bg: getYunfengTheme().surface }),
+	link: (t) => style(t, { fg: getYunfengTheme().info, underline: true }),
+	quote: (t) => style(t, { fg: getYunfengTheme().textSecondary }),
+	listBullet: (t) => style(t, { fg: getYunfengTheme().brand }),
+	hr: (t) => style(t, { fg: getYunfengTheme().divider }),
 };
 
 export interface MarkdownOptions {

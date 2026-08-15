@@ -4,6 +4,7 @@
  */
 import { style } from '../terminal/ansi.js';
 import { parseKey } from '../terminal/input.js';
+import { getYunfengTheme } from '../theme.js';
 import type { Component, Focusable } from './component.js';
 
 export interface SelectOption {
@@ -81,6 +82,7 @@ export class Selector implements Component, Focusable {
 
 	render(_width: number): string[] {
 		const rows: string[] = [];
+		const theme = getYunfengTheme();
 		// v1 简化：只渲染可见范围内的选项（不处理滚动窗口）
 		const start = Math.max(0, this.selected - 6);
 		const end = Math.min(this.options.length, start + 12);
@@ -90,14 +92,14 @@ export class Selector implements Component, Focusable {
 			const isSel = i === this.selected;
 			const marker = isSel ? '❯ ' : '  ';
 			if (opt.disabled) {
-				rows.push(style(marker + opt.label, { fg: '#484f58', dim: true }));
+				rows.push(style(marker + opt.label, { fg: theme.textTertiary, dim: true }));
 			} else {
 				const body = isSel
-					? style(marker + opt.label, { fg: '#22c55e', bold: true })
-					: style(marker + opt.label, { fg: '#c9d1d9' });
+					? style(marker + opt.label, { fg: theme.brand, bold: true })
+					: style(marker + opt.label, { fg: theme.text });
 				rows.push(body);
 			}
-			if (opt.detail) rows.push(style(`   ${opt.detail}`, { fg: '#6e7681', dim: true }));
+			if (opt.detail) rows.push(style(`   ${opt.detail}`, { fg: theme.textSecondary, dim: true }));
 		}
 		return rows;
 	}

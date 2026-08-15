@@ -92,4 +92,18 @@ describe('Overlay', () => {
 		tui.openOverlay(new Overlay({ title: '选择', content: sel, width: 20 }), sel);
 		expect(tui.getFocusedComponent()).toBe(sel);
 	});
+	it('focused overlay closes on Enter and fires onClose', () => {
+		const { tui } = build();
+		let closed = false;
+		const overlay = new Overlay({
+			title: '帮助',
+			content: new Text('说明'),
+			width: 20,
+			onClose: () => (closed = true),
+		});
+		tui.openOverlay(overlay, overlay);
+		expect(overlay.focused).toBe(true);
+		expect(overlay.handleInput('\r')).toBe(true);
+		expect(closed).toBe(true);
+	});
 });

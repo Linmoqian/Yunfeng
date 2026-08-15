@@ -6,6 +6,7 @@
  * 收到可用高度（height）时只渲染视口内最近的内容行。
  */
 import { style } from '../terminal/ansi.js';
+import { getYunfengTheme, type YunfengTheme } from '../theme.js';
 import { parseKey } from '../terminal/input.js';
 import { renderMarkdown } from './markdown.js';
 import type { Component, Focusable } from './component.js';
@@ -23,13 +24,29 @@ export interface Message {
 	icon?: string;
 }
 
-const ROLE_STYLE: Record<MessageRole, { fg: string; icon: string }> = {
-	user: { fg: '#3b82f6', icon: '❯' },
-	assistant: { fg: '#22c55e', icon: '◆' },
-	tool: { fg: '#a855f7', icon: '▸' },
-	system: { fg: '#8b949e', icon: 'ℹ' },
-	error: { fg: '#ef4444', icon: '✗' },
+const ROLE_ICON: Record<MessageRole, string> = {
+	user: '❯',
+	assistant: '◆',
+	tool: '▸',
+	system: 'ℹ',
+	error: '✗',
 };
+
+/** 角色色跟随 Yunfeng 语义 token：用户=品牌，助手=成功，工具=信息，错误=错误色 */
+function roleColor(role: MessageRole, theme: YunfengTheme): string {
+	switch (role) {
+		case 'user':
+			return theme.brand;
+		case 'assistant':
+			return theme.success;
+		case 'tool':
+			return theme.info;
+		case 'error':
+			return theme.error;
+		case 'system':
+			return theme.textSecondary;
+	}
+}
 
 export class Messages implements Component, Focusable {
 	items: Message[] = [];
@@ -81,15 +98,16 @@ export class Messages implements Component, Focusable {
 	}
 
 	private renderMessage(msg: Message, width: number): string[] {
-		const { fg, icon } = ROLE_STYLE[msg.role];
-		const header = style(`${icon} ${msg.from}`, { fg });
+		const theme = getYunfengTheme();
+		const icon = msg.icon ?? ROLE_ICON[msg.role];
+		const header = style(`${icon} ${msg.from}`, { fg: roleColor(msg.role, theme) });
 		const lines: string[] = [`${header}`];
 		// 消息内容按 markdown 渲染（支持标题/粗体/代码块/列表等）
 		for (const raw of renderMarkdown(msg.content || '', Math.max(1, width - 2))) {
 			lines.push(`  ${raw}`);
 		}
 		if (msg.meta) {
-			lines.push(style(`  ${msg.meta}`, { fg: '#6e7681', dim: true }));
+			lines.push(style(`  ${msg.meta}`, { fg: getYunfengTheme().textSecondary, dim: true }));
 		}
 		return lines;
 	}

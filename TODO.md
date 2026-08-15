@@ -43,4 +43,5 @@
 - [x] yunfeng-cli CLI 入口：@yunfeng/cli 接入 TUI（createApp/main/bin）+ cli 架构文档
 - [x] yunfeng-cli TUI 参考 pi 补全：StdinBuffer 输入缓冲 / Markdown 渲染 / Editor 撤销与词跳 / fuzzy 过滤
 - [x] yunfeng-cli TUI 模仿 pi：提交语义 onSubmit / 主题系统 / 自动补全 / Loader spinner
+- [x] yunfeng-cli TUI 应用壳：Yunfeng 设计 token 主题（明暗 + OSC 探测）、品牌 Header、斜杠命令（/help /clear /model /theme /quit）与 fullscreen 选项
 - [x] 修复任务 API 错误返回 HTTP 200 的问题（结构化错误恢复真实 4xx/5xx）

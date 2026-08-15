@@ -3,6 +3,7 @@
  * 数据由 info() 提供（接入 agent 后填充真实数值）。
  */
 import { style } from '../terminal/ansi.js';
+import { getYunfengTheme } from '../theme.js';
 import type { Component } from './component.js';
 
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
@@ -57,6 +58,7 @@ export class StatusBar implements Component {
 
 		const padding = Math.max(1, width - left.length - right.length - 2);
 		const line = `${left}${' '.repeat(padding)} ${right} `;
-		return [style(line, { bg: '#21262d', fg: '#8b949e' })];
+		const theme = getYunfengTheme();
+		return [style(line, { bg: theme.surface, fg: theme.textSecondary })];
 	}
 }

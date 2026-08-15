@@ -4,6 +4,7 @@
  * 通过 CURSOR_MARKER 将硬件光标定位到当前字符，支持 IME。
  */
 import { style } from '../terminal/ansi.js';
+import { getYunfengTheme } from '../theme.js';
 import { truncateToWidth } from '../utils.js';
 import { parseKey } from '../terminal/input.js';
 import type { AutocompleteProvider, Suggestion } from '../autocomplete.js';
@@ -44,8 +45,8 @@ export interface EditorTheme {
 }
 
 export const DEFAULT_EDITOR_THEME: EditorTheme = {
-	prompt: (t) => style(t, { fg: '#8b949e' }),
-	text: (t) => style(t, { fg: '#c9d1d9' }),
+	prompt: (t) => style(t, { fg: getYunfengTheme().textTertiary }),
+	text: (t) => style(t, { fg: getYunfengTheme().text }),
 };
 
 export interface EditorOptions {
