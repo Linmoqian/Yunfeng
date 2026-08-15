@@ -1,0 +1,11 @@
+{
+	"name": "@yunfeng/ai",
+	"version": "0.0.0",
+	"description": "Yunfeng LLM layer (placeholder, not yet implemented)",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"build": "echo 'placeholder'",
+		"test": "echo 'placeholder'"
+	}
+}
