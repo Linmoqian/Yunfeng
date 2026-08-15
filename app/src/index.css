@@ -1405,6 +1405,37 @@ button:not(:disabled):active {
   max-height: 66vh;
   object-fit: contain;
 }
+.rustdesk-body {
+  background: var(--yf-bg-canvas);
+  padding: 16px;
+}
+.rustdesk-info {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+}
+.rustdesk-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--yf-border-default);
+  border-radius: var(--yf-radius-md);
+  padding: 12px 14px;
+  background: var(--yf-bg-surface);
+}
+.rustdesk-field span {
+  width: 90px;
+  flex: 0 0 auto;
+  color: var(--yf-text-secondary);
+  font-size: 12px;
+}
+.rustdesk-field strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  word-break: break-all;
+}
 .remote-footer {
   justify-content: flex-end;
 }

@@ -17,7 +17,7 @@
 
 ### 行数阈值（简约的硬下限）
 
-- 后端 TS 模块 ≤ 400 行
+- 后端 TS 模块 ≤ 400 行（vendor/rustdesk 为第三方 submodule，不适用本规则）
 - 前端 TS/TSX 模块 ≤ 300 行
 - CSS 文件 ≤ 300 行（设计 token 文件除外，如 `index.css` 的 @theme 与 docs/design/yunfeng-tokens.css）
 - 单个函数 ≤ 50 行

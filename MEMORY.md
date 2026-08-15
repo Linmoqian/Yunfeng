@@ -8,4 +8,4 @@
 - 移动端前端用 Vitest 覆盖 GatewayClient；后端用 node --test 覆盖账号/远程桌面。
 - 项目规则维护在 `RULES.md`（简约、模块化、行数阈值、契约同步）。
 - yunfeng-mobile（仓库根目录，与 app/ 独立）：Tauri 2 + Vite + React + Tailwind v4 移动端薄客户端，只做 UI + API 调用（任务/对话走 gateway，远程屏幕走移动后端 WS）。
-- yunfeng-mobile-backend（仓库根目录）：电脑侧轻量移动后端，Node 24 + ws + node:sqlite；账号=配对码+设备 token（sha256 落库）；远程桌面=screencapture JPEG 帧 + bin/yf-input（CGEvent 注入）；不桥接 sidecar/Agent。启动输出 YF_MOBILE_READY。v1 局域网直连，云端中继/WebRTC/完整账号为扩展位。
+- yunfeng-mobile-backend（仓库根目录）：电脑侧轻量移动后端，Node 24 + node:sqlite；账号=配对码+设备 token（sha256 落库）；远程桌面=内嵌 RustDesk sidecar（vendor/rustdesk 固定 1.4.9，AGPL-3.0；官方二进制下载到 bin/rustdesk 不提交），首次启动返回一次性密码；自研 JPEG/CGEvent 仅作 fallback。启动输出 YF_MOBILE_READY。

@@ -64,6 +64,7 @@ npm test                              # node --test
 - 移动端不维护任务/对话事实副本：电脑侧 server 是唯一事实来源，断线恢复依赖 SSE `Last-Event-ID`。
 - 两个后端必须同时运行时：yunfeng-gateway 默认 `8787`，yunfeng-mobile-backend 默认 `8788`，避免端口冲突。
 - 网关 token 与移动后端设备 token 相互独立；token 不进入仓库、不进入请求日志。
+- RustDesk 为 AGPL-3.0：当前是官方构建产物独立进程 + 源码 submodule 固定 1.4.9；任何源码修改/链接前必须重新做许可评估。
 - 类型契约：移动端 `app/src/lib/types.ts` 镜像 yunfeng-server 任务 API；改动网关白名单/任务契约需同步实现、测试与文档。
 - 前端单测 Vitest（`src/**/*.test.ts`）；移动后端 node --test；集成验证 `test/smoke.mjs`。
 - 项目开发规则见根目录 `RULES.md`（简约/模块化/行数阈值/分层）。

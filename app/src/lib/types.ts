@@ -121,25 +121,8 @@ export interface TaskIntervention {
   resolvedAt?: string;
 }
 
-// ---- 移动后端（配对 + 远程桌面）----
+// ---- 移动后端（配对 + RustDesk sidecar）----
 export interface PairResult {
   deviceId: string;
   token: string;
-}
-
-export interface DesktopInput {
-  kind: "move" | "click" | "scroll" | "key";
-  x?: number;
-  y?: number;
-  button?: "left" | "right";
-  dy?: number;
-  keyCode?: number;
-  down?: boolean;
-}
-
-export interface DesktopFrame {
-  type: "desktop.frame";
-  seq: number;
-  mime: string;
-  data: string;
 }

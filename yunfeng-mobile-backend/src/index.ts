@@ -1,5 +1,5 @@
-// 装配：HTTP(REST 配对/设备) + WebSocket（远程桌面）、账号、生命周期。
-// 职责收敛为“轻量移动后端”：配对与设备 token + 调用电脑屏幕。
+// 装配：HTTP(REST 配对/设备/RustDesk) + WebSocket（远程桌面 fallback）、账号、生命周期。
+// 职责收敛为“轻量移动后端”：配对与设备 token + RustDesk sidecar 生命周期。
 // 任务与对话由电脑侧 yunfeng-server + yunfeng-gateway 提供，移动端直连网关。
 
 import { mkdtempSync } from "node:fs";
@@ -18,11 +18,13 @@ import {
   type InputSender,
 } from "./desktop.ts";
 import { Hub } from "./hub.ts";
+import { RustDeskSidecar, type RustDeskMode } from "./rustdesk.ts";
 
 export interface Backend {
   server: Server;
   accounts: Accounts;
   hub: Hub;
+  rustdesk: RustDeskSidecar;
   config: Config;
   close: () => Promise<void>;
 }
@@ -30,6 +32,7 @@ export interface Backend {
 export interface BackendOverrides {
   captureOnce?: CaptureOnce;
   inputSender?: InputSender;
+  rustdesk?: RustDeskSidecar;
 }
 
 function json(res: ServerResponse, status: number, data: unknown): void {
@@ -64,6 +67,7 @@ async function handleHttp(
   req: IncomingMessage,
   res: ServerResponse,
   accounts: Accounts,
+  rustdesk: RustDeskSidecar,
 ): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname;
@@ -99,6 +103,42 @@ async function handleHttp(
   }
 
   const device = accounts.auth(bearerToken(req));
+
+  // RustDesk sidecar（内嵌版）：配对设备可启动/停止并读取连接信息。
+  if (method === "GET" && path === "/api/rustdesk/info") {
+    if (!device) {
+      json(res, 401, { error: "unauthorized" });
+      return;
+    }
+    json(res, 200, await rustdesk.info());
+    return;
+  }
+  if (method === "POST" && path === "/api/rustdesk/start") {
+    if (!device) {
+      json(res, 401, { error: "unauthorized" });
+      return;
+    }
+    const body = await readJsonBody(req);
+    const mode: RustDeskMode = body.mode === "gui" ? "gui" : "service";
+    try {
+      const password = await rustdesk.start(mode);
+      const info = await rustdesk.info();
+      json(res, 200, { ok: true, ...(password ? { password } : {}), ...info });
+    } catch (e) {
+      json(res, 500, { error: e instanceof Error ? e.message : String(e) });
+    }
+    return;
+  }
+  if (method === "POST" && path === "/api/rustdesk/stop") {
+    if (!device) {
+      json(res, 401, { error: "unauthorized" });
+      return;
+    }
+    await rustdesk.stop();
+    json(res, 200, { ok: true });
+    return;
+  }
+
   if (method === "GET" && path === "/api/devices") {
     if (!device) {
       json(res, 401, { error: "unauthorized" });
@@ -130,9 +170,10 @@ export function createBackend(config: Config, overrides: BackendOverrides = {}):
     (process.platform === "darwin" ? screencaptureCaptureOnce(tmpDir) : undefined);
   const helperPath = join(import.meta.dirname, "..", "bin", "yf-input");
   const inputSender = overrides.inputSender ?? swiftInputSender(helperPath);
+  const rustdesk = overrides.rustdesk ?? new RustDeskSidecar();
 
   const server = createServer((req, res) => {
-    void handleHttp(req, res, accounts).catch((e: unknown) => {
+    void handleHttp(req, res, accounts, rustdesk).catch((e: unknown) => {
       json(res, 500, { error: e instanceof Error ? e.message : String(e) });
     });
   });
@@ -149,11 +190,11 @@ export function createBackend(config: Config, overrides: BackendOverrides = {}):
       hub.close();
       server.close(() => {
         db.close();
-        resolve();
+        void rustdesk.stop().finally(resolve);
       });
     });
 
-  return { server, accounts, hub, config, close };
+  return { server, accounts, hub, rustdesk, config, close };
 }
 
 const isMain =

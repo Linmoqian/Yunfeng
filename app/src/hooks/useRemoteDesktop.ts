@@ -1,23 +1,35 @@
-// 远程桌面查看：配对后经移动后端 WebSocket 接收电脑屏幕帧。
-// 只做展示与停止；输入注入能力保留在协议层（sendInput），UI 后续按需开放。
+// 远程桌面：配对后调用电脑侧 yunfeng-mobile-backend 管理的内嵌 RustDesk。
+// 移动端不渲染屏幕帧，而是打开 RustDesk 官方 App 连接（rustdesk://<id>）。
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DesktopFrame, DesktopInput, PairResult } from "../lib/types";
+import type { PairResult } from "../lib/types";
 
 const BACKEND_KEY = "yf-mobile-backend-url";
 const TOKEN_KEY = "yf-mobile-device-token";
 
+export interface RustDeskConnectionInfo {
+  available: boolean;
+  running: boolean;
+  id: string | null;
+  passwordConfigured: boolean;
+  mode: "service" | "gui" | null;
+  binaryPath: string | null;
+  configPath: string | null;
+}
+
 export interface RemoteDesktopState {
   backendUrl: string;
   token: string;
-  status: "idle" | "connecting" | "running" | "error";
-  frame: DesktopFrame | null;
+  status: "idle" | "starting" | "running" | "error";
+  info: RustDeskConnectionInfo | null;
+  password: string | null;
   error: string | null;
   pair: (baseUrl: string, code: string, name?: string) => Promise<PairResult>;
   setBackendUrl: (url: string) => void;
-  start: (fps?: number) => void;
-  stop: () => void;
-  sendInput: (input: DesktopInput) => void;
+  start: (mode?: "service" | "gui") => Promise<void>;
+  stop: () => Promise<void>;
+  refreshInfo: () => Promise<void>;
+  openRustDeskApp: () => void;
   clearToken: () => void;
 }
 
@@ -33,9 +45,9 @@ export function useRemoteDesktop(): RemoteDesktopState {
   const [backendUrl, setBackendUrlState] = useState(initial.backendUrl);
   const [token, setToken] = useState(initial.token);
   const [status, setStatus] = useState<RemoteDesktopState["status"]>("idle");
-  const [frame, setFrame] = useState<DesktopFrame | null>(null);
+  const [info, setInfo] = useState<RustDeskConnectionInfo | null>(null);
+  const [password, setPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const socketRef = useRef<WebSocket | null>(null);
 
   const setBackendUrl = useCallback((url: string) => {
     const normalized = url.trim().replace(/\/+$/, "");
@@ -50,7 +62,7 @@ export function useRemoteDesktop(): RemoteDesktopState {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, name }),
     });
-    if (!response.ok) {
+    if (response.ok === false) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };
       throw new Error(body.error ?? `HTTP ${response.status}`);
     }
@@ -62,86 +74,98 @@ export function useRemoteDesktop(): RemoteDesktopState {
     return result;
   }, []);
 
-  const closeSocket = useCallback(() => {
-    socketRef.current?.close();
-    socketRef.current = null;
-  }, []);
+  const authHeaders = useCallback(
+    () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }),
+    [token],
+  );
 
-  const start = useCallback((fps = 2) => {
-    if (!backendUrl || !token) {
-      setError("请先配置移动后端地址并完成配对");
-      setStatus("error");
-      return;
+  const refreshInfo = useCallback(async () => {
+    if (backendUrl === "" || token === "") return;
+    const response = await fetch(`${backendUrl}/api/rustdesk/info`, {
+      headers: authHeaders(),
+    });
+    if (response.ok === false) {
+      throw new Error(`HTTP ${response.status}`);
     }
-    closeSocket();
-    setError(null);
-    setStatus("connecting");
-    const wsUrl = `${backendUrl.replace(/^http/, "ws")}/ws?token=${encodeURIComponent(token)}`;
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: "desktop.start", id: "start", fps }));
-    };
-    socket.onmessage = (message) => {
-      try {
-        const msg = JSON.parse(message.data as string) as Record<string, unknown>;
-        if (msg.type === "rpc.response" && msg.id === "start" && msg.ok === true) {
-          setStatus("running");
-        } else if (msg.type === "desktop.frame") {
-          setFrame(msg as unknown as DesktopFrame);
-        } else if (msg.type === "desktop.stopped") {
-          setStatus("idle");
-        } else if (msg.type === "error") {
-          setError(String(msg.message ?? "远程桌面错误"));
-          setStatus("error");
-        }
-      } catch {
-        // 忽略坏帧消息
+    setInfo((await response.json()) as RustDeskConnectionInfo);
+  }, [authHeaders, backendUrl, token]);
+
+  const start = useCallback(
+    async (mode: "service" | "gui" = "service") => {
+      if (backendUrl === "" || token === "") {
+        setError("请先配置移动后端地址并完成配对");
+        setStatus("error");
+        return;
       }
-    };
-    socket.onerror = () => {
-      setError("远程桌面连接失败");
-      setStatus("error");
-    };
-    socket.onclose = () => {
-      setStatus((current) => (current === "running" || current === "connecting" ? "idle" : current));
-    };
-  }, [backendUrl, closeSocket, token]);
+      setStatus("starting");
+      setError(null);
+      try {
+        const response = await fetch(`${backendUrl}/api/rustdesk/start`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ mode }),
+        });
+        const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+        if (response.ok === false || body.ok === false) {
+          throw new Error(typeof body.error === "string" ? body.error : `HTTP ${response.status}`);
+        }
+        setInfo(body as unknown as RustDeskConnectionInfo);
+        setPassword(typeof body.password === "string" ? body.password : null);
+        setStatus(body.available === true ? "running" : "error");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        setStatus("error");
+      }
+    },
+    [authHeaders, backendUrl, token],
+  );
 
-  const stop = useCallback(() => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "desktop.stop", id: "stop" }));
+  const stop = useCallback(async () => {
+    if (backendUrl === "" || token === "") return;
+    try {
+      await fetch(`${backendUrl}/api/rustdesk/stop`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+    } finally {
+      setStatus("idle");
+      setPassword(null);
+      await refreshInfo().catch(() => {});
     }
-    closeSocket();
-    setFrame(null);
-    setStatus("idle");
-  }, [closeSocket]);
+  }, [authHeaders, backendUrl, refreshInfo, token]);
 
-  const sendInput = useCallback((input: DesktopInput) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "desktop.input", input }));
+  const openRustDeskApp = useCallback(() => {
+    if (info?.id) {
+      // RustDesk Android 已注册 rustdesk:// 深链；无法打开时提示用户手动输入 ID。
+      window.location.href = `rustdesk://${encodeURIComponent(info.id)}`;
     }
-  }, []);
+  }, [info?.id]);
 
   const clearToken = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken("");
-    stop();
-  }, [stop]);
+    setInfo(null);
+    setPassword(null);
+    setStatus("idle");
+  }, []);
 
-  useEffect(() => () => closeSocket(), [closeSocket]);
+  useEffect(() => {
+    void refreshInfo().catch(() => {});
+  }, [refreshInfo]);
 
   return {
     backendUrl,
     token,
     status,
-    frame,
+    info,
+    password,
     error,
     pair,
     setBackendUrl,
     start,
     stop,
-    sendInput,
+    refreshInfo,
+    openRustDeskApp,
     clearToken,
   };
 }

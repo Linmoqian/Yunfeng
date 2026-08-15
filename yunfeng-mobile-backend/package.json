@@ -13,7 +13,8 @@
     "test": "node --test \"test/*.test.ts\"",
     "smoke": "node test/smoke.mjs",
     "build:native": "bash scripts/build-native.sh",
-    "cli": "node scripts/yf-cli.mjs"
+    "cli": "node scripts/yf-cli.mjs",
+    "setup:rustdesk": "node scripts/setup-rustdesk.mjs"
   },
   "dependencies": {
     "ws": "^8.18.1"
