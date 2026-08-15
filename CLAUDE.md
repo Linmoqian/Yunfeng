@@ -59,6 +59,8 @@ npm test                              # node --test
 
 ## 关键约定与注意
 
+- 设计语言与桌面端共用 Yunfeng Design Tokens：`docs/design/yunfeng-tokens.css`（颜色/圆角/阴影，明暗双主题）；移动端 `app/src/index.css` 只做 yf token → 旧变量/Tailwind 的兼容映射，新增样式直接使用 `--yf-*`。
+
 - 移动端不维护任务/对话事实副本：电脑侧 server 是唯一事实来源，断线恢复依赖 SSE `Last-Event-ID`。
 - 两个后端必须同时运行时：yunfeng-gateway 默认 `8787`，yunfeng-mobile-backend 默认 `8788`，避免端口冲突。
 - 网关 token 与移动后端设备 token 相互独立；token 不进入仓库、不进入请求日志。

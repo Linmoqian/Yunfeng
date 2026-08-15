@@ -1,0 +1,58 @@
+/* ============================================================
+ * 云枫 Yunfeng Design Tokens — Tailwind CSS v4 主题映射
+ *
+ * 用法：
+ *   1. 先引入 yunfeng-tokens.css（提供明暗双主题变量）
+ *   2. 再引入本文件，即可使用 Tailwind 工具类：
+ *      bg-yf-canvas  text-yf-primary  border-yf-default
+ *      bg-yf-brand-primary  text-yf-semantic-error
+ *      rounded-yf-md  shadow-yf-lg
+ *
+ * @theme inline 保留 var() 运行时引用，切换 data-theme 即全局换肤
+ * ========================================================== */
+
+@import "tailwindcss";
+@import "./yunfeng-tokens.css";
+
+@theme inline {
+  /* Brand */
+  --color-yf-brand-primary: var(--yf-brand-primary);
+  --color-yf-brand-hover: var(--yf-brand-hover);
+  --color-yf-brand-on-primary: var(--yf-brand-on-primary);
+
+  /* Background */
+  --color-yf-canvas: var(--yf-bg-canvas);
+  --color-yf-secondary: var(--yf-bg-secondary);
+  --color-yf-surface: var(--yf-bg-surface);
+  --color-yf-elevated: var(--yf-bg-elevated);
+
+  /* Text */
+  --color-yf-primary: var(--yf-text-primary);
+  --color-yf-secondary-text: var(--yf-text-secondary);
+  --color-yf-tertiary: var(--yf-text-tertiary);
+
+  /* Border */
+  --color-yf-default: var(--yf-border-default);
+  --color-yf-divider: var(--yf-border-divider);
+
+  /* Semantic */
+  --color-yf-semantic-success: var(--yf-semantic-success);
+  --color-yf-semantic-warning: var(--yf-semantic-warning);
+  --color-yf-semantic-error: var(--yf-semantic-error);
+  --color-yf-semantic-info: var(--yf-semantic-info);
+
+  /* Radius */
+  --radius-yf-none: var(--yf-radius-none);
+  --radius-yf-xs: var(--yf-radius-xs);
+  --radius-yf-sm: var(--yf-radius-sm);
+  --radius-yf-md: var(--yf-radius-md);
+  --radius-yf-lg: var(--yf-radius-lg);
+  --radius-yf-xl: var(--yf-radius-xl);
+  --radius-yf-pill: var(--yf-radius-pill);
+
+  /* Shadow */
+  --shadow-yf-sm: var(--yf-shadow-sm);
+  --shadow-yf-md: var(--yf-shadow-md);
+  --shadow-yf-lg: var(--yf-shadow-lg);
+  --shadow-yf-xl: var(--yf-shadow-xl);
+}
