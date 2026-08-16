@@ -1,7 +1,9 @@
 // Yunfeng 桌面端外壳：
-// - 窗口 + 系统托盘
+// - 窗口 + 系统托盘（状态展示与分项快捷操作见 tray.rs）
 // - 一键启动编排：yunfeng-server + yunfeng-gateway + yunfeng-mobile-backend + RustDesk
 // - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 PI_CODING_AGENT_DIR
+
+mod tray;
 
 use std::{
     io::{BufRead, BufReader},
@@ -12,11 +14,7 @@ use std::{
 };
 
 use serde::Serialize;
-use tauri::{
-    menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
-    Emitter, Manager, RunEvent, State, WindowEvent,
-};
+use tauri::{Emitter, Manager, RunEvent, State};
 
 const SERVER_PORT: u16 = 8000;
 const GATEWAY_PORT: u16 = 8787;
@@ -63,18 +61,18 @@ struct RustDeskState {
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct ServiceStatus {
-    running: bool,
-    port: Option<u16>,
-    info: Option<String>,
+pub struct ServiceStatus {
+    pub running: bool,
+    pub port: Option<u16>,
+    pub info: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct RustDeskStatus {
-    available: bool,
-    running: bool,
-    binary: Option<String>,
+pub struct RustDeskStatus {
+    pub available: bool,
+    pub running: bool,
+    pub binary: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -374,7 +372,7 @@ fn monitor_service(
     );
 }
 
-fn service_status(state: &Arc<Mutex<Option<ServiceChild>>>) -> ServiceStatus {
+pub(crate) fn service_status(state: &Arc<Mutex<Option<ServiceChild>>>) -> ServiceStatus {
     let mut guard = state.lock().unwrap();
     let running = if let Some(entry) = guard.as_mut() {
         entry.child.try_wait().ok().flatten().is_none()
@@ -398,7 +396,7 @@ fn service_status(state: &Arc<Mutex<Option<ServiceChild>>>) -> ServiceStatus {
     }
 }
 
-fn stop_service(state: &Arc<Mutex<Option<ServiceChild>>>) {
+pub(crate) fn stop_service(state: &Arc<Mutex<Option<ServiceChild>>>) {
     let mut guard = state.lock().unwrap();
     if let Some(mut entry) = guard.take() {
         let _ = entry.child.kill();
@@ -448,10 +446,9 @@ fn rustdesk_binary() -> Option<PathBuf> {
     None
 }
 
-fn rustdesk_status_impl(state: &RustDeskState) -> RustDeskStatus {
+pub(crate) fn rustdesk_status_impl(child: &Arc<Mutex<Option<Child>>>) -> RustDeskStatus {
     let binary = rustdesk_binary();
-    let running = state
-        .child
+    let running = child
         .lock()
         .unwrap()
         .as_mut()
@@ -464,13 +461,15 @@ fn rustdesk_status_impl(state: &RustDeskState) -> RustDeskStatus {
     }
 }
 
-fn rustdesk_open_impl(state: &RustDeskState) -> Result<RustDeskStatus, String> {
+pub(crate) fn rustdesk_open_impl(
+    child: &Arc<Mutex<Option<Child>>>,
+) -> Result<RustDeskStatus, String> {
     let binary = rustdesk_binary().ok_or_else(|| "未找到 RustDesk".to_string())?;
-    let mut child = Command::new(&binary)
+    let mut child_handle = Command::new(&binary)
         .spawn()
         .map_err(|error| format!("启动 RustDesk 失败: {error}"))?;
-    let running = child.try_wait().ok().flatten().is_none();
-    *state.child.lock().unwrap() = if running { Some(child) } else { None };
+    let running = child_handle.try_wait().ok().flatten().is_none();
+    *child.lock().unwrap() = if running { Some(child_handle) } else { None };
     Ok(RustDeskStatus {
         available: true,
         running,
@@ -478,10 +477,10 @@ fn rustdesk_open_impl(state: &RustDeskState) -> Result<RustDeskStatus, String> {
     })
 }
 
-fn rustdesk_close_impl(state: &RustDeskState) {
-    if let Some(mut child) = state.child.lock().unwrap().take() {
-        let _ = child.kill();
-        let _ = child.wait();
+pub(crate) fn rustdesk_close_impl(child: &Arc<Mutex<Option<Child>>>) {
+    if let Some(mut child_handle) = child.lock().unwrap().take() {
+        let _ = child_handle.kill();
+        let _ = child_handle.wait();
     }
 }
 
@@ -511,18 +510,18 @@ fn orchestration_status(
         server: service_status(&server.inner),
         gateway: service_status(&gateway.inner),
         mobile_backend: service_status(&mobile_backend.inner),
-        rustdesk: rustdesk_status_impl(&rustdesk),
+        rustdesk: rustdesk_status_impl(&rustdesk.child),
     }
 }
 
-#[tauri::command]
-fn start_server(
+/// 启动 server 服务；与 #[tauri::command] 包装分离，供托盘等内部模块复用。
+pub(crate) fn spawn_server_service(
     app: tauri::AppHandle,
-    state: State<'_, ServerState>,
+    inner: Arc<Mutex<Option<ServiceChild>>>,
 ) -> Result<ServiceStatus, String> {
     let (command, args) = server_service()?;
     spawn_service(
-        state.inner.clone(),
+        inner,
         app,
         (command, args),
         env_port("YUNFENG_SERVER_PORT", SERVER_PORT),
@@ -532,18 +531,25 @@ fn start_server(
 }
 
 #[tauri::command]
+fn start_server(
+    app: tauri::AppHandle,
+    state: State<'_, ServerState>,
+) -> Result<ServiceStatus, String> {
+    spawn_server_service(app, state.inner.clone())
+}
+
+#[tauri::command]
 fn stop_server(state: State<'_, ServerState>) {
     stop_service(&state.inner);
 }
 
-#[tauri::command]
-fn start_gateway(
+pub(crate) fn spawn_gateway_service(
     app: tauri::AppHandle,
-    state: State<'_, GatewayState>,
+    inner: Arc<Mutex<Option<ServiceChild>>>,
 ) -> Result<ServiceStatus, String> {
     let (command, args) = gateway_service(env_port("YUNFENG_SERVER_PORT", SERVER_PORT))?;
     spawn_service(
-        state.inner.clone(),
+        inner,
         app,
         (command, args),
         env_port("YUNFENG_GATEWAY_PORT", GATEWAY_PORT),
@@ -553,18 +559,25 @@ fn start_gateway(
 }
 
 #[tauri::command]
+fn start_gateway(
+    app: tauri::AppHandle,
+    state: State<'_, GatewayState>,
+) -> Result<ServiceStatus, String> {
+    spawn_gateway_service(app, state.inner.clone())
+}
+
+#[tauri::command]
 fn stop_gateway(state: State<'_, GatewayState>) {
     stop_service(&state.inner);
 }
 
-#[tauri::command]
-fn start_mobile_backend(
+pub(crate) fn spawn_mobile_backend_service(
     app: tauri::AppHandle,
-    state: State<'_, MobileBackendState>,
+    inner: Arc<Mutex<Option<ServiceChild>>>,
 ) -> Result<ServiceStatus, String> {
     let (command, args) = mobile_backend_service()?;
     spawn_service(
-        state.inner.clone(),
+        inner,
         app,
         (command, args),
         env_port("YUNFENG_MOBILE_BACKEND_PORT", MOBILE_BACKEND_PORT),
@@ -574,21 +587,29 @@ fn start_mobile_backend(
 }
 
 #[tauri::command]
+fn start_mobile_backend(
+    app: tauri::AppHandle,
+    state: State<'_, MobileBackendState>,
+) -> Result<ServiceStatus, String> {
+    spawn_mobile_backend_service(app, state.inner.clone())
+}
+
+#[tauri::command]
 fn stop_mobile_backend(state: State<'_, MobileBackendState>) {
     stop_service(&state.inner);
 }
 
-#[tauri::command]
-fn start_all(
+/// 启动全部服务；内部复用函数，供托盘与启动编排调用。
+pub(crate) fn start_all_inner(
     app: tauri::AppHandle,
-    server: State<'_, ServerState>,
-    gateway: State<'_, GatewayState>,
-    mobile_backend: State<'_, MobileBackendState>,
-    rustdesk: State<'_, RustDeskState>,
+    server: Arc<Mutex<Option<ServiceChild>>>,
+    gateway: Arc<Mutex<Option<ServiceChild>>>,
+    mobile_backend: Arc<Mutex<Option<ServiceChild>>>,
+    rustdesk: Arc<Mutex<Option<Child>>>,
 ) -> Result<OrchestrationStatus, String> {
-    let server_status = start_server(app.clone(), server)?;
-    let gateway_status = start_gateway(app.clone(), gateway)?;
-    let mobile_backend_status = start_mobile_backend(app.clone(), mobile_backend)?;
+    let server_status = spawn_server_service(app.clone(), server)?;
+    let gateway_status = spawn_gateway_service(app.clone(), gateway)?;
+    let mobile_backend_status = spawn_mobile_backend_service(app.clone(), mobile_backend)?;
     let rustdesk_status =
         rustdesk_open_impl(&rustdesk).unwrap_or_else(|_| rustdesk_status_impl(&rustdesk));
     Ok(OrchestrationStatus {
@@ -600,31 +621,62 @@ fn start_all(
 }
 
 #[tauri::command]
+fn start_all(
+    app: tauri::AppHandle,
+    server: State<'_, ServerState>,
+    gateway: State<'_, GatewayState>,
+    mobile_backend: State<'_, MobileBackendState>,
+    rustdesk: State<'_, RustDeskState>,
+) -> Result<OrchestrationStatus, String> {
+    start_all_inner(
+        app,
+        server.inner.clone(),
+        gateway.inner.clone(),
+        mobile_backend.inner.clone(),
+        rustdesk.child.clone(),
+    )
+}
+
+pub(crate) fn stop_all_inner(
+    server: &Arc<Mutex<Option<ServiceChild>>>,
+    gateway: &Arc<Mutex<Option<ServiceChild>>>,
+    mobile_backend: &Arc<Mutex<Option<ServiceChild>>>,
+    rustdesk: &Arc<Mutex<Option<Child>>>,
+) {
+    stop_service(server);
+    stop_service(gateway);
+    stop_service(mobile_backend);
+    rustdesk_close_impl(rustdesk);
+}
+
+#[tauri::command]
 fn stop_all(
     server: State<'_, ServerState>,
     gateway: State<'_, GatewayState>,
     mobile_backend: State<'_, MobileBackendState>,
     rustdesk: State<'_, RustDeskState>,
 ) {
-    stop_service(&server.inner);
-    stop_service(&gateway.inner);
-    stop_service(&mobile_backend.inner);
-    rustdesk_close_impl(&rustdesk);
+    stop_all_inner(
+        &server.inner,
+        &gateway.inner,
+        &mobile_backend.inner,
+        &rustdesk.child,
+    );
 }
 
 #[tauri::command]
 fn rustdesk_open(state: State<'_, RustDeskState>) -> Result<RustDeskStatus, String> {
-    rustdesk_open_impl(&state)
+    rustdesk_open_impl(&state.child)
 }
 
 #[tauri::command]
 fn rustdesk_close(state: State<'_, RustDeskState>) {
-    rustdesk_close_impl(&state);
+    rustdesk_close_impl(&state.child);
 }
 
 #[tauri::command]
 fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
-    rustdesk_status_impl(&state)
+    rustdesk_status_impl(&state.child)
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -633,52 +685,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(MobileBackendState::default());
     app.manage(RustDeskState::default());
 
-    let show = MenuItem::with_id(app, "show", "显示 Yunfeng", true, None::<&str>)?;
-    let start_all_item = MenuItem::with_id(app, "start-all", "启动全部服务", true, None::<&str>)?;
-    let stop_all_item = MenuItem::with_id(app, "stop-all", "停止全部服务", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &start_all_item, &stop_all_item, &quit])?;
-    let icon = app.default_window_icon().cloned().ok_or("缺少窗口图标")?;
-    TrayIconBuilder::with_id("main-tray")
-        .icon(icon)
-        .menu(&menu)
-        .show_menu_on_left_click(false)
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "show" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
-            }
-            "start-all" => {
-                let _ = start_all(
-                    app.clone(),
-                    app.state::<ServerState>(),
-                    app.state::<GatewayState>(),
-                    app.state::<MobileBackendState>(),
-                    app.state::<RustDeskState>(),
-                );
-            }
-            "stop-all" => stop_all(
-                app.state::<ServerState>(),
-                app.state::<GatewayState>(),
-                app.state::<MobileBackendState>(),
-                app.state::<RustDeskState>(),
-            ),
-            "quit" => app.exit(0),
-            _ => {}
-        })
-        .build(app)?;
-
-    if let Some(window) = app.get_webview_window("main") {
-        let handle = window.clone();
-        window.on_window_event(move |event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = handle.hide();
-            }
-        });
-    }
+    tray::setup(app)?;
 
     // 自动拉起全部后端服务。
     let app_handle = app.handle().clone();
@@ -729,7 +736,7 @@ pub fn run() {
                 let mobile_backend = app.state::<MobileBackendState>();
                 stop_service(&mobile_backend.inner);
                 let rustdesk = app.state::<RustDeskState>();
-                rustdesk_close_impl(&rustdesk);
+                rustdesk_close_impl(&rustdesk.child);
             }
         });
 }
