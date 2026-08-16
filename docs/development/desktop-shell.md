@@ -5,7 +5,7 @@
 ## 职责
 
 - 窗口：承载 `app/dist`（Vite 构建产物）。
-- 托盘：`显示 Yunfeng` / `启动全部服务` / `停止全部服务` / `退出`。
+- 托盘：`显示 Yunfeng`、Server / 网关 / 移动后端 / RustDesk 四项状态（含端口与配对码，2s 周期刷新文本与 tooltip）、分项启动/停止子菜单、`启动全部服务` / `停止全部服务`、`复制连接信息`（网关地址 + token + 配对码，走 pbcopy/clip/wl-copy 平台命令，尽力而为）、`退出`。
 - 关闭窗口按钮：隐藏到托盘，不退出。
 - 自动启动编排：启动外壳时按顺序拉起
   1. `yunfeng-server`（127.0.0.1:8000）
@@ -13,6 +13,7 @@
   3. `yunfeng-mobile-backend`（0.0.0.0:8788，自动生成配对码）
   4. RustDesk（如已安装）
 - 退出外壳时停止以上所有子进程。
+- 托盘菜单构建与状态同步在 `app/src-tauri/src/tray.rs`；命令包装与内部实现分离（`spawn_*_service` / `start_all_inner` 等 `pub(crate)` 函数供托盘与编排复用）。
 
 ## 运行
 
@@ -63,6 +64,6 @@ cd ../app && npm install && npm run tauri dev
 ## 注意事项
 
 - `YUNFENG_RUNTIME_HOME` 是解决系统 HOME 受保护时 `~/.pi/agent` 写入失败的关键开关；需要把模型配置复制到该 HOME（`cp -R ~/.pi <runtime-home>/.pi`）。
-- gateway token 与 mobile-backend 配对码在每次自动生成时会打印到外壳 stdout，并通过 Tauri 事件暴露，请勿写入仓库。
+- gateway token 与 mobile-backend 配对码在每次自动生成时会打印到外壳 stdout，并通过 Tauri 事件与托盘状态暴露，请勿写入仓库。
 - RustDesk 的 ID/一次性密码仍由 `yunfeng-mobile-backend` 提供；外壳只负责进程启停，避免密码逻辑漂移。
-- 正式生产包需要把各后端 dist/node_modules 一并放入安装包，见 `scripts/package-backends.mjs`（待补）。
+- 生产打包：`node scripts/package-backends.mjs [--out release/yunfeng-desktop] [--skip-rustdesk]` 把各后端 dist/node_modules 与 RustDesk 组装到 `release/yunfeng-desktop`，Tauri App 通过 `YUNFENG_SERVICES_DIR=<out>` 定位这些服务；脚本产物不包含 App 二进制。

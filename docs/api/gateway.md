@@ -6,7 +6,7 @@
 | --- | --- |
 | 接口标识 | `GET /health`、`/api/tasks*`、`/api/sessions*`、`/api/models*`（网关代理契约） |
 | 用途 | 让局域网移动端安全地查看电脑中 Agent 的任务与对话，并向 Agent 发送命令 |
-| 调用方 | yunfeng-mobile 移动端应用（独立开发） |
+| 调用方 | mobile-app 移动端薄客户端 |
 | 提供方 | yunfeng-gateway（桌面端网关服务） |
 | 稳定性 | 实验性 |
 | 引入版本 | gateway 0.1.0 |

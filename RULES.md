@@ -53,7 +53,7 @@ components    展示组件，只接收 props 与 hooks 返回值，不直接 fet
 
 ### 契约
 
-- 移动端 `app/src/lib/types.ts` 与 yunfeng-server 任务 API / yunfeng-gateway 路径白名单保持镜像；接口变更需同步更新实现、测试与文档。
+- 移动端 `mobile-app/src/lib/types.ts` 与 yunfeng-server 任务 API / yunfeng-gateway 路径白名单保持镜像；接口变更需同步更新实现、测试与文档。
 - 移动后端协议只保留配对、设备管理与远程桌面；Agent 命令不再经移动后端转发。
 - 网关协议变更必须通过 gateway 的 node --test 集成测试验证。
 

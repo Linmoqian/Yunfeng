@@ -5,7 +5,7 @@
 并在入口、SSE 生命周期与上游故障处输出关键日志。
 
 ```
-移动端 (yunfeng-mobile)
+移动端 (mobile-app)
    │  HTTP/SSE + Bearer token
    ▼
 yunfeng-gateway  (默认 0.0.0.0:8787)
@@ -99,7 +99,7 @@ events.onmessage = (event) => console.log(JSON.parse(event.data));
 - 网关只转发移动端所需的 `/api/tasks*`、`/api/sessions*`、`/api/models*`；需要其他路径时显式 `--allow-all`。
 - 所有代理请求必须携带 Bearer token；`/health` 公开。token 是局域网内的完整调用能力，请妥善保管。
 - 认证 query 会被网关剥离，不会传入上游；请求/转发日志不记录请求体与 token，token 仅在启动阶段打印一次。
-- 网关本身不实现配对码/设备注册，配对流程属于移动端后端职责，可在合并后叠加。
+- 网关本身不实现配对码/设备注册；配对与远程桌面由 `yunfeng-mobile-backend`（8788）独立提供，见其 README。
 
 ## 验证
 

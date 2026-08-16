@@ -165,11 +165,15 @@
 
 完成任务后简洁汇报改动、实际运行的验证、提交信息和未解决风险。没有提交或没有运行测试时，明确说明原因，不得虚假声称已验证。
 
-## 集成工作树目录
+## 项目目录
 
-* `app/`：桌面端 Web UI + Tauri 壳（托盘 + server 自动拉起 + RustDesk 进程管理）。
+* `app/`：桌面端 Web UI + Tauri 壳（无边框窗口、托盘状态与快捷操作、后端自动编排、RustDesk 进程管理）。
 * `mobile-app/`：移动端薄客户端（UI + API 调用；任务/对话直连 gateway，远程桌面走移动后端 RustDesk sidecar）。
-* `server/`：桌面 Agent 服务（内嵌 pi SDK，任务/对话事实来源）。
+* `server/`：桌面 Agent 服务（内嵌 pi SDK，任务/对话/审批事实来源）。
 * `gateway/`：对外 API 网关（Bearer token、路径白名单、关键日志）。
 * `yunfeng-mobile-backend/`：电脑侧移动后端（配对码/设备 token/RustDesk sidecar）。
-* `vendor/rustdesk`：RustDesk 源码 submodule（固定 1.4.9，AGPL-3.0）。
+* `yunfeng-cli/`：TUI 客户端（`@yunfeng/tui` 组件库 + `@yunfeng/cli` 入口）。
+* `yunfeng-mobile/`：早期移动端原型，已被 `mobile-app/` 取代，仅保留参考，不再开发。
+* `vendor/rustdesk`：RustDesk 源码 submodule（固定 1.4.9，AGPL-3.0，仅审计用）。
+* `scripts/`：后端运行时打包脚本（`package-backends.mjs`）。
+* 各服务端口、启动协议与环境变量见仓库根目录 `README.md` 与 `docs/development/desktop-shell.md`。

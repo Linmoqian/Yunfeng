@@ -3,9 +3,11 @@
 ## 统一开发入口
 
 - 桌面开发统一使用项目定义的 `npm run tauri dev`，由 Tauri CLI 同时管理前端开发服务器和 Rust 应用进程。
+- 仓库现有两个 Tauri 壳，入口分别位于 `app/`（桌面端 Web UI + 托盘 + 后端编排）与 `mobile-app/`（移动端薄客户端 + 系统通知）。改哪个壳的前端或 Rust 代码就在哪个目录执行 `npm run tauri dev`；两者互不关联，不要混用目录。
 - `tauri.conf.json` 的 `build.beforeDevCommand` 启动 Vite，`build.devUrl` 必须与 Vite 的开发地址和端口一致。
 - 不额外编写重复的文件监听或进程守护脚本；确有性能问题时，优先使用 `.taurignore` 排除生成文件、构建产物等无关路径。
 - Vite 设置 `clearScreen: false`，避免前端刷新覆盖 Rust 编译错误。
+- `server/`、`gateway/`、`yunfeng-mobile-backend/` 与 `yunfeng-cli/` 为纯 Node 项目，各自 `npm run dev` 即可；桌面外壳编排后端的重启语义见 `docs/development/desktop-shell.md`。
 
 ## 前端 HMR
 
@@ -16,7 +18,7 @@
 
 ## Rust 自动重建与重启
 
-- `tauri dev` 监视 `app/src-tauri/` 及其工作区依赖 crate；Rust 变更后自动重新编译并重启应用。
+- `tauri dev` 监视对应目录的 `src-tauri/`（`app/src-tauri/` 或 `mobile-app/src-tauri/`）及其工作区依赖 crate；Rust 变更后自动重新编译并重启应用。
 - Rust 侧属于“自动重建并重启”，不是进程内热替换；重启后 `tauri::State`、线程、任务、锁和内存缓存均视为失效。
 - 启动流程必须幂等；持久状态写入明确的文件或数据库，临时状态不得假定能够跨重启保留。
 - 前端必须处理 IPC 短暂中断和窗口重载，启动后重新建立必要的查询、订阅与状态同步。
