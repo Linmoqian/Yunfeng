@@ -5,11 +5,13 @@ import type { UseModelsResult } from "@/hooks/useModels";
 import { MessageRow } from "./MessageRow";
 import { Composer } from "./Composer";
 import { ModelMenu } from "./ModelMenu";
+import { ApprovalCard } from "./ApprovalCard";
 import { Button } from "./ui/button";
 
 interface ChatPanelProps {
   task: UseTaskResult;
   models: UseModelsResult;
+  online: boolean | null;
   onOpenTasks: () => void;
   onOpenTaskActions: () => void;
 }
@@ -26,14 +28,15 @@ function statusText(task: UseTaskResult["task"]): string {
   return task.phase && task.phase !== "unknown" ? task.phase : "就绪";
 }
 
-function streamLabel(task: UseTaskResult): string {
+function streamLabel(task: UseTaskResult, online: boolean | null): string {
+  if (online === false) return "已断开，重连中…";
   if (task.streamStatus === "connecting") return "正在连接 Agent…";
   if (task.streamStatus === "streaming") return "Agent 正在执行";
   return "";
 }
 
 /** 主区：任务标题 + 工具/审批卡 + 对话流 + 输入条。 */
-export function ChatPanel({ task, models, onOpenTasks, onOpenTaskActions }: ChatPanelProps) {
+export function ChatPanel({ task, models, online, onOpenTasks, onOpenTaskActions }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +49,7 @@ export function ChatPanel({ task, models, onOpenTasks, onOpenTaskActions }: Chat
     : task.messages;
   const hasTask = task.task !== null;
   const isBusy = task.isStreaming || task.runningTools.length > 0;
-  const connecting = streamLabel(task);
+  const connecting = streamLabel(task, online);
 
   return (
     <>
@@ -108,26 +111,13 @@ export function ChatPanel({ task, models, onOpenTasks, onOpenTaskActions }: Chat
       {task.approvals.length > 0 && (
         <div className="approval-stack">
           {task.approvals.map((approval) => (
-            <div key={approval.requestId} className="approval-card">
-              <strong>{approval.title}</strong>
-              {approval.impact && <span className="approval-impact">{approval.impact}</span>}
-              <p>{approval.message}</p>
-              <div className="approval-actions">
-                <Button
-                  size="sm"
-                  onClick={() => void task.resolveApproval(approval.requestId, "approve")}
-                >
-                  同意
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void task.resolveApproval(approval.requestId, "reject")}
-                >
-                  拒绝
-                </Button>
-              </div>
-            </div>
+            <ApprovalCard
+              key={approval.requestId}
+              approval={approval}
+              onResolve={(requestId, decision, value) =>
+                void task.resolveApproval(requestId, decision, value)
+              }
+            />
           ))}
         </div>
       )}

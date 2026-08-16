@@ -9,3 +9,9 @@
 - 项目规则维护在 `RULES.md`（简约、模块化、行数阈值、契约同步）。
 - yunfeng-mobile（仓库根目录，与 app/ 独立）：Tauri 2 + Vite + React + Tailwind v4 移动端薄客户端，只做 UI + API 调用（任务/对话走 gateway，远程屏幕走移动后端 WS）。
 - yunfeng-mobile-backend（仓库根目录）：电脑侧轻量移动后端，Node 24 + node:sqlite；账号=配对码+设备 token（sha256 落库）；远程桌面=内嵌 RustDesk sidecar（vendor/rustdesk 固定 1.4.9，AGPL-3.0；官方二进制下载到 bin/rustdesk 不提交），首次启动返回一次性密码；自研 JPEG/CGEvent 仅作 fallback。启动输出 YF_MOBILE_READY。
+
+## 移动端补齐（2025 集成阶段）
+
+- 推送通知为本地通知方案：Tauri 运行时走 tauri-plugin-notification，浏览器预览走 Web Notification API；未引入 APNs/FCM 等外部推送基础设施。页面隐藏时才提醒；断线期间的完成/审批事件由 SSE Last-Event-ID 补发，重连后提醒。
+- 任务事件到 UI 状态的归约收敛在 mobile-app/src/lib/taskEvents.ts（纯逻辑，Vitest 覆盖）；审批卡映射在 lib/approvals.ts。
+- 桌面托盘（app/src-tauri/src/tray.rs）：状态项文本与 tooltip 由 2s 周期线程刷新，菜单分项提供 server/网关/移动后端/RustDesk 启停；连接信息复制走平台剪贴板命令（pbcopy/clip/wl-copy），尽力而为。

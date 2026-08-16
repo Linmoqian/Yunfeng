@@ -527,6 +527,7 @@ export class TaskRuntime {
       safeLabel: intervention.safeLabel,
       impact: intervention.impact,
       options: intervention.options,
+      defaultValue: intervention.defaultValue,
     });
     await this.hub.emit(taskId, "task_updated", { status: "waiting_approval", pendingApprovalIds: [intervention.id] });
     return intervention;

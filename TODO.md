@@ -54,3 +54,11 @@
 - [ ] 桌面壳接入可写 HOME / PI_CODING_AGENT_DIR
 - [ ] 桌面壳一键启动编排（server + gateway + mobile-backend + RustDesk）
 - [ ] 生产打包（包含后端运行时与 RustDesk）
+
+## 移动端功能补齐与托盘增强
+
+- [x] 审批卡支持 select/input 控件：选项点选、文本输入提交，defaultValue 随审批事件下发
+- [x] 移动端任务看板：按状态分列、横向滚动吸附，侧栏列表/看板切换
+- [x] 托盘分项状态与快捷操作：server/网关/移动后端/RustDesk 启停、状态文本与 tooltip 周期刷新、复制连接信息
+- [x] 断线重连与错误恢复：全局在线探测、断线横幅、重连补拉对话、恢复提示
+- [x] 推送通知：系统通知插件 + Web Notification 回退；任务完成/失败/待审批在页面隐藏时提醒

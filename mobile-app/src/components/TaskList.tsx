@@ -1,5 +1,6 @@
 import { ListTodo, MoreHorizontal } from "lucide-react";
 import type { TaskState } from "@/lib/types";
+import { statusLabel } from "@/lib/taskLabels";
 
 interface TaskListProps {
   tasks: TaskState[];
@@ -7,25 +8,6 @@ interface TaskListProps {
   activeId: string | null;
   onPick: (task: TaskState) => void;
   onMore: (task: TaskState) => void;
-}
-
-function statusLabel(task: TaskState): string {
-  switch (task.status) {
-    case "running":
-      return task.currentAction || "运行中";
-    case "waiting_approval":
-      return "待审批";
-    case "waiting_input":
-      return "待输入";
-    case "failed":
-      return "失败";
-    case "completed":
-      return "已完成";
-    case "archived":
-      return "已归档";
-    default:
-      return task.status;
-  }
 }
 
 /** 任务列表：标题、当前状态与更新时间；更多按钮打开任务操作单。 */

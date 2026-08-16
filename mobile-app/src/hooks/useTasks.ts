@@ -42,18 +42,24 @@ export function useTasks(client: GatewayClient | null): UseTasksResult {
   }, [refresh]);
 
   // 任务状态变化时刷新列表；消息增量不触发，避免高频请求。
+  // 断线重连后按补发事件刷新，保证列表与电脑侧一致。
   useEffect(() => {
     if (!client) return;
-    return client.subscribeTaskSummary((event) => {
-      if (
-        event.type === "task_snapshot" ||
-        event.type === "task_updated" ||
-        event.type === "run_settled" ||
-        event.type === "run_failed"
-      ) {
-        void refresh();
-      }
-    });
+    return client.subscribeTaskSummary(
+      (event) => {
+        if (
+          event.type === "task_snapshot" ||
+          event.type === "task_updated" ||
+          event.type === "run_settled" ||
+          event.type === "run_failed"
+        ) {
+          void refresh();
+        }
+      },
+      (connected) => {
+        if (connected) void refresh();
+      },
+    );
   }, [client, refresh]);
 
   const createTask = useCallback(

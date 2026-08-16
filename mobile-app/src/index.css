@@ -1152,6 +1152,13 @@ a:focus-visible {
   font-weight: 600;
 }
 
+.settings-hint {
+  margin: 0;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1555,6 +1562,23 @@ button:not(:disabled):active {
 .approval-card strong {
   font-size: 14px;
 }
+.approval-kind {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.approval-safe-label {
+  border: 1px solid color-mix(in srgb, var(--warning) 55%, var(--border));
+  border-radius: 999px;
+  padding: 1px 7px;
+  color: var(--warning);
+  font-weight: 500;
+}
 .approval-card p {
   margin: 6px 0 0;
   color: var(--muted-foreground);
@@ -1571,6 +1595,41 @@ button:not(:disabled):active {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+.approval-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.approval-option {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: var(--foreground);
+  background: var(--surface);
+  font-size: 12.5px;
+  transition: 150ms ease;
+}
+.approval-option:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.approval-option:disabled {
+  opacity: 0.55;
+}
+.approval-input {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 13px;
+}
+.approval-input::placeholder {
+  color: var(--faint);
 }
 
 .task-error-banner {
@@ -1589,6 +1648,203 @@ button:not(:disabled):active {
   flex: 1;
   min-width: 0;
   word-break: break-word;
+}
+
+.connection-banner {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  z-index: 95;
+  display: flex;
+  width: min(92vw, 560px);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
+  border-radius: 12px;
+  padding: 9px 12px;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface-solid));
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  transform: translateX(-50%);
+}
+.connection-banner span {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- 任务看板 ---------- */
+.sidebar-view-switch {
+  display: flex;
+  gap: 4px;
+  margin: 8px 12px 0;
+  border-radius: 10px;
+  padding: 3px;
+  background: var(--surface-muted);
+}
+.view-switch-item {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 6px 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  transition: 150ms ease;
+}
+.view-switch-item.is-active {
+  color: var(--foreground);
+  background: var(--surface-solid);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 8%);
+}
+
+.task-board {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+.task-board-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--divider);
+}
+.task-board-title {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+.task-board-title strong {
+  font-size: 15px;
+}
+.task-board-title span {
+  color: var(--faint);
+  font-size: 11.5px;
+}
+.task-board-scroll {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+  padding: 14px 18px 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+}
+.board-column {
+  display: flex;
+  width: min(78vw, 280px);
+  min-width: min(78vw, 280px);
+  flex: 0 0 auto;
+  flex-direction: column;
+  scroll-snap-align: start;
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  background: var(--surface-muted);
+}
+.board-column-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.board-column-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+.board-column-count {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 1px 7px;
+  color: var(--faint);
+  background: var(--surface);
+  font-size: 11px;
+}
+.board-column-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px 8px;
+  overflow-y: auto;
+}
+.board-column-empty {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 14px 0;
+  color: var(--faint);
+  text-align: center;
+  font-size: 11.5px;
+}
+.board-card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-soft);
+  transition: 150ms ease;
+}
+.board-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.board-card-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 11px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.board-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.board-card-status {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.board-card-status.is-running {
+  color: var(--accent);
+}
+.board-card-main small {
+  color: var(--faint);
+  font-size: 10.5px;
+}
+.board-card-more {
+  display: grid;
+  width: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin: 4px 4px 4px 0;
+  border-radius: 8px;
+  color: var(--faint);
+  opacity: 0;
+  transition: 150ms ease;
+}
+.board-card:hover .board-card-more,
+.board-card-more:focus-visible {
+  opacity: 1;
 }
 
 .action-sheet-backdrop {
@@ -1738,6 +1994,19 @@ button:not(:disabled):active {
     margin-right: 12px;
   }
   .task-more-button {
+    opacity: 0.9;
+  }
+  .task-board-header {
+    padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  }
+  .connection-banner {
+    top: calc(8px + env(safe-area-inset-top));
+  }
+  .task-board-scroll {
+    gap: 10px;
+    padding: 10px 12px 14px;
+  }
+  .board-card-more {
     opacity: 0.9;
   }
   .settings-sheet {

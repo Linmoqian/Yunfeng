@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Check, Monitor, X } from "lucide-react";
+import { Bell, Check, Monitor, X } from "lucide-react";
 import type { Theme } from "@/hooks/useTheme";
 import type { UseGatewayResult } from "@/hooks/useGateway";
 import type { RemoteDesktopState } from "@/hooks/useRemoteDesktop";
+import { requestNotificationPermission } from "@/lib/notifications";
 import { Button } from "./ui/button";
 
 interface SettingsSheetProps {
@@ -11,6 +12,8 @@ interface SettingsSheetProps {
   onThemeChange: (t: Theme) => void;
   gateway: UseGatewayResult;
   remote: RemoteDesktopState;
+  notificationsEnabled: boolean;
+  onNotificationsChange: (enabled: boolean) => void;
   onOpenRemote: () => void;
   onClose: () => void;
 }
@@ -20,13 +23,15 @@ const THEMES: { id: Theme; label: string; bg: string; border: string }[] = [
   { id: "dark", label: "深色", bg: "#161617", border: "#3a3a3c" },
 ];
 
-/** 设置弹层：主题、网关连接（Agent 任务/对话）、移动后端（远程屏幕）。 */
+/** 设置弹层：主题、网关连接（Agent 任务/对话）、移动后端（远程屏幕）、推送通知。 */
 export function SettingsSheet({
   open,
   theme,
   onThemeChange,
   gateway,
   remote,
+  notificationsEnabled,
+  onNotificationsChange,
   onOpenRemote,
   onClose,
 }: SettingsSheetProps) {
@@ -36,8 +41,16 @@ export function SettingsSheet({
   const [pairCode, setPairCode] = useState("");
   const [pairMessage, setPairMessage] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   if (!open) return null;
+
+  /** 开启通知：先申请系统权限，获得授权才记录开启。 */
+  const enableNotifications = async () => {
+    const granted = await requestNotificationPermission();
+    setNoticeMessage(granted ? "通知已开启" : "未获得系统通知权限");
+    onNotificationsChange(granted);
+  };
 
   return (
     <div className="settings-backdrop" onClick={onClose}>
@@ -101,6 +114,33 @@ export function SettingsSheet({
               {gateway.testing ? "测试中…" : "保存并测试"}
             </Button>
           </div>
+        </div>
+
+        <div className="settings-group">
+          <div className="settings-label">推送通知</div>
+          <div className="field-row">
+            <span>
+              {noticeMessage ?? (notificationsEnabled ? "已开启：任务完成、失败或需要审批时提醒" : "未开启")}
+            </span>
+            <div className="field-row-actions">
+              <Button
+                size="sm"
+                variant={notificationsEnabled ? "outline" : "default"}
+                onClick={() => {
+                  if (notificationsEnabled) {
+                    onNotificationsChange(false);
+                    setNoticeMessage("通知已关闭");
+                  } else {
+                    void enableNotifications();
+                  }
+                }}
+              >
+                <Bell size={13} />
+                {notificationsEnabled ? "关闭" : "开启"}
+              </Button>
+            </div>
+          </div>
+          <p className="settings-hint">App 在后台或手机锁屏时提醒；断线期间的完成事件会在重连后补发。</p>
         </div>
 
         <div className="settings-group">
