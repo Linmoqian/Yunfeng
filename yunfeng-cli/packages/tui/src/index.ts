@@ -19,6 +19,27 @@ export {
 	type ColorMode,
 } from './terminal/ansi.js';
 export { ProcessTerminal, detectColorMode } from './terminal/process-terminal.js';
+export {
+	applyDetectedThemeMode,
+	getThemePreference,
+	getYunfengTheme,
+	getYunfengThemeMode,
+	initYunfengTheme,
+	parseOscColorReports,
+	resolveThemePreference,
+	setThemePreference,
+	setYunfengThemeMode,
+	themeModeFromBackground,
+	themeModeFromForeground,
+	themeModeFromReports,
+	YUNFENG_DARK_THEME,
+	YUNFENG_LIGHT_THEME,
+	type OscColorReport,
+	type RgbColor,
+	type ThemeMode,
+	type ThemePreference,
+	type YunfengTheme,
+} from './theme.js';
 export { parseKey, type Key, type ParseResult } from './terminal/input.js';
 export { StdinBuffer } from './terminal/stdin-buffer.js';
 export { fuzzyMatch, fuzzyFilter, type FuzzyMatch } from './fuzzy.js';
@@ -74,6 +95,7 @@ export { Scroll } from './layout/scroll.js';
 
 // 基础组件
 export { Editor, type EditorOptions, type EditorTheme, DEFAULT_EDITOR_THEME } from './components/editor.js';
+export { Header, type HeaderInfo } from './components/header.js';
 export { Mascot, type MascotOptions } from './components/mascot.js';
 export { Loader, type LoaderOptions } from './components/loader.js';
 export { Messages, type Message, type MessageRole } from './components/messages.js';

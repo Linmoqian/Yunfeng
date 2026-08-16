@@ -11,6 +11,7 @@
 import { visibleWidth, stripTerminalSequences } from './utils.js';
 import { type Key } from './terminal/input.js';
 import { StdinBuffer } from './terminal/stdin-buffer.js';
+import { applyDetectedThemeMode, type ThemeMode } from './theme.js';
 
 /** 组件接口：渲染成行 + 可选输入处理。height 为可用高度（主轴为纵向的布局组件使用） */
 export interface Component {
@@ -94,6 +95,10 @@ export interface Terminal {
 	hideCursor(): void;
 	showCursor(): void;
 	clearScreen(): void;
+	/** 可选：查询终端前/背景色（OSC 10/11），结果通过 onThemeMode 回报 */
+	queryColorScheme?(): void;
+	/** 可选：终端探测到明暗主题时回调（由 TuiBase 在 start 时挂接） */
+	onThemeMode?: ((mode: ThemeMode) => void) | null;
 }
 
 /**
@@ -286,10 +291,16 @@ export abstract class TuiBase extends Container {
 		}
 	}
 	start(): void {
+		// 主题探测回调需在 terminal.start 前挂接；auto 偏好下查询结果到达时自动重绘
+		this.terminal.onThemeMode = (mode) => {
+			applyDetectedThemeMode(mode);
+			this.requestRender();
+		};
 		this.terminal.start(
 			(d) => this.handleTerminalInput(d),
 			() => this.onResize(),
 		);
+		this.terminal.queryColorScheme?.();
 		this.requestRender();
 	}
 
@@ -297,6 +308,7 @@ export abstract class TuiBase extends Container {
 		void opts;
 		this.stopped = true;
 		this.stdinBuffer.clear();
+		this.terminal.onThemeMode = null;
 		if (this.renderTimer) {
 			clearTimeout(this.renderTimer);
 			this.renderTimer = null;
@@ -325,7 +337,9 @@ export abstract class TuiBase extends Container {
 			content.push(...c.render(width, contentHeight));
 		});
 		const visible = content.slice(-contentHeight);
-		const allLines = [...visible, ...footerLines];
+		// 内容不足一屏时，在内容与 footer 之间补空行，保证 footer 永远钉在屏幕最后一行
+		const bottomPad = Math.max(0, contentHeight - visible.length);
+		const allLines = [...visible, ...Array<string>(bottomPad).fill(''), ...footerLines];
 		const cursorPos = this.extractCursorPosition(allLines, height);
 		const lines = allLines.map((l) => l.split(CURSOR_MARKER).join(''));
 

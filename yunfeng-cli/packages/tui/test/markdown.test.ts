@@ -16,14 +16,14 @@ describe('Markdown', () => {
 		const line = rows[0] ?? '';
 		expect(line).toContain('\x1b[1m'); // bold
 		expect(line).toContain('\x1b[3m'); // italic
-		expect(line).toContain('48;2;22;27;34'); // 行内代码背景
-		expect(line).toContain('4m'); // underline（链接）
+		expect(line).toMatch(/48;2;\d+;\d+;\d+/); // 行内代码背景（主题 surface）
+		expect(line).toContain('\x1b[4;'); // underline（链接）
 		expect(plain(rows)[0]).toBe('粗 斜 码 链接');
 	});
 
 	it('renders code block with background', () => {
 		const rows = renderMarkdown('```ts\nconst x = 1;\n```', 40);
-		expect(rows[0]).toContain('48;2;22;27;34');
+		expect(rows[0]).toMatch(/48;2;\d+;\d+;\d+/);
 		expect(plain(rows)[0]).toContain('const x = 1;');
 	});
 

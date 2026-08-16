@@ -4,6 +4,7 @@
  * 内置定时器需要 onFrame 回调通知 TUI 重绘。
  */
 import { style } from '../terminal/ansi.js';
+import { getYunfengTheme } from '../theme.js';
 import type { Component } from './component.js';
 
 /** 云朵图形宽度（列） */
@@ -20,14 +21,16 @@ const CLOUD_LINES = [
 	'   ▀▀▀▀▀▀▀▀▀▀▀▀▀   ',
 ];
 
-/** 云朵配色：按字符类型上色 */
-const CLOUD_COLORS: Record<string, string> = {
-	'█': '#f0f6fc', // 主体：白
-	'▄': '#f0f6fc', // 顶部：白
-	'▀': '#9db4d0', // 下缘：浅蓝灰
-	'●': '#1f2328', // 眼睛：深
-	'▁': '#1f2328', // 嘴：深
-};
+/** 云朵配色：跟随 Yunfeng 明暗主题，孔洞使用画布底色形成对比 */
+function cloudColors(theme: ReturnType<typeof getYunfengTheme>): Record<string, string> {
+	return {
+		'█': theme.text, // 主体
+		'▄': theme.text, // 顶部
+		'▀': theme.textSecondary, // 下缘
+		'●': theme.canvas, // 眼睛：挖空
+		'▁': theme.canvas, // 嘴：挖空
+	};
+}
 
 export interface MascotOptions {
 	/** 是否启用内置浮动动画（默认 false；需配合 onFrame 刷新 TUI） */
@@ -101,7 +104,7 @@ export class Mascot implements Component {
 function paintCloudLine(line: string, indent: number): string {
 	let out = ' '.repeat(indent);
 	for (const ch of line) {
-		const color = CLOUD_COLORS[ch];
+		const color = cloudColors(getYunfengTheme())[ch];
 		out += color ? style(ch, { fg: color }) : ch;
 	}
 	return out;

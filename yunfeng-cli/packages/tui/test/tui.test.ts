@@ -6,6 +6,7 @@ import { Text } from '../src/layout/text.js';
 import { Editor } from '../src/components/editor.js';
 import { Messages } from '../src/components/messages.js';
 import { StatusBar } from '../src/components/status.js';
+import { CommandProvider } from '../src/autocomplete.js';
 import { stripTerminalSequences } from '../src/utils.js';
 
 /** 内存假终端，便于在测试中驱动 TUI */
@@ -59,9 +60,17 @@ class ScreenTerminal implements Terminal {
 	cells: string[][] = Array.from({ length: 12 }, () => Array(40).fill(' '));
 	private r = 0;
 	private c = 0;
+	private inputHandler: ((d: string) => void) | null = null;
 	output = '';
-	start(): void {}
-	stop(): void {}
+	start(onInput: (d: string) => void): void {
+		this.inputHandler = onInput;
+	}
+	stop(): void {
+		this.inputHandler = null;
+	}
+	emit(data: string): void {
+		this.inputHandler?.(data);
+	}
 	write(data: string): void {
 		this.output += data;
 		let i = 0;
@@ -280,6 +289,37 @@ describe('input listeners', () => {
 });
 
 describe('footer', () => {
+	it('pads short content so footer stays on the last line', () => {
+		const term = new ScreenTerminal();
+		const tui = new TuiMainScreen({ terminal: term });
+		tui.addChild(new Text('content'));
+		tui.setFooter(new Text('footer'));
+		tui.start();
+		tui.renderNow(true);
+		expect(term.line(0)).toContain('content');
+		expect(term.line(11)).toContain('footer');
+	});
+
+	it('keeps footer below editor while typing and autocomplete expands', () => {
+		const term = new ScreenTerminal();
+		const messages = new Messages([{ role: 'system', from: 'yunfeng', content: 'boot' }]);
+		const editor = new Editor('');
+		editor.setAutocompleteProvider(new CommandProvider([{ name: 'model', description: '选择模型' }]));
+		const status = new StatusBar(() => ({ cwd: '/proj', sessionName: 't' }));
+		const tui = new TuiMainScreen({ terminal: term });
+		tui.addChild(new VStack([{ component: messages, grow: 1 }, { component: editor }]));
+		tui.setFocus(editor);
+		tui.setFooter(status);
+		tui.start();
+		tui.renderNow(true);
+		term.emit('/m');
+		tui.renderNow(true);
+		// 最后一行是状态栏；补全与输入行在它上方
+		expect(term.line(11)).toContain('/proj');
+		expect(term.line(9)).toContain('/model');
+		expect(term.line(10)).toContain('/m');
+	});
+
 	it('footer stays at bottom regardless of content growth', () => {
 		const term = new ScreenTerminal();
 		const messages = new Messages([{ role: 'system', from: 'yunfeng', content: 'boot' }]);

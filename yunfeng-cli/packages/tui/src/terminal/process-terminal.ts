@@ -5,6 +5,7 @@
  */
 import type { Terminal } from '../tui.js';
 import { setColorMode, type ColorMode } from './ansi.js';
+import { initYunfengTheme, parseOscColorReports, themeModeFromReports, type ThemeMode } from '../theme.js';
 
 /**
  * 探测颜色渲染模式：
@@ -28,6 +29,8 @@ export class ProcessTerminal implements Terminal {
 	private inputHandler: ((d: string) => void) | null = null;
 	private resizeHandler: (() => void) | null = null;
 	private stdin: NodeJS.ReadStream;
+	/** 终端配色查询结果回调（由 TuiBase.start 挂接） */
+	onThemeMode: ((mode: ThemeMode) => void) | null = null;
 
 	constructor(
 		stdin: NodeJS.ReadStream = process.stdin,
@@ -35,6 +38,7 @@ export class ProcessTerminal implements Terminal {
 	) {
 		this.stdin = stdin;
 		setColorMode(detectColorMode(process.env, process.env.TERM));
+		initYunfengTheme(process.env);
 	}
 
 	start(onInput: (d: string) => void, onResize: () => void): void {
@@ -47,8 +51,20 @@ export class ProcessTerminal implements Terminal {
 		this.stdout.on('resize', onResize);
 	}
 
+	/** 查询 OSC 10/11 终端配色；响应从输入流回收后经 onThemeMode 回报 */
+	queryColorScheme(): void {
+		this.write('\x1b]10;?\x07\x1b]11;?\x07');
+	}
+
 	private dataHandler = (data: Buffer | string): void => {
-		this.inputHandler?.(data.toString());
+		const text = data.toString();
+		const { reports, remainder } = parseOscColorReports(text);
+		if (reports.length > 0) {
+			const mode = themeModeFromReports(reports);
+			if (mode) this.onThemeMode?.(mode);
+		}
+		// OSC 响应不应进入按键/编辑器输入流
+		if (remainder.length > 0) this.inputHandler?.(remainder);
 	};
 
 	stop(): void {

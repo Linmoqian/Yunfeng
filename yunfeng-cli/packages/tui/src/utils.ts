@@ -42,10 +42,21 @@ function extractAnsiCode(str: string, pos: number): { code: string; length: numb
 	return null;
 }
 
-/** 单字符可见宽度：CJK/全角=2，其余=1 */
+/**
+ * 字素是否为 emoji 展示形态（终端通常占 2 列）：
+ * Emoji_Presentation 覆盖彩色 emoji；VS16/组合键帽单独处理。
+ */
+function isEmojiPresentation(segment: string): boolean {
+	return (
+		/\p{Emoji_Presentation}/u.test(segment) ||
+		(segment.length >= 2 && /[\u{1f1e6}-\u{1f1ff}]{2}/u.test(segment)) ||
+		(/\p{Emoji}/u.test(segment) && /[\ufe0f\u20e3]/u.test(segment))
+	);
+}
+
+/** 单字符可见宽度：CJK/全角=2、emoji 展示形态=2，其余=1 */
 function graphemeWidth(segment: string): number {
 	if (segment.length === 0) return 0;
-	// 宽字符（东亚宽、全角）返回 2
 	const code = segment.codePointAt(0)!;
 	if (
 		(code >= 0x1100 && code <= 0x115f) || // Hangul Jamo
@@ -60,6 +71,7 @@ function graphemeWidth(segment: string): number {
 	) {
 		return 2;
 	}
+	if (isEmojiPresentation(segment)) return 2;
 	return 1;
 }
 

@@ -22,6 +22,15 @@ describe('visibleWidth', () => {
 	it('mixed wide and ascii', () => {
 		expect(visibleWidth('a中b')).toBe(4);
 	});
+	it('counts emoji presentation as 2 columns', () => {
+		expect(visibleWidth('📁')).toBe(2);
+		expect(visibleWidth('🤖')).toBe(2);
+		expect(visibleWidth('a😀b')).toBe(4);
+	});
+	it('keeps text-presentation symbols at 1 column', () => {
+		expect(visibleWidth('☁')).toBe(1);
+		expect(visibleWidth('❯')).toBe(1);
+	});
 });
 
 describe('stripTerminalSequences', () => {

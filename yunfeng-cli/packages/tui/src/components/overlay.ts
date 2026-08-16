@@ -2,10 +2,14 @@
  * Overlay：模态弹层组件。
  * 渲染时覆盖整个屏幕：上下留白（遮罩）+ 居中内容框（带边框与标题）。
  * 由 TuiBase.openOverlay 打开；打开后只渲染弹层，其余区域被覆盖。
+ *
+ * 可聚焦：焦点在弹层自身时，Enter/Esc 触发 onClose（例如帮助弹层）。
  */
 import { style } from '../terminal/ansi.js';
+import { parseKey } from '../terminal/input.js';
+import { getYunfengTheme } from '../theme.js';
 import { truncateToWidth, visibleWidth } from '../utils.js';
-import type { Component } from './component.js';
+import type { Component, Focusable } from './component.js';
 
 export interface OverlayOptions {
 	/** 弹层内容（如 Selector） */
@@ -16,28 +20,49 @@ export interface OverlayOptions {
 	width?: number;
 	/** 内容框高度（默认按内容行数，不超过屏高-4） */
 	height?: number;
+	/** Enter/Esc 关闭回调（焦点在弹层自身时生效） */
+	onClose?: () => void;
 }
 
-const BORDER_FG = '#58a6ff';
-
-export class Overlay implements Component {
+export class Overlay implements Component, Focusable {
 	content: Component;
 	title: string;
 	width?: number;
 	height?: number;
+	onClose?: () => void;
+	focused = false;
 
 	constructor(opts: OverlayOptions) {
 		this.content = opts.content;
 		this.title = opts.title ?? '';
 		this.width = opts.width;
 		this.height = opts.height;
+		this.onClose = opts.onClose;
 	}
 
 	invalidate(): void {
 		this.content.invalidate();
 	}
 
+	handleInput(data: string): boolean {
+		if (!this.focused) return false;
+		// 单个 ESC（parseKey 会等待更多字节）直接关闭
+		if (data === '\x1b') {
+			this.onClose?.();
+			return true;
+		}
+		const parsed = parseKey(data);
+		if (!parsed) return false;
+		const key = parsed.key;
+		if (key.kind === 'enter' || key.kind === 'escape') {
+			this.onClose?.();
+			return true;
+		}
+		return false;
+	}
+
 	render(screenWidth: number, screenHeight?: number): string[] {
+		const theme = getYunfengTheme();
 		const viewport = Math.max(1, screenHeight ?? 8);
 		const innerWidth = Math.max(10, Math.min(this.width ?? 60, screenWidth - 4));
 		const contentRows = this.content.render(innerWidth - 2);
@@ -47,28 +72,35 @@ export class Overlay implements Component {
 
 		const rows: string[] = [];
 		for (let i = 0; i < topPad; i++) rows.push('');
-		rows.push(this.renderBorder(innerWidth, 'top'));
+		rows.push(this.renderBorder(innerWidth, 'top', theme.border, theme.text));
 		for (let i = 0; i < innerHeight; i++) {
 			const line = contentRows[i] ?? '';
 			const body = truncateToWidth(line, innerWidth - 2);
 			const pad = innerWidth - 2 - visibleWidth(body);
-			rows.push(style('│', { fg: BORDER_FG }) + body + ' '.repeat(Math.max(0, pad)) + style('│', { fg: BORDER_FG }));
+			rows.push(
+				style('│', { fg: theme.border }) + body + ' '.repeat(Math.max(0, pad)) + style('│', { fg: theme.border }),
+			);
 		}
-		rows.push(this.renderBorder(innerWidth, 'bottom'));
+		rows.push(this.renderBorder(innerWidth, 'bottom', theme.border, theme.text));
 		while (rows.length < viewport) rows.push('');
 		return rows;
 	}
 
-	private renderBorder(width: number, kind: 'top' | 'bottom'): string {
+	private renderBorder(width: number, kind: 'top' | 'bottom', border: string, titleColor: string): string {
 		if (kind === 'top' && this.title) {
 			const label = truncateToWidth(` ${this.title} `, width - 2);
 			const pad = Math.max(0, width - 2 - visibleWidth(label));
-			return style('┌', { fg: BORDER_FG }) + label + '─'.repeat(pad) + style('┐', { fg: BORDER_FG });
+			return (
+				style('┌', { fg: border }) +
+				style(label, { fg: titleColor, bold: true }) +
+				'─'.repeat(pad) +
+				style('┐', { fg: border })
+			);
 		}
 		return (
-			style(kind === 'top' ? '┌' : '└', { fg: BORDER_FG }) +
+			style(kind === 'top' ? '┌' : '└', { fg: border }) +
 			'─'.repeat(width - 2) +
-			style(kind === 'top' ? '┐' : '┘', { fg: BORDER_FG })
+			style(kind === 'top' ? '┐' : '┘', { fg: border })
 		);
 	}
 }

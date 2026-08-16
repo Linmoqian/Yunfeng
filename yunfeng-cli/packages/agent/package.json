@@ -1,0 +1,11 @@
+{
+	"name": "@yunfeng/agent",
+	"version": "0.0.0",
+	"description": "Yunfeng agent loop (placeholder, not yet implemented)",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"build": "echo 'placeholder'",
+		"test": "echo 'placeholder'"
+	}
+}

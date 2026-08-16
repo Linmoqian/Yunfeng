@@ -2,6 +2,8 @@
 
 Yunfeng coding agent CLI 的终端 UI 渲染引擎。v1 定位为**交互底座**：只负责渲染、布局、输入与弹层，不接入 agent / LLM 业务。
 
+选型说明：组件契约与差分渲染参考 `pi/packages/tui`，主题探测与屏幕模式参考 OpenTUI；但 Yunfeng 保持 Node/npm、零运行时依赖与可审计的 TS 实现，不引入 OpenTUI 的 native（Zig）核心。
+
 ## 目录结构
 
 ```
@@ -11,6 +13,7 @@ packages/tui/src/
 │   ├── input.ts       按键解析（字符/功能键/修饰键/Alt 组合）
 │   └── process-terminal.ts  真实终端实现（raw mode、颜色能力探测）
 ├── utils.ts           可见宽度（CJK=2）、ANSI 剥离、折行、截断、列切片
+├── theme.ts           Yunfeng 设计 token（明暗双主题）+ OSC 10/11 主题探测
 ├── layout/            flexbox 式布局系统
 │   ├── layout-node.ts 空间分配算法（basis/grow/shrink/minSize/maxSize）
 │   ├── stack.ts       Stack 基类（VStack/HStack 公共实现，align 语义）
@@ -18,11 +21,14 @@ packages/tui/src/
 │   ├── scroll.ts      通用滚动容器（视口裁剪 + ↑/↓/PgUp/PgDn）
 │   ├── box.ts / spacer.ts / text.ts
 ├── components/        业务组件
+│   ├── header.ts      品牌头部（云朵词标 + 会话/模型信息）
 │   ├── editor.ts      多行输入（字素安全光标、Home/End/Delete）
 │   ├── messages.ts    消息流（视口滚动、贴底语义）
+│   ├── markdown.ts    Markdown 渲染（主题可配置）
+│   ├── loader.ts      spinner 加载指示
 │   ├── selector.ts    选择器（Enter 确认 / Esc 取消 / 禁用态）
-│   ├── status.ts      状态栏
-│   ├── overlay.ts     模态弹层（边框 + 标题 + 遮罩）
+│   ├── status.ts      状态栏（固定 footer、可见宽度布局、窄屏降级）
+│   ├── overlay.ts     模态弹层（边框 + 标题 + 遮罩 + 可聚焦关闭）
 │   └── mascot.ts      云朵吉祥物（浮动动画）
 ├── tui.ts             TuiBase 核心：焦点、输入分发、全局快捷键、差分渲染、弹层
 ├── tui-main-screen.ts 主屏模式（保留终端 scrollback）
@@ -75,12 +81,35 @@ TuiBase 维护单一焦点组件；`setFocus` 切换时互斥设置 `focused`。
 3. **输入监听器**：`addInputListener` 可改写或消费输入（`{ data, consume }`）。
 4. **焦点组件**：未消费则调用 `focusedComponent.handleInput`。
 
+`ProcessTerminal` 在进入按键流前先摘除完整 OSC 10/11 响应；主题响应不会被解析成按键。
+
 ## 布局语义
 
 - 主轴分配：`allocateStackSizes` 按 `basis`（或固有尺寸）→ `grow` 平分多余 → `shrink` 收回超限 → `minSize/maxSize` 约束。
 - VStack 的可用高度由 `render` 的 `height` 传入；无 `height` 时保持固有尺寸、不补行。
 - `align` 控制交叉轴：`stretch/start/center/end`（HStack 垂直对齐，VStack 水平对齐）。
 - 裁剪不足/超出时，VStack 将子组件行补齐到分配行数（stretch 语义，撑满可用高度）。
+
+## 状态栏
+
+`StatusBar` 是单行固定 footer：左侧工作目录，右侧按优先级收纳会话 / 模型 / 思考强度 / 上下文 / 开销。
+
+- 宽度全部按终端可见列计算（CJK=2、emoji 展示形态=2、ANSI=0），单行永不换行或溢出。
+- `renderFrame` 保证 footer 永远占据屏幕最后一行：内容不足时在内容与 footer 之间补空行。
+- 窄屏先截断长路径；仍不足时从右向左丢弃开销、上下文等低优先级信息。
+- 上下文占用 ≥70% 使用 `warning` 色，≥90% 使用 `error` 色；其余片段跟随 Yunfeng 语义 token。
+- 路径与状态文本先做单行 sanitize（换行/制表符转空格）。
+- 状态栏不使用 emoji，全部为终端原生字符、文本标签与 Yunfeng 主题色。
+
+## 主题系统
+
+`theme.ts` 落地 `docs/design/yunfeng-tokens.css` 的明暗 token；组件只引用语义色，不写死十六进制。
+
+- 偏好来源：`YUNFENG_TUI_THEME=light|dark|auto`（默认 `auto`）。
+- auto 模式先渲染深色主题；`ProcessTerminal.queryColorScheme()` 发送 OSC 10/11 查询，
+  响应从输入流回收后按背景亮度修正主题，并触发差分重绘（参考 pi / OpenTUI 的 theme_mode）。
+- 显式 `light` / `dark` 偏好不会被终端探测覆盖。
+- `getYunfengTheme()` 供组件在 `render` 时取当前 token；主题变化无需重建组件树。
 
 ## 颜色降级
 
@@ -97,6 +126,7 @@ TuiBase 维护单一焦点组件；`setFocus` 切换时互斥设置 `focused`。
 
 - 打开后渲染帧只渲染弹层（覆盖下层内容），焦点移交给 `focusTarget`。
 - `Overlay` 组件负责边框、标题、遮罩留白；内容可为 Selector 等任意组件。
+- `Overlay` 自身可聚焦：焦点在弹层时 Enter/Esc 触发 `onClose`（适合帮助页；选择器弹层仍把焦点给 Selector）。
 
 ## 滚动
 

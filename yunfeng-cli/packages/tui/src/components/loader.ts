@@ -4,6 +4,7 @@
  * 动画由内部定时器驱动，onFrame 通知 TUI 重绘。
  */
 import { style } from '../terminal/ansi.js';
+import { getYunfengTheme } from '../theme.js';
 import type { Component } from './component.js';
 
 const DEFAULT_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -68,6 +69,6 @@ export class Loader implements Component {
 	render(_width: number): string[] {
 		if (!this.active) return [];
 		const frame = this.frames[this.currentFrame] ?? '';
-		return [style(`${frame} ${this.message}`, { fg: '#a855f7' })];
+		return [style(`${frame} ${this.message}`, { fg: getYunfengTheme().info })];
 	}
 }
