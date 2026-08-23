@@ -23,7 +23,8 @@ const STORAGE_KEY = "yunfeng-theme";
 
 function readStoredMode(): ThemeMode {
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  return stored === "light" || stored === "dark" ? stored : "system";
+  // 默认浅色；仅当用户显式选择“跟随系统”时才使用系统偏好。
+  return stored === "light" || stored === "dark" || stored === "system" ? stored : "light";
 }
 
 export function useThemeMode(): ThemeContextValue {
@@ -95,8 +96,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>(readStoredMode);
   const [resolvedMode, setResolvedMode] = useState<"light" | "dark">(() => {
     const stored = readStoredMode();
-    if (stored === "light") return "light";
     if (stored === "dark") return "dark";
+    if (stored === "light") return "light";
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 

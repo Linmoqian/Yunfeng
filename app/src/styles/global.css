@@ -7,7 +7,7 @@
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  background: var(--yf-bg-canvas);
+  /* 透明窗口：窗口背景由 app-root 的圆角容器提供，html/body 保持透明。 */
   color: var(--yf-text-primary);
 }
 
@@ -18,14 +18,48 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: var(--yf-bg-canvas);
+  background: transparent;
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background: transparent;
+}
+
+/* 应用骨架：透明窗口上由 app-root 描绘 mac 风格圆角窗口；标题栏常驻顶部，内容视口内部滚动。 */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Ant App 上下文会渲染 .ant-app 包装层，需透传高度，避免 height:100% 断链。 */
+.ant-app {
+  height: 100%;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  /* macOS 窗口曲率约 10pt；描边与投影模拟系统窗口质感，明暗主题由 token 派生。 */
+  border-radius: 10px;
   background: var(--yf-bg-canvas);
+  box-shadow:
+    0 0 0 0.5px color-mix(in srgb, var(--yf-text-primary) 22%, transparent),
+    0 24px 48px -12px rgb(0 0 0 / 26%);
+}
+
+.app-viewport {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 button,

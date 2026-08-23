@@ -1,0 +1,103 @@
+/* 自定义标题栏（macOS 风格）：高度与视口变量定义在 tokens.css（--yf-titlebar-height / --yf-viewport-height）。 */
+
+.titlebar {
+  position: relative;
+  display: flex;
+  flex: 0 0 var(--yf-titlebar-height);
+  align-items: center;
+  padding: 0 12px;
+  /* 圆角窗口描边由 app-root 的 box-shadow 提供，标题栏自身透明融入内容背景。 */
+  background: var(--yf-bg-canvas);
+  user-select: none;
+}
+
+/* 红绿灯：macOS 左置交通灯，失焦置灰，悬停显形符号。 */
+.lights {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.lightsPlaceholder {
+  width: 58px;
+}
+
+.light {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--yf-border-default);
+  color: rgb(0 0 0 / 55%);
+  cursor: default;
+  transition: filter 120ms var(--motion-ease);
+}
+
+.titlebar[data-inactive] .light {
+  background: color-mix(in srgb, var(--yf-text-tertiary) 45%, transparent);
+}
+
+.lightClose {
+  background: var(--yf-semantic-error);
+}
+
+.lightMinimize {
+  background: var(--yf-semantic-warning);
+}
+
+.lightZoom {
+  background: var(--yf-semantic-success);
+}
+
+.titlebar[data-inactive] .lightClose,
+.titlebar[data-inactive] .lightMinimize,
+.titlebar[data-inactive] .lightZoom {
+  background: color-mix(in srgb, var(--yf-text-tertiary) 45%, transparent);
+}
+
+.glyph {
+  opacity: 0;
+  transition: opacity 100ms var(--motion-ease);
+}
+
+.lights:hover .glyph,
+.light:focus-visible .glyph {
+  opacity: 1;
+}
+
+.light:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--yf-brand-primary) 55%, transparent);
+}
+
+/* 标题居中：左右留白区与红绿灯等宽，标题区 pointer-events 穿透以保持拖拽。 */
+.title {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.titleText {
+  color: var(--yf-text-secondary);
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.titlebar[data-inactive] .titleText {
+  color: var(--yf-text-tertiary);
+}
+
+.trailing {
+  flex: 1;
+  align-self: stretch;
+  pointer-events: none;
+}

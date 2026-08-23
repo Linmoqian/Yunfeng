@@ -32,6 +32,10 @@
   --yf-shadow-lg: 0 12px 32px -4px var(--yf-shadow-color);
   --yf-shadow-xl: 0 24px 64px -8px var(--yf-shadow-color);
 
+  /* 桌面 chrome：自定义标题栏高度；内容视口高度统一由此派生，明暗主题共用。 */
+  --yf-titlebar-height: 36px;
+  --yf-viewport-height: calc(100dvh - var(--yf-titlebar-height));
+
   /* 兼容现有功能样式；所有语义均由上面的 yf token 派生。 */
   --canvas: var(--yf-bg-canvas);
   --surface: var(--yf-bg-surface);
