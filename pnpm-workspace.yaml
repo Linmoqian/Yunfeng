@@ -1,0 +1,13 @@
+packages:
+  - app
+  - server
+  - server-rpc
+  - gateway
+  - mobile-app
+  - yunfeng-mobile-backend
+
+# esbuild 安装平台二进制校验、protobufjs/genai 生成运行时文件，均为安装期必需
+onlyBuiltDependencies:
+  - esbuild
+  - protobufjs
+  - "@google/genai"

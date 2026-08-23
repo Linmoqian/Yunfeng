@@ -8,9 +8,9 @@
 		"packages/*"
 	],
 	"scripts": {
-		"build": "npm run build --workspace=@yunfeng/tui && npm run build --workspace=@yunfeng/cli",
-		"test": "npm run build --workspace=@yunfeng/tui && npm run test --workspace=@yunfeng/tui && npm run test --workspace=@yunfeng/cli",
-		"clean": "npm run clean --workspaces --if-present",
+		"build": "pnpm --filter @yunfeng/tui build && pnpm --filter @yunfeng/cli build",
+		"test": "pnpm --filter @yunfeng/tui build && pnpm --filter @yunfeng/tui test && pnpm --filter @yunfeng/cli test",
+		"clean": "pnpm -r run clean",
 		"demo": "tsx packages/tui/demo/cli.ts",
 		"lint": "eslint .",
 		"format": "prettier --write .",

@@ -1,0 +1,5 @@
+packages:
+  - packages/*
+
+# npm 风格内部依赖（"@yunfeng/tui": "0.0.0"）依赖 workspace 链接，pnpm 10 默认关闭
+link-workspace-packages: true
