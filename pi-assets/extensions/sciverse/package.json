@@ -1,0 +1,11 @@
+{
+  "name": "sciverse-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "SciVerse 学术文献检索扩展（工具 + Skill）",
+  "pi": {
+    "extensions": ["index.ts"],
+    "skills": ["skills/sciverse-literature"]
+  }
+}

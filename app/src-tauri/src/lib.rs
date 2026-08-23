@@ -121,6 +121,86 @@ fn runtime_home() -> Option<PathBuf> {
         .filter(|path| !path.as_os_str().is_empty())
 }
 
+/// 派生 pi agent 配置目录，优先级与 apply_runtime_env 保持一致：
+/// 显式 YUNFENG_AGENT_DIR > YUNFENG_RUNTIME_HOME 派生 > None（未隔离时不播种）。
+fn pi_agent_dir() -> Option<PathBuf> {
+    if let Ok(agent_dir) = std::env::var("YUNFENG_AGENT_DIR") {
+        if !agent_dir.is_empty() {
+            return Some(PathBuf::from(agent_dir));
+        }
+    }
+    runtime_home().map(|home| home.join(".pi").join("agent"))
+}
+
+/// 同步单个文件；内容一致则跳过，缺失或不同才写入，保证幂等。
+fn seed_file(src: &Path, dest: &Path, seeded: &mut Vec<String>) -> Result<(), String> {
+    let src_bytes = std::fs::read(src).map_err(|e| format!("读取 {}: {e}", src.display()))?;
+    if std::fs::read(dest).is_ok_and(|existing| existing == src_bytes) {
+        return Ok(());
+    }
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("创建 {}: {e}", parent.display()))?;
+    }
+    std::fs::write(dest, &src_bytes).map_err(|e| format!("写入 {}: {e}", dest.display()))?;
+    seeded.push(dest.display().to_string());
+    Ok(())
+}
+
+/// 递归同步目录树，新增扩展无需改代码即可被播种。
+fn seed_tree(src: &Path, dest: &Path, seeded: &mut Vec<String>) -> Result<(), String> {
+    let entries = std::fs::read_dir(src).map_err(|e| format!("读取 {}: {e}", src.display()))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("遍历 {}: {e}", src.display()))?;
+        let path = entry.path();
+        let target = dest.join(entry.file_name());
+        if path.is_dir() {
+            seed_tree(&path, &target, seeded)?;
+        } else {
+            seed_file(&path, &target, seeded)?;
+        }
+    }
+    Ok(())
+}
+
+/// 把 services_root()/pi-assets 播种到 agent dir（AGENTS.md + extensions/）。
+/// 仅在隔离的运行时 HOME/AGENT_DIR 下生效，不触碰真实 ~/.pi/agent。
+fn ensure_pi_assets() {
+    let Some(agent_dir) = pi_agent_dir() else {
+        return;
+    };
+    let assets = services_root().join("pi-assets");
+    if !assets.is_dir() {
+        eprintln!(
+            "[yunfeng-desktop] pi-assets 缺失，跳过播种: {}",
+            assets.display()
+        );
+        return;
+    }
+    let mut seeded: Vec<String> = Vec::new();
+    let result = (|| -> Result<(), String> {
+        let agents_src = assets.join("AGENTS.md");
+        if agents_src.is_file() {
+            seed_file(&agents_src, &agent_dir.join("AGENTS.md"), &mut seeded)?;
+        }
+        let ext_src = assets.join("extensions");
+        if ext_src.is_dir() {
+            seed_tree(&ext_src, &agent_dir.join("extensions"), &mut seeded)?;
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) if seeded.is_empty() => {
+            println!("[yunfeng-desktop] pi 资产已就绪，无需播种")
+        }
+        Ok(()) => println!(
+            "[yunfeng-desktop] 已播种 {} 个 pi 资产文件到 {}",
+            seeded.len(),
+            agent_dir.display()
+        ),
+        Err(error) => eprintln!("[yunfeng-desktop] pi 资产播种失败: {error}"),
+    }
+}
+
 fn apply_runtime_env(command: &mut Command) {
     if let Some(home) = runtime_home() {
         let _ = std::fs::create_dir_all(&home);
@@ -607,6 +687,8 @@ pub(crate) fn start_all_inner(
     mobile_backend: Arc<Mutex<Option<ServiceChild>>>,
     rustdesk: Arc<Mutex<Option<Child>>>,
 ) -> Result<OrchestrationStatus, String> {
+    // 播种须先于 server 启动：server 进程启动时即读取 agent dir 的扩展与上下文。
+    ensure_pi_assets();
     let server_status = spawn_server_service(app.clone(), server)?;
     let gateway_status = spawn_gateway_service(app.clone(), gateway)?;
     let mobile_backend_status = spawn_mobile_backend_service(app.clone(), mobile_backend)?;
@@ -739,4 +821,72 @@ pub fn run() {
                 rustdesk_close_impl(&rustdesk.child);
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{seed_file, seed_tree};
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn temp_root(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("yunfeng-seed-{}-{}", tag, std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("创建临时目录");
+        dir
+    }
+
+    #[test]
+    fn seed_file_is_idempotent() {
+        let root = temp_root("file");
+        let src = root.join("src.md");
+        let dest = root.join("nested").join("dest.md");
+        fs::write(&src, b"v1").expect("写入源");
+
+        let mut seeded = Vec::new();
+        seed_file(&src, &dest, &mut seeded).expect("首次播种");
+        assert_eq!(seeded.len(), 1);
+        assert_eq!(fs::read(&dest).unwrap(), b"v1");
+
+        // 内容一致时不重写、不计数。
+        let mut seeded = Vec::new();
+        seed_file(&src, &dest, &mut seeded).expect("重复播种");
+        assert!(seeded.is_empty());
+
+        // 内容变化时覆盖。
+        fs::write(&src, b"v2").expect("更新源");
+        let mut seeded = Vec::new();
+        seed_file(&src, &dest, &mut seeded).expect("变更播种");
+        assert_eq!(fs::read(&dest).unwrap(), b"v2");
+        assert_eq!(seeded.len(), 1);
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn seed_tree_recurses_and_skips_unchanged() {
+        let root = temp_root("tree");
+        let src = root.join("assets");
+        let dest = root.join("agent");
+        fs::create_dir_all(src.join("extensions").join("demo")).expect("创建源目录");
+        fs::write(src.join("AGENTS.md"), b"rules").expect("写 AGENTS");
+        fs::write(
+            src.join("extensions").join("demo").join("index.ts"),
+            b"tool",
+        )
+        .expect("写扩展");
+
+        let mut seeded = Vec::new();
+        seed_tree(&src, &dest, &mut seeded).expect("播种目录");
+        assert_eq!(seeded.len(), 2);
+        assert!(dest.join("AGENTS.md").is_file());
+        assert!(dest.join("extensions/demo/index.ts").is_file());
+
+        // 二次播种全量跳过。
+        let mut seeded = Vec::new();
+        seed_tree(&src, &dest, &mut seeded).expect("重复播种目录");
+        assert!(seeded.is_empty());
+
+        let _ = fs::remove_dir_all(&root);
+    }
 }
