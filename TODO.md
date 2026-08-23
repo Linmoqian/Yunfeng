@@ -54,9 +54,20 @@
 
 - [x] 合并 gateway / 移动薄客户端 / 桌面 Tauri 壳到集成工作树
 - [x] 移动端迁移到 mobile-app/，移除旧 yunfeng-mobile/ 原型目录
-- [ ] 桌面壳接入可写 HOME / PI_CODING_AGENT_DIR
-- [ ] 桌面壳一键启动编排（server + gateway + mobile-backend + RustDesk）
-- [ ] 生产打包（包含后端运行时与 RustDesk）
+- [x] 桌面壳接入可写 HOME / PI_CODING_AGENT_DIR（b80514a 已落地）
+- [x] 桌面壳一键启动编排（server + gateway + mobile-backend + RustDesk）
+- [x] 生产打包（pnpm deploy 自包含产物，含后端运行时与 pi-assets；RustDesk 可选）
+
+## pnpm 迁移与 pi 资产接入
+
+- [x] 根 pnpm workspace：六成员收编 + 根 lockfile + onlyBuiltDependencies
+- [x] yunfeng-cli 独立 workspace 迁移（pnpm-workspace.yaml + link-workspace-packages）
+- [x] tauri beforeDev/BuildCommand 改 pnpm
+- [x] pi-assets 资产层：AGENTS.md 工程师规则 + SciVerse 扩展迁入
+- [x] 桌面壳 ensure_pi_assets 幂等播种（隔离 HOME 限定，先于 server 启动）
+- [x] 打包脚本 pnpm deploy 化并纳入 pi-assets（实测产物可启动）
+- [ ] SciVerse 在 0.83 真实会话内端到端冒烟（需 SCIVERSE_API_TOKEN）
+- [ ] lin-os / pi-crew / do-it-pi 三个扩展按需追加迁移
 
 ## 移动端功能补齐与托盘增强
 

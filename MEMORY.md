@@ -7,6 +7,9 @@
 - 移动端与桌面端共用 Yunfeng Design Tokens（docs/design/yunfeng-tokens.css / .json / .tailwind.css）；移动端 index.css 通过兼容别名消费同一组 yf 颜色/圆角/阴影 token，主题走 [data-theme] 明暗切换。
 - 移动端前端用 Vitest 覆盖 GatewayClient；后端用 node --test 覆盖账号/远程桌面。
 - 项目规则维护在 `RULES.md`（简约、模块化、行数阈值、契约同步）。
+- 包管理：根目录 pnpm workspace（app/server/server-rpc/gateway/mobile-app/yunfeng-mobile-backend 六成员，pnpm-workspace.yaml + 根 pnpm-lock.yaml）；yunfeng-cli 为独立内嵌 workspace（自有 pnpm-workspace.yaml 阻断向上归属，.npmrc 开 link-workspace-packages=true 兼容 npm 风格内部依赖）。
+- pi-assets/（仓库根）：随产品分发的 pi agent 资产层，当前含 AGENTS.md（工程师工作流规则，官方 loadProjectContextFiles 注入全局上下文）与 extensions/sciverse（SciVerse 学术检索扩展，迁自 pi 仓库 fork，零 npm 依赖，需 SCIVERSE_API_TOKEN）。桌面壳 start_all_inner 先于 server 启动执行 ensure_pi_assets 幂等播种到隔离 HOME 的 agent dir；dev 无 YUNFENG_RUNTIME_HOME 时不播种。
+- 生产打包：scripts/package-backends.mjs 用 pnpm deploy --prod --legacy 产出自包含 node_modules（符号链接均指向内部 .pnpm，目录整体可分发），pi-assets 一并打入产物。
 - mobile-app（仓库根目录）：Tauri 2 + Vite + React + Tailwind v4 移动端薄客户端，只做 UI + API 调用（任务/对话走 gateway，远程屏幕走移动后端 WS）。
 - yunfeng-mobile（仓库根目录）：早期移动端原型（含 Dashi 看板移植），已被 mobile-app 取代，仅保留参考，不再开发。
 - yunfeng-mobile-backend（仓库根目录）：电脑侧轻量移动后端，Node 24 + node:sqlite；账号=配对码+设备 token（sha256 落库）；远程桌面=内嵌 RustDesk sidecar（vendor/rustdesk 固定 1.4.9，AGPL-3.0；官方二进制下载到 bin/rustdesk 不提交），首次启动返回一次性密码；自研 JPEG/CGEvent 仅作 fallback。启动输出 YF_MOBILE_READY。
