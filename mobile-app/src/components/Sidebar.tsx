@@ -1,6 +1,7 @@
 import { KanbanSquare, ListTodo, Plus } from "lucide-react";
 import type { TaskState } from "@/lib/types";
 import type { UseTasksResult } from "@/hooks/useTasks";
+import { MapleMark } from "./MapleMark";
 import { TaskList } from "./TaskList";
 
 interface SidebarProps {
@@ -17,7 +18,10 @@ export function Sidebar({ tasks, activeTaskId, onPickTask, onMoreTask, onNewTask
   return (
     <div className="sidebar-pane">
       <div className="sidebar-header" data-tauri-drag-region>
-        <strong>Yunfeng</strong>
+        <strong className="sidebar-brand">
+          <MapleMark size={20} />
+          Yunfeng
+        </strong>
         <button type="button" className="icon-button" title="新建任务" onClick={onNewTask}>
           <Plus size={16} />
         </button>

@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
-import { Menu, MoreHorizontal, RotateCcw, Sparkles, Wrench } from "lucide-react";
+import { Menu, MoreHorizontal, RotateCcw, Wrench } from "lucide-react";
 import type { UseTaskResult } from "@/hooks/useTask";
 import type { UseModelsResult } from "@/hooks/useModels";
+import { MapleMark } from "./MapleMark";
 import { MessageRow } from "./MessageRow";
 import { Composer } from "./Composer";
 import { ModelMenu } from "./ModelMenu";
@@ -125,11 +126,9 @@ export function ChatPanel({ task, models, online, onOpenTasks, onOpenTaskActions
       <div ref={scrollRef} className="message-stream">
         {allMessages.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">
-              <Sparkles size={22} />
-            </div>
+            <MapleMark size={38} className="empty-maple" />
             <h2>Yunfeng 编码助手</h2>
-            <p>选择左侧任务查看对话，或直接向电脑中的 Agent 发送指令。</p>
+            <p>从任务列表选择任务，或直接向电脑中的 Agent 发送指令。</p>
             <div className="quick-prompts">
               {QUICK_PROMPTS.map((p) => (
                 <button

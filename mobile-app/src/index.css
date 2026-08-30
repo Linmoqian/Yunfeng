@@ -39,6 +39,8 @@
 
 /* ---------- 兼容别名：旧样式仍工作，语义一律由 yf token 派生 ---------- */
 :root {
+  /* 人文衬线用于页面问候、任务标题和关键结论，与桌面端字体系统保持一致。 */
+  --font-display: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
   --background: var(--yf-bg-canvas);
   --foreground: var(--yf-text-primary);
   --surface: var(--yf-bg-elevated);
@@ -155,9 +157,14 @@ a:focus-visible {
 }
 
 .sidebar-header strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  font-family: var(--font-display);
   font-size: 15px;
-  font-weight: 680;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 /* ---------- 窗口控制 ---------- */
@@ -435,9 +442,10 @@ a:focus-visible {
 
 .chat-title strong {
   overflow: hidden;
+  font-family: var(--font-display);
   font-size: 16px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -560,30 +568,34 @@ a:focus-visible {
 
 .message-avatar {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 10px;
-  color: var(--accent-foreground);
-  background: linear-gradient(145deg, color-mix(in srgb, var(--yf-brand-primary) 62%, white), var(--yf-brand-primary));
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+  padding-top: 2px;
+}
+
+.maple-mark {
+  display: block;
+  object-fit: contain;
+  opacity: 0.86;
 }
 
 .message-bubble {
-  border-radius: 16px;
-  padding: 12px 16px;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  padding: 12px 15px;
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .message-row.is-user .message-bubble {
   max-width: 78%;
-  color: var(--primary-foreground);
-  background: var(--primary);
-  border-bottom-right-radius: 5px;
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--divider));
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  color: var(--foreground);
 }
 
 .message-content {
@@ -596,12 +608,7 @@ a:focus-visible {
 
 .message-row.is-assistant .message-bubble {
   max-width: 100%;
-  color: var(--foreground);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-bottom-left-radius: 5px;
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(18px);
 }
 
 .cursor-blink {
@@ -622,26 +629,23 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  max-width: 460px;
-  padding: 40px 20px;
+  max-width: 420px;
+  border: 1px dashed var(--border);
+  border-radius: var(--yf-radius-lg);
+  padding: 40px 24px;
   text-align: center;
 }
 
-.empty-state .empty-icon {
-  display: grid;
-  width: 52px;
-  height: 52px;
-  place-items: center;
-  border-radius: 16px;
-  color: var(--accent);
-  background: var(--accent-soft);
+.empty-state .empty-maple {
+  margin-bottom: 4px;
 }
 
 .empty-state h2 {
   margin: 0;
+  font-family: var(--font-display);
   font-size: 22px;
-  font-weight: 680;
-  letter-spacing: -0.03em;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .empty-state p {
@@ -690,17 +694,14 @@ a:focus-visible {
   max-width: 860px;
   margin: 0 auto;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 7px 7px 7px 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(22px) saturate(145%);
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  background: var(--background);
+  transition: border-color 160ms ease;
 }
 
 .composer-inner:focus-within {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  box-shadow: 0 18px 52px rgb(0 0 0 / 10%);
 }
 
 .composer textarea {
@@ -725,9 +726,9 @@ a:focus-visible {
   height: 36px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 11px;
-  color: var(--primary-foreground);
-  background: var(--primary);
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--success);
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
@@ -900,9 +901,9 @@ a:focus-visible {
 
 .thinking-block {
   margin: 0 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--surface-muted) 50%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, var(--divider));
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
   overflow: hidden;
 }
 
@@ -910,7 +911,7 @@ a:focus-visible {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 10px;
+  padding: 8px 10px;
   color: var(--muted-foreground);
   font-size: 12px;
   cursor: pointer;
@@ -933,7 +934,7 @@ a:focus-visible {
 .thinking-body {
   max-height: 240px;
   overflow-y: auto;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   padding: 8px 10px;
   color: var(--muted-foreground);
   font-family: var(--font-mono);
@@ -1982,7 +1983,7 @@ button:not(:disabled):active {
     padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
   }
   .composer-inner {
-    border-radius: 20px;
+    border-radius: 16px;
   }
   .tool-activity,
   .approval-stack {
