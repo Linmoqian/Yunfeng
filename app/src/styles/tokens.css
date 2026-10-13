@@ -2,8 +2,8 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --yf-brand-primary: #0066cc;
-  --yf-brand-hover: #0071e3;
+  --yf-brand-primary: #8665a6;
+  --yf-brand-hover: #765594;
   --yf-brand-on-primary: #ffffff;
   --yf-bg-canvas: #ffffff;
   --yf-bg-secondary: #f5f5f7;
@@ -17,7 +17,7 @@
   --yf-semantic-success: #34c759;
   --yf-semantic-warning: #ff9500;
   --yf-semantic-error: #ff3b30;
-  --yf-semantic-info: #0066cc;
+  --yf-semantic-info: #8665a6;
   --yf-shadow-color: rgb(0 0 0 / 12%);
 
   --yf-radius-none: 0;
@@ -59,9 +59,9 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     color-scheme: dark;
-    --yf-brand-primary: #2997ff;
-    --yf-brand-hover: #4da3ff;
-    --yf-brand-on-primary: #ffffff;
+    --yf-brand-primary: #c3a6e0;
+    --yf-brand-hover: #d2bce9;
+    --yf-brand-on-primary: #1d1d1f;
     --yf-bg-canvas: #000000;
     --yf-bg-secondary: #1c1c1e;
     --yf-bg-surface: #2c2c2e;
@@ -74,16 +74,16 @@
     --yf-semantic-success: #30d158;
     --yf-semantic-warning: #ff9f0a;
     --yf-semantic-error: #ff453a;
-    --yf-semantic-info: #2997ff;
+    --yf-semantic-info: #c3a6e0;
     --yf-shadow-color: rgb(0 0 0 / 50%);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --yf-brand-primary: #2997ff;
-  --yf-brand-hover: #4da3ff;
-  --yf-brand-on-primary: #ffffff;
+  --yf-brand-primary: #c3a6e0;
+  --yf-brand-hover: #d2bce9;
+  --yf-brand-on-primary: #1d1d1f;
   --yf-bg-canvas: #000000;
   --yf-bg-secondary: #1c1c1e;
   --yf-bg-surface: #2c2c2e;
@@ -96,6 +96,6 @@
   --yf-semantic-success: #30d158;
   --yf-semantic-warning: #ff9f0a;
   --yf-semantic-error: #ff453a;
-  --yf-semantic-info: #2997ff;
+  --yf-semantic-info: #c3a6e0;
   --yf-shadow-color: rgb(0 0 0 / 50%);
 }

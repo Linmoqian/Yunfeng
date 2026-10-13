@@ -13,8 +13,8 @@
   color-scheme: light;
 
   /* ---- Brand 品牌色 ---- */
-  --yf-brand-primary: #0066CC;
-  --yf-brand-hover: #0071E3;
+  --yf-brand-primary: #8665A6;
+  --yf-brand-hover: #765594;
   --yf-brand-on-primary: #FFFFFF;
 
   /* ---- Background 背景 ---- */
@@ -36,7 +36,7 @@
   --yf-semantic-success: #34C759;
   --yf-semantic-warning: #FF9500;
   --yf-semantic-error: #FF3B30;
-  --yf-semantic-info: #0066CC;
+  --yf-semantic-info: #8665A6;
 
   /* ---- Shadow 阴影（颜色 12% 黑） ---- */
   --yf-shadow-color: rgb(0 0 0 / 12%);
@@ -50,9 +50,9 @@
   color-scheme: dark;
 
   /* ---- Brand 品牌色 ---- */
-  --yf-brand-primary: #2997FF;
-  --yf-brand-hover: #4DA3FF;
-  --yf-brand-on-primary: #FFFFFF;
+  --yf-brand-primary: #C3A6E0;
+  --yf-brand-hover: #D2BCE9;
+  --yf-brand-on-primary: #1D1D1F;
 
   /* ---- Background 背景 ---- */
   --yf-bg-canvas: #000000;
@@ -73,7 +73,7 @@
   --yf-semantic-success: #30D158;
   --yf-semantic-warning: #FF9F0A;
   --yf-semantic-error: #FF453A;
-  --yf-semantic-info: #2997FF;
+  --yf-semantic-info: #C3A6E0;
 
   /* ---- Shadow 阴影（颜色 50% 黑） ---- */
   --yf-shadow-color: rgb(0 0 0 / 50%);
@@ -84,9 +84,9 @@
   :root:not([data-theme]) {
     color-scheme: dark;
 
-    --yf-brand-primary: #2997FF;
-    --yf-brand-hover: #4DA3FF;
-    --yf-brand-on-primary: #FFFFFF;
+    --yf-brand-primary: #C3A6E0;
+    --yf-brand-hover: #D2BCE9;
+    --yf-brand-on-primary: #1D1D1F;
 
     --yf-bg-canvas: #000000;
     --yf-bg-secondary: #1C1C1E;
@@ -103,7 +103,7 @@
     --yf-semantic-success: #30D158;
     --yf-semantic-warning: #FF9F0A;
     --yf-semantic-error: #FF453A;
-    --yf-semantic-info: #2997FF;
+    --yf-semantic-info: #C3A6E0;
 
     --yf-shadow-color: rgb(0 0 0 / 50%);
   }

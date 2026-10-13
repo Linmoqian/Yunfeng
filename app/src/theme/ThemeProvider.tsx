@@ -40,7 +40,9 @@ export function buildAntdTheme(isDark: boolean, baseToken: Record<string, string
   const textSecondary = baseToken["--yf-text-secondary"] ?? (isDark ? "#98989d" : "#6e6e73");
   const borderDivider = baseToken["--yf-border-divider"] ?? (isDark ? "#2c2c2e" : "#f0f0f0");
   const borderDefault = baseToken["--yf-border-default"] ?? (isDark ? "#3a3a3c" : "#d2d2d7");
-  const brand = baseToken["--yf-brand-primary"] ?? (isDark ? "#2997ff" : "#0066cc");
+  const brand = baseToken["--yf-brand-primary"] ?? (isDark ? "#c3a6e0" : "#8665a6");
+  const brandHover = baseToken["--yf-brand-hover"] ?? (isDark ? "#d2bce9" : "#765594");
+  const onPrimary = baseToken["--yf-brand-on-primary"] ?? (isDark ? "#1d1d1f" : "#ffffff");
   const error = baseToken["--yf-semantic-error"] ?? (isDark ? "#ff453a" : "#ff3b30");
   const success = baseToken["--yf-semantic-success"] ?? (isDark ? "#30d158" : "#34c759");
   const warning = baseToken["--yf-semantic-warning"] ?? (isDark ? "#ff9f0a" : "#ff9500");
@@ -49,6 +51,9 @@ export function buildAntdTheme(isDark: boolean, baseToken: Record<string, string
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: {
       colorPrimary: brand,
+      colorPrimaryHover: brandHover,
+      colorPrimaryActive: brandHover,
+      colorTextLightSolid: onPrimary,
       colorInfo: brand,
       colorSuccess: success,
       colorError: error,
@@ -134,6 +139,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       "--yf-border-divider": read("--yf-border-divider") || undefined,
       "--yf-border-default": read("--yf-border-default") || undefined,
       "--yf-brand-primary": read("--yf-brand-primary") || undefined,
+      "--yf-brand-hover": read("--yf-brand-hover") || undefined,
+      "--yf-brand-on-primary": read("--yf-brand-on-primary") || undefined,
       "--yf-semantic-error": read("--yf-semantic-error") || undefined,
       "--yf-semantic-success": read("--yf-semantic-success") || undefined,
       "--yf-semantic-warning": read("--yf-semantic-warning") || undefined,

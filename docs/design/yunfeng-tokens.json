@@ -2,9 +2,9 @@
   "$description": "云枫 Yunfeng Design Tokens — 颜色 / 圆角 / 阴影，支持 Light / Dark 双主题。可作为 Style Dictionary 等构建链的源数据。",
   "color": {
     "brand": {
-      "primary": { "$type": "color", "$value": { "light": "#0066CC", "dark": "#2997FF" } },
-      "hover": { "$type": "color", "$value": { "light": "#0071E3", "dark": "#4DA3FF" } },
-      "on-primary": { "$type": "color", "$value": { "light": "#FFFFFF", "dark": "#FFFFFF" } }
+      "primary": { "$type": "color", "$value": { "light": "#8665A6", "dark": "#C3A6E0" }, "$comment": "浅白为主表面，柔和淡紫为交互强调色；浅色强调文字保持可读对比度，深色使用提亮变体。" },
+      "hover": { "$type": "color", "$value": { "light": "#765594", "dark": "#D2BCE9" } },
+      "on-primary": { "$type": "color", "$value": { "light": "#FFFFFF", "dark": "#1D1D1F" } }
     },
     "bg": {
       "canvas": { "$type": "color", "$value": { "light": "#FFFFFF", "dark": "#000000" }, "$comment": "画布底色" },
@@ -25,7 +25,7 @@
       "success": { "$type": "color", "$value": { "light": "#34C759", "dark": "#30D158" } },
       "warning": { "$type": "color", "$value": { "light": "#FF9500", "dark": "#FF9F0A" } },
       "error": { "$type": "color", "$value": { "light": "#FF3B30", "dark": "#FF453A" } },
-      "info": { "$type": "color", "$value": { "light": "#0066CC", "dark": "#2997FF" } }
+      "info": { "$type": "color", "$value": { "light": "#8665A6", "dark": "#C3A6E0" } }
     }
   },
   "radius": {

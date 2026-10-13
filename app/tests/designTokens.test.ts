@@ -36,3 +36,24 @@ test("运行时主题声明完整阴影，并由兼容语义映射到 yf token",
   assert.match(tokenCss, /--attention:\s*var\(--yf-semantic-error\)/);
   assert.match(tokenCss, /--positive:\s*var\(--yf-semantic-success\)/);
 });
+
+test("淡紫强调色与主按钮文字在明暗主题均保持可读对比度", () => {
+  const luminance = (hex: string) => {
+    const rgb = hex.slice(1).match(/.{2}/g)!.map((part) => parseInt(part, 16) / 255);
+    const linear = rgb.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+  };
+  const contrast = (first: string, second: string) => {
+    const [high, low] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+    return (high + 0.05) / (low + 0.05);
+  };
+  for (const mode of ["light", "dark"] as const) {
+    const primary = tokenSource.color.brand.primary.$value[mode];
+    const hover = tokenSource.color.brand.hover.$value[mode];
+    const label = tokenSource.color.brand["on-primary"].$value[mode];
+    const surface = tokenSource.color.bg.surface.$value[mode];
+    assert.ok(contrast(primary, label) >= 4.5, `${mode} 按钮文字`);
+    assert.ok(contrast(hover, label) >= 4.5, `${mode} 悬停按钮文字`);
+    assert.ok(contrast(primary, surface) >= 4.5, `${mode} 强调文字`);
+  }
+});
