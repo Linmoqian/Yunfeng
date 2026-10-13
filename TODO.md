@@ -1,5 +1,7 @@
 # TODO
 
+- [x] 合并 linworkflow 通用工程规范并接入 34 个项目技能
+
 - [x] 按推荐重组工程规范
 - [x] 创建项目工程规范 Skill
 - [x] 移除 Playwright 工具依赖
