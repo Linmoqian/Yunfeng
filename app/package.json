@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "test:ui": "python tests/frontend_smoke.py",
-    "tauri": "tauri"
+    "tauri": "node scripts/dev/tauri.mjs"
   },
   "dependencies": {
     "@lobehub/icons-static-svg": "^1.94.0",

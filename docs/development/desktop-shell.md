@@ -28,6 +28,26 @@ pnpm --filter yunfeng-gateway build
 cd app && pnpm tauri dev
 ```
 
+## 原生窗口
+
+窗口方案参考 LianAgent 的桌面壳。公共配置在 `app/src-tauri/tauri.conf.json`，macOS 在 `tauri.macos.conf.json` 覆盖整个窗口数组。调整窗口尺寸或 label 时须同步两份配置。
+
+macOS 使用 `Overlay` 标题栏、原生红绿灯、系统圆角和阴影。前端预留控制按钮空间并提供拖拽区，双击由 Tauri 的窗口脚本切换最大化。Windows/Linux 采用无边框窗口，前端提供最小化、最大化/还原和关闭按钮，按钮位于拖拽区之外并支持键盘焦点。界面内部继续使用 Yunfeng 圆角与颜色 token。
+
+桌面图标由现有 `maple-mark.png` 使用 `pnpm tauri icon` 生成，覆盖 ICNS、ICO、PNG 与 Windows Appx 资源。临时输出中的移动图标不迁入桌面目录。
+
+`desktop_window::show_main` 按取消最小化、显示、聚焦的顺序恢复窗口，供启动、macOS Dock 重新打开和托盘菜单共用。关闭仍进入托盘驻留。
+
+开发入口 `app/scripts/dev/tauri.mjs` 兼容 `pnpm tauri dev` 与 `npm run tauri dev`。macOS 的 Cargo runner 在 `target/debug/dev-bundle/` 生成临时签名的开发应用包，包含应用身份、可执行文件和图标。生成目录不入库，生产打包继续由 Tauri CLI 处理。Vite 使用严格的 5173 端口，端口占用时明确报错。
+
+### 2026-10-13 验证
+
+执行 `pnpm test`（29 项通过）、`pnpm build`、`cargo fmt --check`、`cargo test`（2 项通过）、`cargo clippy --all-targets`、两个开发脚本的 `node --check`，均成功。开发应用包通过 `plutil -lint` 和 `codesign --verify --deep --strict`。
+
+macOS 原生进程已从开发应用包启动。窗口实际显示枫叶标题、自定义内容标题栏及原生红绿灯。双击后截图尺寸从 1280×800 变为 1846×1050，再次双击恢复 1280×800。实际执行标题栏拖拽、最小化按钮、关闭按钮，并读取恢复后的窗口；窗口观察工具会激活应用，因此未将这些操作认定为独立的 Dock/托盘恢复验收。直接访问 Dock 的自动化请求超时，保留手动验收：最小化或关闭窗口后点击 Dock 图标及托盘「显示 Yunfeng」，确认窗口恢复且服务继续运行。
+
+普通 Clippy 检查保留 `lib.rs` 中已有的 `map(...).flatten()` 警告，添加 `-D warnings` 时该警告使检查失败。构建仍提示分包超过 500KB。Windows/Linux 实机按钮、键盘导航和生产安装包尚未验证。
+
 ## pi 资产播种
 
 仓库根的 `pi-assets/` 是随产品分发的 pi agent 资产层，当前包含：

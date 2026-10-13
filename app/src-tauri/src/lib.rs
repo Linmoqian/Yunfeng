@@ -3,6 +3,7 @@
 // - 一键启动编排：yunfeng-server + yunfeng-gateway + yunfeng-mobile-backend + RustDesk
 // - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 PI_CODING_AGENT_DIR
 
+mod desktop_window;
 mod tray;
 
 use std::{
@@ -768,6 +769,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(RustDeskState::default());
 
     tray::setup(app)?;
+    desktop_window::show_main(app.handle()).map_err(std::io::Error::other)?;
 
     // 自动拉起全部后端服务。
     let app_handle = app.handle().clone();
@@ -810,6 +812,12 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            if matches!(event, RunEvent::Reopen { .. }) {
+                if let Err(error) = desktop_window::show_main(app) {
+                    eprintln!("[yunfeng-window] 恢复主窗口失败: {error}");
+                }
+            }
             if let RunEvent::Exit = event {
                 let server = app.state::<ServerState>();
                 stop_service(&server.inner);

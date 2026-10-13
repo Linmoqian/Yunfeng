@@ -1,47 +1,29 @@
-// Yunfeng 自定义标题栏（macOS 风格）：无边框透明窗口的拖拽区 + 红绿灯窗口控制。
-// 拖拽与双击最大化依赖 Tauri 内建 data-tauri-drag-region 脚本（drag.js），
-// 此处不重复实现双击逻辑，避免与内建 internal_toggle_maximize 双重触发。
-// 拖拽区内的非交互子元素以 pointer-events: none 穿透，保证 mousedown 命中带属性的容器。
+// macOS 使用覆盖式原生标题栏；其他桌面平台提供自绘窗口按钮。
+// 拖拽区与交互按钮互为兄弟节点，双击由 Tauri 内建脚本处理。
 
-import { Minus, Plus, X } from "lucide-react";
+import { Copy, Minus, Square, X } from "lucide-react";
 
 import { useWindowControls } from "./useWindowControls";
 import mapleMark from "../../assets/generated/maple-mark.png";
 import styles from "./TitleBar.module.css";
 
 export function TitleBar() {
-  const { isDesktop, isFocused, isMaximized, minimize, toggleMaximize, close } = useWindowControls();
+  const { isDesktop, platform, error, isFocused, isMaximized, minimize, toggleMaximize, close } = useWindowControls();
 
   return (
-    <header className={styles.titlebar} data-tauri-drag-region data-inactive={isFocused ? undefined : "true"}>
-      {isDesktop ? (
-        <div className={styles.lights}>
-          <button type="button" className={`${styles.light} ${styles.lightClose}`} onClick={close} aria-label="关闭窗口" title="关闭">
-            <X className={styles.glyph} size={9} strokeWidth={2.5} aria-hidden="true" />
-          </button>
-          <button type="button" className={`${styles.light} ${styles.lightMinimize}`} onClick={minimize} aria-label="最小化窗口" title="最小化">
-            <Minus className={styles.glyph} size={9} strokeWidth={2.5} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={`${styles.light} ${styles.lightZoom}`}
-            onClick={toggleMaximize}
-            aria-label={isMaximized ? "还原窗口" : "最大化窗口"}
-            title={isMaximized ? "还原" : "最大化"}
-          >
-            <Plus className={styles.glyph} size={9} strokeWidth={2.5} aria-hidden="true" />
-          </button>
-        </div>
-      ) : (
-        <div className={styles.lightsPlaceholder} data-tauri-drag-region />
-      )}
-
-      <div className={styles.title} data-tauri-drag-region>
+    <header className={styles.titlebar} data-platform={platform} data-inactive={isFocused ? undefined : "true"} aria-label="桌面标题栏">
+      {platform === "macos" && <div className={styles.nativeControlsSpace} />}
+      <div className={styles.dragRegion} data-tauri-drag-region>
         <img src={mapleMark} className={styles.logo} alt="" aria-hidden="true" draggable="false" />
         <span className={styles.titleText}>云枫 Yunfeng</span>
+        <span className={styles.workspaceLabel}>个人工作区</span>
       </div>
-
-      <div className={styles.trailing} data-tauri-drag-region />
+      {error && <span className={styles.error} role="alert">{error}</span>}
+      {isDesktop && platform !== "macos" && <div className={styles.windowControls}>
+        <button type="button" onClick={minimize} aria-label="最小化窗口" title="最小化"><Minus size={15} /></button>
+        <button type="button" onClick={toggleMaximize} aria-label={isMaximized ? "还原窗口" : "最大化窗口"} title={isMaximized ? "还原" : "最大化"}>{isMaximized ? <Copy size={13} /> : <Square size={13} />}</button>
+        <button type="button" className={styles.close} onClick={close} aria-label="关闭窗口" title="关闭"><X size={16} /></button>
+      </div>}
     </header>
   );
 }

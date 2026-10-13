@@ -7,7 +7,7 @@
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  /* 透明窗口：窗口背景由 app-root 的圆角容器提供，html/body 保持透明。 */
+  /* 内容背景由 app-root 提供，桌面外缘与阴影交给原生窗口。 */
   color: var(--yf-text-primary);
 }
 
@@ -60,6 +60,11 @@ body,
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.app-root[data-desktop="true"] {
+  border-radius: 0;
+  box-shadow: none;
 }
 
 button,

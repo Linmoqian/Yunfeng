@@ -6,9 +6,11 @@ const apiProxyTarget = process.env.YF_API_PROXY ?? "http://127.0.0.1:8000";
 
 // https://vite.dev/config/
 export default defineConfig({
+  clearScreen: false,
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true,
     proxy: {
       // 开发环境下将 /api 代理到 Node 后端（server/）
       "/api": {

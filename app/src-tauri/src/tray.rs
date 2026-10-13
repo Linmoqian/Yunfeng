@@ -180,10 +180,7 @@ fn handle_menu_event(app: &AppHandle, id: &str, items: &Arc<Mutex<Option<TrayMen
     let mut action_result: Result<(), String> = Ok(());
     match id {
         "show" => {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            action_result = crate::desktop_window::show_main(app);
         }
         "server-start" => {
             action_result =

@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import { useAppBehavior } from "./hooks/useAppBehavior";
 import { TitleBar } from "./components/titlebar/TitleBar";
 import { AppContextMenu } from "./components/context-menu/AppContextMenu";
+import { getRuntimeWindowPlatform } from "./components/titlebar/windowPlatform";
 import { WorkbenchPage } from "./routes/workbench/WorkbenchPage";
 
 const TaskboardPage = lazy(() => import("./routes/taskboard/TaskboardPage").then((module) => ({
@@ -32,7 +33,7 @@ const router = createBrowserRouter([
 export function App() {
   useAppBehavior();
   return (
-    <div className="app-root">
+    <div className="app-root" data-desktop={getRuntimeWindowPlatform() !== "browser" || undefined}>
       <AppContextMenu>
         <TitleBar />
         <div className="app-viewport">

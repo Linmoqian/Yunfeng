@@ -3,12 +3,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getRuntimeWindowPlatform, type WindowPlatform } from "./windowPlatform";
 
-const isDesktop = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+const platform = getRuntimeWindowPlatform();
+const isDesktop = platform !== "browser";
 
 export interface WindowControls {
   /** 是否运行在 Tauri 桌面外壳中；浏览器中为 false。 */
   isDesktop: boolean;
+  platform: WindowPlatform;
+  error: string | null;
   isFocused: boolean;
   isMaximized: boolean;
   minimize: () => void;
@@ -19,6 +23,7 @@ export interface WindowControls {
 export function useWindowControls(): WindowControls {
   const [isFocused, setIsFocused] = useState(true);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isDesktop) return;
@@ -41,10 +46,11 @@ export function useWindowControls(): WindowControls {
     };
 
     syncMaximized();
+    current.isFocused().then((value) => { if (!disposed) setIsFocused(value); }).catch(() => undefined);
     // 最大化与失焦可能来自双击拖拽区、系统快捷键、Dock 等外部入口，统一监听同步。
     current.onResized(syncMaximized).then(retain).catch(() => undefined);
     current
-      .onFocusChanged(({ payload }) => setIsFocused(payload))
+      .onFocusChanged(({ payload }) => { if (!disposed) setIsFocused(payload); })
       .then(retain)
       .catch(() => undefined);
 
@@ -54,24 +60,23 @@ export function useWindowControls(): WindowControls {
     };
   }, []);
 
-  const run = useCallback((action: () => Promise<unknown>, label: string) => {
-    action().catch((error: unknown) => {
-      console.warn(`[titlebar] ${label} 失败`, error);
-    });
+  const run = useCallback(async (action: () => Promise<unknown>, label: string) => {
+    setError(null);
+    try { await action(); } catch { setError(`${label}失败，请重试。`); }
   }, []);
 
   const minimize = useCallback(() => {
-    if (isDesktop) run(() => getCurrentWindow().minimize(), "最小化窗口");
+    if (isDesktop) void run(() => getCurrentWindow().minimize(), "最小化窗口");
   }, [run]);
 
   const toggleMaximize = useCallback(() => {
-    if (isDesktop) run(() => getCurrentWindow().toggleMaximize(), "切换窗口最大化");
+    if (isDesktop) void run(() => getCurrentWindow().toggleMaximize(), "切换窗口最大化");
   }, [run]);
 
   // 关闭由 Rust 端 CloseRequested 拦截为隐藏到托盘（见 tray.rs），此处只发起请求。
   const close = useCallback(() => {
-    if (isDesktop) run(() => getCurrentWindow().close(), "关闭窗口");
+    if (isDesktop) void run(() => getCurrentWindow().close(), "关闭窗口");
   }, [run]);
 
-  return { isDesktop, isFocused, isMaximized, minimize, toggleMaximize, close };
+  return { isDesktop, platform, error, isFocused, isMaximized, minimize, toggleMaximize, close };
 }

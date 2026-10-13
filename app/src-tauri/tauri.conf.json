@@ -12,13 +12,18 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Yunfeng",
         "width": 1280,
         "height": 800,
         "minWidth": 960,
         "minHeight": 600,
         "decorations": false,
-        "transparent": true,
+        "transparent": false,
+        "shadow": true,
+        "resizable": true,
+        "visible": true,
+        "focus": true,
         "center": true
       }
     ],
