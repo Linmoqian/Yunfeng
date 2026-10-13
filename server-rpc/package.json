@@ -10,7 +10,7 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "0.83.0"
+    "@earendil-works/pi-coding-agent": "1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

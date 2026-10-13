@@ -11,9 +11,9 @@
     "start:portable": "node scripts/start-portable.mjs"
   },
   "dependencies": {
-    "@earendil-works/pi-agent-core": "^0.83.0",
-    "@earendil-works/pi-ai": "^0.83.0",
-    "@earendil-works/pi-coding-agent": "0.83.0"
+    "@earendil-works/pi-agent-core": "^1.2.0",
+    "@earendil-works/pi-ai": "^1.2.0",
+    "@earendil-works/pi-coding-agent": "1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

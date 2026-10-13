@@ -45,6 +45,7 @@ export class AgentSessionWrapper {
   private extensionBindingPromise: Promise<void> | null = null;
   private extensionBindingError: unknown = null;
   private forceEmptySystemPrompt = false;
+  private emptyPromptProjectionInstalled = false;
   private unsubscribe: (() => void) | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private onDestroyCallback: (() => void) | null = null;
@@ -196,9 +197,16 @@ export class AgentSessionWrapper {
   }
 
   private applyForcedEmptySystemPrompt(): void {
-    if (this.forceEmptySystemPrompt && this.inner.agent.state) {
-      this.inner.agent.state.systemPrompt = "";
-    }
+    if (!this.forceEmptySystemPrompt || this.emptyPromptProjectionInstalled) return;
+    const previousTransform = this.inner.agent.transformContext;
+    this.inner.agent.transformContext = async (messages, signal) => {
+      const transformed = previousTransform ? await previousTransform(messages, signal) : messages;
+      if (!this.forceEmptySystemPrompt) return transformed;
+      return transformed.map((message) => message.role === "system"
+        ? { ...message, content: "", sections: {} }
+        : message);
+    };
+    this.emptyPromptProjectionInstalled = true;
   }
 
   private emit(event: AgentEvent): void {
