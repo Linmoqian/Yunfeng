@@ -1,0 +1,5 @@
+/* 菜单圆角与配色来自 Yunfeng token，浮层使用 Ant Design 的焦点与键盘导航。 */
+.host { display: contents; }
+.anchor { position: fixed; width: 1px; height: 1px; pointer-events: none; }
+.popup :global(.ant-dropdown-menu) { min-width: 210px; padding: 6px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); background: var(--yf-bg-elevated); box-shadow: var(--yf-shadow-lg); }
+.popup :global(.ant-dropdown-menu-item) { min-height: 34px; border-radius: var(--yf-radius-sm); font-size: 12px; }

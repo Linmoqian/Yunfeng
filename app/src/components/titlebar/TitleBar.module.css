@@ -80,9 +80,11 @@
   left: 50%;
   display: flex;
   align-items: center;
+  gap: 6px;
   transform: translateX(-50%);
   pointer-events: none;
 }
+.logo { width: 18px; height: 18px; object-fit: contain; }
 
 .titleText {
   color: var(--yf-text-secondary);

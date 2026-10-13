@@ -1,6 +1,7 @@
 import { App } from "antd";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   createConversation,
@@ -13,6 +14,8 @@ import {
   type TaskState,
 } from "../../services/taskService";
 import { Composer } from "./components/Composer";
+import { ConversationWelcome } from "./components/ConversationWelcome";
+import { SESSION_ENTER } from "./workspaceMotion";
 import { ConversationInfoCard } from "./components/ConversationInfoCard";
 import { ConversationLog } from "./components/ConversationLog";
 import { useTaskStream } from "./hooks/useTaskStream";
@@ -27,11 +30,14 @@ interface TaskFocusPanelProps {
   initialMessage?: string;
   modelCatalog?: ModelCatalog;
   modelSelection?: ModelSelection | null;
+  infoContainer?: HTMLElement | null;
+  showInfo?: boolean;
 }
 
 /** 单任务聚焦面板：编排会话流、工具、审批、运行控制、配置与 Git 改动。 */
-export function TaskFocusPanel({ draft = false, task, legacySession, sessions, onTaskUpdated, onTaskCreated, initialMessage, modelCatalog, modelSelection }: TaskFocusPanelProps) {
+export function TaskFocusPanel({ draft = false, task, legacySession, sessions, onTaskUpdated, onTaskCreated, initialMessage, modelCatalog, modelSelection, infoContainer, showInfo = true }: TaskFocusPanelProps) {
   const { message } = App.useApp();
+  const reduced = useReducedMotion();
   const [sending, setSending] = useState(false);
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
   const [showThinking, setShowThinking] = useState(() => window.localStorage.getItem("yunfeng-show-thinking") === "true");
@@ -99,6 +105,8 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
       } else if (isLegacy) {
         const imported = await ensureTaskForLegacy();
         await sendTaskCommand(imported.id, { type: "prompt", message: next });
+        setMessageStatus(optimisticId, "sent");
+        onTaskCreated?.(imported, next);
       } else if (activeTask) {
         const commandType = running ? mode : "prompt";
         await sendTaskCommand(activeTask.id, { type: commandType, message: next });
@@ -184,13 +192,13 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
       className="focus-panel focus-panel--inline"
       role="region"
       aria-label="当前任务"
-      initial={{ opacity: 0 }}
+      initial={reduced ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+      transition={SESSION_ENTER}
     >
       <div className="focus-panel__body">
         <section className="conversation-section" aria-label="对话">
-          <ConversationLog
+          {draft && !conversation.length ? <ConversationWelcome /> : <ConversationLog
             ref={conversationLogRef}
             items={conversation}
             toolCalls={toolCalls}
@@ -205,7 +213,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
             onFork={(entryId) => void handleFork(entryId)}
             onResend={(itemId, text) => void handleResend(itemId, text)}
             onApproval={(requestId, decision, value) => void handleApproval(requestId, decision, value)}
-          />
+          />}
         </section>
 
         <Composer
@@ -219,7 +227,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
           onStop={() => handleStop()}
         />
       </div>
-      {!draft ? (
+      {!draft && showInfo && infoContainer ? createPortal(
         <ConversationInfoCard
           sessionId={sessionId}
           currentTitle={currentTitle}
@@ -231,7 +239,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
           onShowThinkingChange={setShowThinking}
           onTaskUpdated={onTaskUpdated}
         />
-      ) : null}
+      , infoContainer) : null}
     </motion.section>
   );
 }

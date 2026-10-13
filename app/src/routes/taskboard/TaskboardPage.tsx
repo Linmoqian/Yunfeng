@@ -5,12 +5,12 @@ import { App as TaskboardApp } from "../../features/taskboard/App";
 import "../../features/taskboard/styles.css";
 import styles from "./TaskboardPage.module.css";
 
-export function TaskboardPage() {
+export function TaskboardPage({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
 
   return (
     <div className="taskboard-route">
-      <button
+      {!embedded && <button
         className={styles.backButton}
         type="button"
         onClick={() => navigate("/")}
@@ -19,7 +19,7 @@ export function TaskboardPage() {
       >
         <ArrowLeft size={16} aria-hidden="true" />
         <span>返回工作台</span>
-      </button>
+      </button>}
       <TaskboardApp />
     </div>
   );

@@ -1,0 +1,50 @@
+/* LianAgent 196px 分类栏与固定设置窗口。
+ * Created on 2026-10-13
+ * @author: https://github.com/Linmoqian
+ */
+.modal :global(.ant-modal-container) { padding: 0; overflow: hidden; border-radius: var(--yf-radius-xl); }
+.modal :global(.ant-modal-header) { margin: 0; padding: 20px 60px 20px 24px; border-bottom: 1px solid var(--yf-border-divider); background: var(--yf-bg-canvas); }
+.heading { display: flex; flex-direction: column; gap: 4px; }
+.heading strong { font-size: 19px; }
+.heading span { font-size: 12px; font-weight: 400; color: var(--yf-text-secondary); }
+.layout { display: grid; grid-template-columns: 196px minmax(0, 1fr); height: min(560px, 75dvh); min-height: 0; }
+.nav { display: flex; flex-direction: column; gap: 16px; min-height: 0; padding: 20px 12px; border-right: 1px solid var(--yf-border-divider); background: var(--yf-bg-surface); }
+.nav > small { color: var(--yf-text-tertiary); font-size: 11px; }
+.navItems { flex: 1; min-height: 0; overflow: auto; }
+.search { display: flex; align-items: center; gap: 6px; padding: 2px 8px; color: var(--yf-text-tertiary); border: 1px solid var(--yf-border-divider); background: var(--yf-bg-canvas); border-radius: var(--yf-radius-sm); }
+.search input { font-size: 12px; }
+.navButton { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin-bottom: 4px; padding: 10px; border: 1px solid transparent; border-radius: var(--yf-radius-sm); background: transparent; color: var(--yf-text-secondary); text-align: left; cursor: pointer; }
+.navButton[aria-selected="true"] { border-color: var(--yf-border-default); background: var(--yf-bg-canvas); color: var(--yf-text-primary); box-shadow: inset 2px 0 var(--yf-brand-primary); }
+.navButton > span { display: flex; flex-direction: column; gap: 3px; }
+.navButton strong { font-size: 12px; font-weight: 600; }
+.navButton small { font-size: 10px; color: var(--yf-text-tertiary); }
+.content { min-width: 0; overflow: auto; padding: 24px 28px; background: var(--yf-bg-canvas); }
+.content h2 { margin: 0 0 4px; font-size: 20px; }
+.content h3 { margin: 28px 0 12px; font-size: 14px; font-weight: 600; }
+.content p { color: var(--yf-text-secondary); font-size: 12px; line-height: 1.8; }
+.content button + p { margin-top: 12px; }
+.content dl { display: grid; grid-template-columns: max-content 1fr; gap: 12px; font-size: 12px; }
+.content dd { margin: 0; color: var(--yf-text-secondary); }
+.choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.choices button { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); color: var(--yf-text-primary); background: var(--yf-bg-surface); text-align: left; cursor: pointer; }
+.choices button[aria-pressed="true"] { border-color: var(--yf-brand-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--yf-brand-primary) 10%, transparent); }
+.choices strong { font-size: 12px; }
+.themePreview { display: flex; align-items: stretch; gap: 3px; width: 100%; height: 72px; padding: 6px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-xs); background: var(--yf-bg-secondary); }
+.themePreview i { flex: 1; border-radius: 3px; background: var(--yf-bg-canvas); }
+.themePreview i:nth-child(2) { flex: 3; }
+.themePreview[data-theme="dark"] { background: var(--yf-text-primary); }
+.themePreview[data-theme="dark"] i { background: color-mix(in srgb, var(--yf-text-primary) 80%, var(--yf-bg-canvas)); }
+.themePreview[data-theme="system"] { background: linear-gradient(90deg, var(--yf-bg-secondary) 50%, var(--yf-text-primary) 50%); }
+/* 深色主题下交换示意色，保持浅色与深色预览的明暗含义。 */
+:global(:root[data-theme="dark"]) .themePreview[data-theme="light"] { background: var(--yf-text-primary); }
+:global(:root[data-theme="dark"]) .themePreview[data-theme="light"] i { background: color-mix(in srgb, var(--yf-text-primary) 90%, var(--yf-bg-canvas)); }
+:global(:root[data-theme="dark"]) .themePreview[data-theme="dark"] { background: var(--yf-bg-secondary); }
+:global(:root[data-theme="dark"]) .themePreview[data-theme="dark"] i { background: var(--yf-bg-canvas); }
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme])) .themePreview[data-theme="light"] { background: var(--yf-text-primary); }
+  :global(:root:not([data-theme])) .themePreview[data-theme="light"] i { background: color-mix(in srgb, var(--yf-text-primary) 90%, var(--yf-bg-canvas)); }
+  :global(:root:not([data-theme])) .themePreview[data-theme="dark"] { background: var(--yf-bg-secondary); }
+  :global(:root:not([data-theme])) .themePreview[data-theme="dark"] i { background: var(--yf-bg-canvas); }
+}
+.select { display: block; width: 100%; margin-bottom: 16px; }
+@media (max-width: 600px) { .layout { grid-template-columns: 128px minmax(0, 1fr); } .content { padding: 18px; } .choices { grid-template-columns: 1fr; } .navButton small { display: none; } }

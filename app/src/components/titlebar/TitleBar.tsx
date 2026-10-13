@@ -6,6 +6,7 @@
 import { Minus, Plus, X } from "lucide-react";
 
 import { useWindowControls } from "./useWindowControls";
+import mapleMark from "../../assets/generated/maple-mark.png";
 import styles from "./TitleBar.module.css";
 
 export function TitleBar() {
@@ -36,6 +37,7 @@ export function TitleBar() {
       )}
 
       <div className={styles.title} data-tauri-drag-region>
+        <img src={mapleMark} className={styles.logo} alt="" aria-hidden="true" draggable="false" />
         <span className={styles.titleText}>云枫 Yunfeng</span>
       </div>
 

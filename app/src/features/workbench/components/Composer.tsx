@@ -1,6 +1,6 @@
 import { Button, Input } from "antd";
 import { CircleStop, Send } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 type StreamStatus = "connecting" | "idle" | "streaming" | "error";
 
@@ -17,6 +17,7 @@ interface ComposerProps {
 
 export function Composer({ isDraft, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
   const [draft, setDraft] = useState("");
+  const messageId = useId();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [nextActionMode, setNextActionMode] = useState<"steer" | "followUp">("followUp");
 
@@ -45,13 +46,13 @@ export function Composer({ isDraft, running, isLegacy, sending, streamStatus, st
         void handleSubmit();
       }}
     >
-      <label className="sr-only" htmlFor="task-message">输入消息</label>
+      <label className="sr-only" htmlFor={messageId}>输入消息</label>
       <Input.TextArea
-        id="task-message"
+        id={messageId}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onPressEnter={(event) => {
-          if (!event.shiftKey) {
+          if (!event.shiftKey && !event.nativeEvent.isComposing) {
             event.preventDefault();
             void handleSubmit();
           }

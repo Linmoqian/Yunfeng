@@ -1,0 +1,10 @@
+/* 欢迎页仅使用既有 Yunfeng 主题变量。
+ * Created on 2026-10-13
+ * @author: https://github.com/Linmoqian
+ */
+.welcome { display: flex; flex: 1; min-height: 0; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px; text-align: center; }
+.welcome img { object-fit: contain; }
+.welcome h1 { margin: 0; font-family: var(--font-display); color: var(--yf-text-primary); font-size: clamp(24px, 3vw, 34px); font-weight: 600; }
+.welcome p { margin: 0; color: var(--yf-text-secondary); font-size: 14px; }
+.welcome span { color: var(--yf-text-tertiary); font-size: 12px; }
+@media (max-height: 540px) { .welcome { gap: 8px; padding: 12px; } .welcome img { width: 64px; height: 64px; } }

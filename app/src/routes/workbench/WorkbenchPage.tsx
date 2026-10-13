@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   loadLegacySessions,
@@ -12,25 +12,19 @@ import {
   type TaskState,
   type TaskStreamEvent,
 } from "../../services/taskService";
-const TaskFocusPanel = lazy(() => import("../../features/workbench/TaskFocusPanel").then((module) => ({ default: module.TaskFocusPanel })));
-const SettingsDialog = lazy(() => import("../../features/workbench/SettingsDialog").then((module) => ({ default: module.SettingsDialog })));
 import {
-  buildTaskSections,
   selectMostRecentActiveTask,
   sessionToLegacySummary,
   taskToSummary,
   type TaskSummary,
 } from "../../features/workbench/taskPresentation";
-import { resolveSidebarCollapsed } from "../../features/workbench/workbenchPreferences";
 import { useThemeMode } from "../../theme/ThemeProvider";
 import {
   getInitialSelection,
   workbenchActions,
 } from "../../store/workbenchSlice";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { SessionSidebar } from "./components/SessionSidebar";
-import { WorkbenchHeader } from "./components/WorkbenchHeader";
-import { OverviewPane } from "./components/OverviewPane";
+import { WorkspaceView } from "../../features/workbench/components/WorkspaceView";
 import "./workbench.css";
 
 function isTaskStateLike(value: unknown): value is TaskState {
@@ -64,10 +58,6 @@ export function WorkbenchPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftTask, setDraftTask] = useState(false);
   const [initialMessage, setInitialMessage] = useState<{ taskId: string; text: string } | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
-    window.matchMedia("(max-width: 720px)").matches ||
-      resolveSidebarCollapsed(window.localStorage.getItem("yunfeng-sidebar-collapsed")),
-  );
   const [modelCatalog, setModelCatalog] = useState<ModelCatalog>({ models: [], defaultModel: null, thinkingLevels: {}, thinkingLevelPins: {} });
   const [modelLoading, setModelLoading] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -118,10 +108,6 @@ export function WorkbenchPage() {
     });
   }, [allSummaries, archivedFilter, projectFilter, search]);
 
-  const sections = useMemo(
-    () => buildTaskSections(filteredSummaries, archivedFilter === "all" || archivedFilter === "archived"),
-    [filteredSummaries, archivedFilter],
-  );
   const modelCwd = currentTask?.cwd || currentSession?.cwd || tasks.find((task) => task.cwd)?.cwd;
 
   const refreshSnapshot = useCallback(async () => {
@@ -192,9 +178,6 @@ export function WorkbenchPage() {
     return () => window.removeEventListener("popstate", onPopState);
   }, [dispatch]);
 
-  useEffect(() => {
-    window.localStorage.setItem("yunfeng-sidebar-collapsed", String(sidebarCollapsed));
-  }, [sidebarCollapsed]);
 
   // 模型目录
   useEffect(() => {
@@ -232,11 +215,6 @@ export function WorkbenchPage() {
     await refreshSnapshot();
   }
 
-  async function handleReopen(taskId: string) {
-    await sendTaskCommand(taskId, { type: "reopen" });
-    await refreshSnapshot();
-  }
-
   function handleOpenTask(task: TaskSummary) {
     setDraftTask(false);
     setInitialMessage(null);
@@ -245,11 +223,9 @@ export function WorkbenchPage() {
     } else {
       dispatch(workbenchActions.selectTask(task.id));
     }
-    if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
   }
 
   function handleOpenNewTask() {
-    if (window.matchMedia("(max-width: 720px)").matches) setSidebarCollapsed(true);
     dispatch(workbenchActions.selectTask(null));
     dispatch(workbenchActions.selectSession(null));
     setInitialMessage(null);
@@ -265,104 +241,40 @@ export function WorkbenchPage() {
     }
   }
 
-  const layoutClass = sidebarCollapsed ? "app-shell app-shell--sidebar-collapsed" : "app-shell";
-
   return (
-    <Suspense fallback={null}>
-      <div className={layoutClass}>
-        {!sidebarCollapsed ? (
-          <button
-            className="session-sidebar-scrim"
-            type="button"
-            onClick={() => setSidebarCollapsed(true)}
-            aria-label="关闭任务列表"
-          />
-        ) : null}
-        <SessionSidebar
-          sections={sections}
-          activeTaskId={currentTask?.id ?? currentSession?.id}
-          collapsed={sidebarCollapsed}
-          search={search}
-          onSearch={(value) => dispatch(workbenchActions.search(value))}
-          onOpenTask={handleOpenTask}
-          onNewTask={handleOpenNewTask}
-          onClose={() => setSidebarCollapsed(true)}
-          onRename={handleRename}
-          onArchive={handleArchive}
-          onReopen={handleReopen}
-        />
-
-        <main className="session-main">
-          <WorkbenchHeader
-            sidebarCollapsed={sidebarCollapsed}
-            onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
-            hasFocus={Boolean(currentTask || currentSession)}
-            onNewTask={handleOpenNewTask}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-
-          {connectionState === "offline" && loadError ? (
-            <div className="connection-notice" role="status">
-              <span>{formatConnectionNotice(loadError)}</span>
-              <button className="text-button" type="button" onClick={() => void refreshSnapshot()}>重新连接</button>
-            </div>
-          ) : null}
-
-          {draftTask ? (
-            <TaskFocusPanel
-              draft
-              sessions={sessions}
-              modelCatalog={modelCatalog}
-              modelSelection={modelSelection}
-              onTaskUpdated={(task) => dispatch(workbenchActions.taskUpdated(task))}
-              onTaskCreated={(task, firstMessage) => {
-                setInitialMessage({ taskId: task.id, text: firstMessage });
-                dispatch(workbenchActions.taskUpdated(task));
-                dispatch(workbenchActions.selectTask(task.id));
-                setDraftTask(false);
-                void refreshSnapshot();
-              }}
-            />
-          ) : currentTask ? (
-            <TaskFocusPanel
-              task={currentTask}
-              sessions={sessions}
-              initialMessage={initialMessage?.taskId === currentTask.id ? initialMessage.text : undefined}
-              onTaskUpdated={(task) => dispatch(workbenchActions.taskUpdated(task))}
-              modelCatalog={modelCatalog}
-            />
-          ) : currentSession ? (
-            <TaskFocusPanel
-              legacySession={currentSession}
-              sessions={sessions}
-              onTaskUpdated={(task) => {
-                dispatch(workbenchActions.taskUpdated(task));
-                dispatch(workbenchActions.selectTask(task.id));
-              }}
-              modelCatalog={modelCatalog}
-            />
-          ) : (
-            <OverviewPane
-              hasAny={tasks.length > 0 || sessions.length > 0}
-              onNewTask={handleOpenNewTask}
-            />
-          )}
-        </main>
-
-        <SettingsDialog
-          open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-          themeMode={themeMode}
-          onThemeChange={setMode}
-          modelSelection={modelSelection}
-          modelOptions={modelCatalog.models}
-          modelLoading={modelLoading}
-          modelError={modelError}
-          onModelChange={handleModelChange}
-          onRetryModels={() => setModelReloadKey((value) => value + 1)}
-          connectionState={connectionState}
-        />
-      </div>
-    </Suspense>
+    <WorkspaceView
+      tasks={tasks} sessions={sessions} summaries={filteredSummaries}
+      currentTaskId={currentTaskId} currentSessionId={currentSessionId}
+      initialMessage={initialMessage} search={search}
+      modelCatalog={modelCatalog} modelSelection={modelSelection}
+      onSearch={(value) => dispatch(workbenchActions.search(value))}
+      onOpen={handleOpenTask} onNew={handleOpenNewTask}
+      onClear={() => {
+        setDraftTask(false);
+        dispatch(workbenchActions.selectTask(null));
+        dispatch(workbenchActions.selectSession(null));
+      }}
+      onTaskUpdated={(task) => dispatch(workbenchActions.taskUpdated(task))}
+      onTaskCreated={(task, text) => {
+        setInitialMessage(text ? { taskId: task.id, text } : null);
+        dispatch(workbenchActions.taskUpdated(task));
+        dispatch(workbenchActions.selectTask(task.id));
+        setDraftTask(false);
+        void refreshSnapshot();
+      }}
+      onRename={handleRename} onArchive={handleArchive}
+      onReopen={async (id) => { await sendTaskCommand(id, { type: "reopen" }); await refreshSnapshot(); }}
+      archived={archivedFilter === "archived"} onArchivedChange={(value) => dispatch(workbenchActions.archived(value ? "archived" : "active"))}
+      onSettings={() => setSettingsOpen(true)}
+      notice={connectionState === "offline" && loadError ? formatConnectionNotice(loadError) : null}
+      onReconnect={() => void refreshSnapshot()}
+      settings={{
+        open: settingsOpen, onClose: () => setSettingsOpen(false),
+        themeMode, onThemeChange: setMode, modelSelection,
+        modelOptions: modelCatalog.models, modelLoading, modelError,
+        onModelChange: handleModelChange, onRetryModels: () => setModelReloadKey((value) => value + 1),
+        connectionState,
+      }}
+    />
   );
 }
