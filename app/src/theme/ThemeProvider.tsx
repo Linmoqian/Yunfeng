@@ -3,7 +3,7 @@
 // algorithm + token 映射这些语义，保持 Ant 组件与手写样式视觉一致。
 
 import { ConfigProvider, theme as antdTheme, type ThemeConfig } from "antd";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 
 export type ThemeMode = "system" | "light" | "dark";
 
@@ -102,16 +102,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    if (mode === "system") {
-      document.documentElement.removeAttribute("data-theme");
-      window.localStorage.removeItem(STORAGE_KEY);
-    } else {
-      document.documentElement.dataset.theme = mode;
-      window.localStorage.setItem(STORAGE_KEY, mode);
-    }
-  }, [mode]);
-
-  useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onSystemChange = () => {
       if (mode === "system") setResolvedMode(media.matches ? "dark" : "light");
@@ -125,11 +115,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     else setResolvedMode(mode);
   }, [mode]);
 
-  // 读取 CSS 变量作为主题 token 的真实色彩来源，避免与 tokens.css 漂移。
-  const tokens = useMemo(() => {
+  const [tokens, setTokens] = useState<Record<string, string | undefined>>({});
+
+  useLayoutEffect(() => {
+    // 先应用已解析的主题再读取 token，避免系统深色下首次浅色界面读到深色文字。
+    document.documentElement.dataset.theme = resolvedMode;
+    if (mode === "system") window.localStorage.removeItem(STORAGE_KEY);
+    else window.localStorage.setItem(STORAGE_KEY, mode);
+
     const computed = getComputedStyle(document.documentElement);
     const read = (name: string): string => computed.getPropertyValue(name).trim();
-    return {
+    setTokens({
       "--yf-bg-canvas": read("--yf-bg-canvas") || undefined,
       "--yf-bg-surface": read("--yf-bg-surface") || undefined,
       "--yf-bg-elevated": read("--yf-bg-elevated") || undefined,
@@ -141,8 +137,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       "--yf-semantic-error": read("--yf-semantic-error") || undefined,
       "--yf-semantic-success": read("--yf-semantic-success") || undefined,
       "--yf-semantic-warning": read("--yf-semantic-warning") || undefined,
-    };
-  }, [resolvedMode]);
+    });
+  }, [mode, resolvedMode]);
 
   const antdConfig = useMemo(
     () => buildAntdTheme(resolvedMode === "dark", tokens),

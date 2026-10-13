@@ -82,3 +82,4 @@
 - [x] 推送通知：系统通知插件 + Web Notification 回退；任务完成/失败/待审批在页面隐藏时提醒
 - [x] 参考 LianAgent 配置原生桌面窗口、开发应用包身份与窗口恢复，验证 macOS 标题栏显示及双击缩放
 - [ ] 补齐 Dock/托盘恢复的独立验收与 Windows/Linux 原生窗口验证
+- [x] 修复工作台图标与控件文字过浅，统一 CSS 和 Ant Design 的主题 token 同步时机
