@@ -2,12 +2,12 @@
 
 ## 统一开发入口
 
-- 桌面开发统一使用项目定义的 `npm run tauri dev`，由 Tauri CLI 同时管理前端开发服务器和 Rust 应用进程。
-- 仓库现有两个 Tauri 壳，入口分别位于 `app/`（桌面端 Web UI + 托盘 + 后端编排）与 `mobile-app/`（移动端薄客户端 + 系统通知）。改哪个壳的前端或 Rust 代码就在哪个目录执行 `npm run tauri dev`；两者互不关联，不要混用目录。
+- 桌面开发统一使用项目定义的 `pnpm tauri dev`，由 Tauri CLI 同时管理前端开发服务器和 Rust 应用进程。
+- 仓库现有两个 Tauri 壳，入口分别位于 `app/`（桌面端 Web UI + 托盘 + 后端编排）与 `mobile-app/`（移动端薄客户端 + 系统通知）。改哪个壳的前端或 Rust 代码就在哪个目录执行 `pnpm tauri dev`；两者互不关联，不要混用目录。
 - `tauri.conf.json` 的 `build.beforeDevCommand` 启动 Vite，`build.devUrl` 必须与 Vite 的开发地址和端口一致。
 - 不额外编写重复的文件监听或进程守护脚本；确有性能问题时，优先使用 `.taurignore` 排除生成文件、构建产物等无关路径。
 - Vite 设置 `clearScreen: false`，避免前端刷新覆盖 Rust 编译错误。
-- `server/`、`gateway/`、`yunfeng-mobile-backend/` 与 `yunfeng-cli/` 为纯 Node 项目，各自 `npm run dev` 即可；桌面外壳编排后端的重启语义见 `docs/development/desktop-shell.md`。
+- Server、Gateway 和移动后端各自在模块目录运行 `pnpm dev`；CLI 在独立 workspace 执行 `pnpm cli`。桌面优先执行 Node 构建产物，Server 源码修改需重新构建并重启服务，不受 Vite HMR 或 Rust 监听管理。
 
 ## 前端 HMR
 

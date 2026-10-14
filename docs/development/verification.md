@@ -33,8 +33,9 @@
 
 ## 4. 自动化验证命令
 
-- 开发时使用 `npm run test` 进入监听模式。
-- CI 使用 `npm run test:run` 单次执行测试。
+- 桌面 `app/` 的 `pnpm test` 当前执行 Node 测试；`pnpm exec tsc --noEmit` 执行类型检查。
+- 移动 `mobile-app/` 的 `pnpm test` 当前执行 `vitest run`；需要监听时使用 `pnpm exec vitest`。
+- Server 和 Gateway 的 `pnpm test` 执行 Node 测试；不要使用未配置的 `test:run` 脚本。
 - 类型检查、ESLint、构建与测试分别执行，具体命令以项目 `package.json` 中已有脚本为准。
 - 覆盖率阈值暂不设定，待项目形成稳定测试基线后确认。
 

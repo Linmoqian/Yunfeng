@@ -1,102 +1,75 @@
-# YunFeng
+# Yunfeng
 
-云中之枫，匿于云中，而飒于林
+云中之枫，匿于云中，而飒于林。
 
-Yunfeng 是本地优先的编码 Agent 应用：电脑侧运行 Agent 服务（内嵌 pi SDK），桌面 Web UI、移动端薄客户端与 TUI 三种前端接入同一个任务与对话数据源。事实来源在 `server/`，其余模块只做 UI、转发与进程编排。
+Yunfeng 是本地优先的个人 Agent 工作台。桌面 React 界面通过 HTTP/SSE 访问本机 Server，Server 使用 Pi SDK 组装 Agent，并独立加载 Lin 配置。模型推理位置由模型配置决定。
 
-## 仓库结构
+## 当前结构
 
-| 目录 | 职责 |
+| 目录 | 职责与边界 |
 | --- | --- |
-| `app/` | 桌面端 Web UI + Tauri 2 外壳（无边框窗口、系统托盘、后端一键编排、RustDesk 进程管理） |
-| `server/` | 电脑侧 Agent 服务：任务 / 对话 / 审批 / 事件流的事实来源（127.0.0.1:8000） |
-| `gateway/` | 局域网 API 网关：Bearer token 认证，按最小权限把 `/api/tasks*`、`/api/sessions*`、`/api/models*` 转发给 server |
-| `mobile-app/` | 移动端薄客户端：只做 UI 与 API 调用；任务 / 对话直连 gateway，远程屏幕走移动后端 |
-| `yunfeng-mobile-backend/` | 电脑侧移动后端：配对码 + 设备 token 账号体系、RustDesk sidecar 远程桌面 |
-| `yunfeng-cli/` | TUI 客户端：`@yunfeng/tui` 组件库 + `@yunfeng/cli` 命令入口 |
-| `yunfeng-mobile/` | 早期移动端原型（已被 `mobile-app/` 取代，仅保留参考，不再开发） |
-| `vendor/rustdesk` | RustDesk 源码 submodule（固定 1.4.9，AGPL-3.0，仅审计用） |
-| `pi-assets/` | 随产品分发的 pi agent 资产层：AGENTS.md 工程师工作流规则 + 内置扩展（SciVerse）；桌面壳在隔离 HOME 下自动播种 |
-| `scripts/` | 后端运行时打包脚本（`package-backends.mjs`） |
-| `docs/` | 设计文档、开发规范与 API 契约 |
+| `app/` | React + TypeScript + Vite 桌面界面，Tauri 2 外壳；论文写作、终端和本地协作通过 Rust IPC 提供 |
+| `server/` | 任务、Agent 会话、审批、事件和记忆；Pi SDK 在 Server 进程内运行 |
+| `gateway/` | Bearer 认证和路径白名单，向移动端转发 Server API |
+| `mobile-app/` | 移动薄客户端，任务与对话通过网关，远程屏幕通过移动后端 |
+| `yunfeng-mobile-backend/` | Node 24 的设备配对、设备认证与 RustDesk 远程屏幕服务 |
+| `yunfeng-cli/` | 独立 pnpm workspace 中的 TUI 组件与 CLI；当前普通消息为模拟回复，尚未连接真实 Agent |
+| `server-rpc/` | Pi 子进程方案实验，未接入当前桌面启动链 |
+| `yunfeng-mobile/` | 早期移动原型，仅保留参考 |
+| `pi-assets/` | 分发到 Lin Agent 目录的指令与扩展资产 |
+| `scripts/` | 后端打包及维护脚本 |
+| `docs/` | 当前说明、接口契约、工程规范和历史记录 |
+| `vendor/rustdesk/` | RustDesk 源码子模块，仅需审计源码时初始化 |
 
-## 服务与启动协议
-
-三个 Node 服务启动时各输出一行协议日志，前端与外壳据此取得连接参数：
-
-| 服务 | 默认端口 | 启动输出 |
-| --- | --- | --- |
-| yunfeng-server | 8000 | `PI_SERVER_READY` |
-| yunfeng-gateway | 0.0.0.0:8787 | `YF_GATEWAY_READY <host> <port> <token> <upstream>` |
-| yunfeng-mobile-backend | 0.0.0.0:8788 | `YF_MOBILE_READY <host> <port> <pairCode> <expiresAtISO>` |
-
-对接要点：
-
-- 移动端凭 `YF_GATEWAY_READY` 行中的 token 调用网关：REST 走 `Authorization: Bearer`；SSE 因 EventSource 无法设置请求头，token 走 query 参数。断线后按 `Last-Event-ID` 补发，前端无需维护本地事实副本。
-- 移动端凭 `YF_MOBILE_READY` 行中的 6 位配对码完成设备配对，配对后获得设备 token（sha256 落库）。
-- token 与配对码均为敏感信息，只出现在启动日志、托盘状态与「复制连接信息」中，不得写入仓库。
-- 类型契约镜像：`mobile-app/src/lib/types.ts` 与 server 任务 API / gateway 路径白名单保持同步；接口变更须在同一提交更新实现、测试与 `docs/api/`。
+任务、会话的事实来源在 Server；文稿和本地协作数据的事实来源在 Rust SQLite。具体路径见[运行架构](docs/development/2026-10-15-runtime-architecture.md)。
 
 ## 快速开始
 
+根目录使用 pnpm workspace；完整后端编排需要 Node 24 及 Rust/Tauri 开发环境。
+
 ```bash
-# 首次：初始化 RustDesk submodule（可选，仅源码审计需要）
-git submodule update --init vendor/rustdesk
-
-# 前置：pnpm >= 9（仓库为根 pnpm workspace，yunfeng-cli 为独立内嵌 workspace）
-
-# 方式一：桌面端（推荐，自动编排全部后端）
 pnpm install
 pnpm --filter yunfeng-server build
 pnpm --filter yunfeng-gateway build
-cd app && pnpm tauri dev
-#   外壳自动拉起 pi 资产播种 + server + gateway + mobile-backend + RustDesk；
-#   托盘展示各服务状态、分项启停与「复制连接信息」
-
-# 方式二：手动分服务（后端开发时）
-pnpm --filter yunfeng-server dev          # 8000
-pnpm --filter yunfeng-gateway dev         # 8787，默认 upstream=http://127.0.0.1:8000
-pnpm --filter yunfeng-mobile-backend dev  # 8788（Node 24）
-
-# 移动端薄客户端（浏览器预览 / 桌面壳验证）
-cd mobile-app && pnpm dev                 # Vite 预览
-cd mobile-app && pnpm tauri dev           # Tauri 壳（含系统通知）
-
-# TUI
-cd yunfeng-cli && pnpm install && pnpm cli  # 交互入口；pnpm demo 为演示模式
+cd app
+pnpm tauri dev
 ```
 
-移动端首次打开会自动引导配置网关地址与 token；桌面托盘「复制连接信息」可一键复制网关地址、token 与配对码。
+桌面入口会启动 Vite、构建 Rust，并编排后端。修改 Server 源码后需重新构建和重启该服务；桌面优先运行 `server/dist/index.js`，Vite HMR 不会替它重载。详见[桌面启动说明](app/scripts/dev/README.md)。
 
-## 环境变量
+首次使用在 `~/.lin/agent/` 独立配置模型和认证。默认不读取 `~/.pi` 或项目 `.pi`，旧任务与凭据不自动迁移。全局与项目资源规则见 [Server README](server/README.md)。
 
-| 变量 | 默认 | 说明 |
-| --- | --- | --- |
-| `YUNFENG_RUNTIME_HOME` | 系统 HOME | 桌面外壳派生的可写 HOME，并派生 `PI_CODING_AGENT_DIR=<home>/.pi/agent` |
-| `YUNFENG_AGENT_DIR` | 由 RUNTIME_HOME 派生 | 显式指定 pi agent 配置目录（优先） |
-| `YUNFENG_SERVICES_DIR` | 仓库根目录 | 桌面外壳查找 server/gateway/mobile-backend 的根目录 |
-| `YUNFENG_GATEWAY_HOST/PORT/UPSTREAM/TOKEN/ALLOW_ALL/CORS_ORIGIN` | 见 gateway 配置 | 网关监听、上游与认证配置 |
-| `YF_HOST / YF_PORT / YF_DB / YF_FPS / YF_PAIR_TTL_MS` | 见 mobile-backend 配置 | 移动后端监听、数据库与配对码有效期 |
-| `RUSTDESK_BIN` | 系统路径 | 显式指定 RustDesk 可执行文件 |
-| `SCIVERSE_API_TOKEN` | — | SciVerse 学术检索扩展令牌，桌面壳透传给 server |
+分模块启动：
 
-桌面外壳的完整变量、Tauri 事件与命令表见 `docs/development/desktop-shell.md`。
+```bash
+pnpm --filter yunfeng-server dev
+pnpm --filter yunfeng-gateway dev
+pnpm --filter yunfeng-mobile-backend dev
+pnpm --dir mobile-app dev
+```
+
+独立网关默认监听 `0.0.0.0:8787`；桌面编排当前固定为 `127.0.0.1:8787`，因此桌面默认网关地址不能直接用于其他设备。移动后端默认 `0.0.0.0:8788`。启动 token 和配对码不得提交到仓库。
+
+TUI 在独立 workspace 内运行：`cd yunfeng-cli` 后执行 `pnpm install`、`pnpm cli`。
 
 ## 验证
 
-| 模块 | 命令 |
+| 范围 | 从仓库根目录执行 |
 | --- | --- |
-| mobile-app | `pnpm --filter yunfeng-web test`（Vitest 纯逻辑）、`pnpm --filter yunfeng-web build`（tsc + Vite）、`pnpm --filter yunfeng-web run check:api`（真实 API 联通检测） |
-| server | `pnpm --filter yunfeng-server test`（node --test）、`pnpm --filter yunfeng-server build`（tsc） |
-| gateway | `pnpm --filter yunfeng-gateway test`（node --test） |
-| yunfeng-mobile-backend | `pnpm --filter yunfeng-mobile-backend test`（node --test）、`pnpm --filter yunfeng-mobile-backend run smoke`（READY/配对/WS 联调） |
-| yunfeng-cli | `cd yunfeng-cli && pnpm test`（TUI + CLI Vitest）、`pnpm smoke` |
-| app 外壳 | `cd app/src-tauri && cargo fmt --check && cargo clippy && cargo test` |
-| 后端打包 | `pnpm package:backends`（自包含产物，见 desktop-shell.md） |
+| 文档本地链接 | `pnpm check:docs` |
+| 桌面前端 | `pnpm --dir app exec tsc --noEmit`、`pnpm --dir app test` |
+| Server | `pnpm --filter yunfeng-server build`、`pnpm --filter yunfeng-server test` |
+| Gateway | `pnpm --filter yunfeng-gateway test` |
+| 移动前端 | `pnpm --dir mobile-app test`、`pnpm --dir mobile-app build`、`pnpm --dir mobile-app check:api` |
+| 移动后端 | `pnpm --filter yunfeng-mobile-backend test`、`pnpm --filter yunfeng-mobile-backend smoke` |
+| Rust | 在 `app/src-tauri/` 执行 `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`、`cargo test` |
+| TUI | 在 `yunfeng-cli/` 执行 `pnpm test`、`pnpm smoke` |
 
-## 文档
+实际验证结果属于对应任务记录；命令列表不代表全部能力已经验收。
 
-- 开发规范：`docs/development/`（前端 / Rust / 热加载 / 验证 / Git 工作流等）
-- API 契约：`docs/api/backend-api.md`、`docs/api/gateway.md`
-- 设计：`docs/design/`（移动端方案、Design Tokens）
-- 项目规则与长期记忆：`RULES.md`、`MEMORY.md`、`CLAUDE.md`
+## 文档入口
+
+- [文档索引](docs/README.md)：当前说明、契约、规范和历史设计。
+- [AGENTS.md](AGENTS.md)：项目协作规则与技术约束。
+- [桌面外壳](docs/development/desktop-shell.md)：环境变量、托盘和编排。
+- [后端打包](scripts/package-backends.mjs)：`pnpm package:backends` 产出后端目录，不包含桌面 App 二进制。

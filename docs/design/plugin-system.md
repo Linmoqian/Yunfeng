@@ -92,7 +92,7 @@ interface YunfengPlugin {
 
 ### 4.4 持久化
 
-`~/.yunfeng/memory/memories.jsonl`，追加写 + 变更时临时文件 + `renameSync` 原子重写，启动全量载入。与 `task-store.ts` 同一模式，不引入新依赖。数据目录可由 `YUNFENG_DATA_DIR` 覆盖（测试用）。
+`~/.lin/memory/memories.jsonl`，追加写 + 变更时临时文件 + `renameSync` 原子重写，启动全量载入。与 `task-store.ts` 同一模式，不引入新依赖。数据目录可由 `YUNFENG_DATA_DIR` 覆盖（测试用）。
 
 ### 4.5 API
 
@@ -115,7 +115,7 @@ interface YunfengPlugin {
 
 - `server/test/plugin.test.ts`：注册表 init/dispose、分发顺序、单插件抛错不阻断
 - `server/test/memory.test.ts`：持久化/重载、检索排序、候选自动确认阈值、confirm/forget
-- 验证命令：`cd server && npx tsc --noEmit && npm test`
+- 验证命令：`cd server && pnpm exec tsc --noEmit && pnpm test`
 
 ## 7. 明确不做（后续版本）
 

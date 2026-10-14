@@ -195,7 +195,7 @@ fn seed_tree(src: &Path, dest: &Path, seeded: &mut Vec<String>) -> Result<(), St
     Ok(())
 }
 
-/// 把 services_root()/pi-assets 播种到 agent dir（AGENTS.md + extensions/）。
+/// 把内置提示、扩展、技能和角色播种到 Lin agent 目录，保留已有用户文件。
 /// 默认播种到 ~/.lin/agent，不读取或复制 ~/.pi/agent。
 fn ensure_lin_assets() {
     let Some(agent_dir) = lin_agent_dir() else {
@@ -215,22 +215,27 @@ fn ensure_lin_assets() {
         if agents_src.is_file() {
             seed_file(&agents_src, &agent_dir.join("AGENTS.md"), &mut seeded)?;
         }
-        let ext_src = assets.join("extensions");
-        if ext_src.is_dir() {
-            seed_tree(&ext_src, &agent_dir.join("extensions"), &mut seeded)?;
+        for directory in ["extensions", "agents", "skills"] {
+            let mut source = assets.join(directory);
+            if directory == "skills" && !source.is_dir() {
+                source = services_root().join(".agents/skills");
+            }
+            if source.is_dir() {
+                seed_tree(&source, &agent_dir.join(directory), &mut seeded)?;
+            }
         }
         Ok(())
     })();
     match result {
         Ok(()) if seeded.is_empty() => {
-            println!("[yunfeng-desktop] pi 资产已就绪，无需播种")
+            println!("[yunfeng-desktop] Lin 资产已就绪，无需播种")
         }
         Ok(()) => println!(
-            "[yunfeng-desktop] 已播种 {} 个 pi 资产文件到 {}",
+            "[yunfeng-desktop] 已播种 {} 个 Lin 资产文件到 {}",
             seeded.len(),
             agent_dir.display()
         ),
-        Err(error) => eprintln!("[yunfeng-desktop] pi 资产播种失败: {error}"),
+        Err(error) => eprintln!("[yunfeng-desktop] Lin 资产播种失败: {error}"),
     }
 }
 

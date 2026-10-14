@@ -1,5 +1,7 @@
 # 结合 pi-code-agent 的架构方案
 
+> 状态：历史对话归档。保留当时原话，目录、命令与验收结论可能已变化；当前说明见[运行架构](development/2026-10-15-runtime-architecture.md)。历史中的 `pi/` 链接依赖本机参考检出，不保证其他机器可用。
+
 ## 工程师
 
 如何结合pi-code-agent，写出自己的编码agent？

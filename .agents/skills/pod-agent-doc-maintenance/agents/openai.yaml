@@ -1,0 +1,4 @@
+interface:
+  display_name: "PodAgent 文档维护"
+  short_description: "精简项目文档，对照源码防止漂移，及时清理过期事项并保持 TODO 简单"
+  default_prompt: "使用 $pod-agent-doc-maintenance 维护指定文档，对照实际实现删减过期和重复内容，并清理、简化相关 TODO。"

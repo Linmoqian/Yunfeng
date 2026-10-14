@@ -1,6 +1,6 @@
 # Yunfeng 桌面端 Tauri 外壳
 
-桌面端在 Web UI 之外增加 Tauri 2 外壳，提供窗口、系统托盘与一键启动编排。业务逻辑仍在各 Node 服务中，Rust 层只负责进程生命周期。
+桌面端在 Web UI 之外增加 Tauri 2 外壳，提供窗口、系统托盘与一键启动编排。Agent 任务逻辑在 Node Server 中；Rust 同时负责进程生命周期、文稿、本地协作 SQLite 和终端。数据权威见[运行架构](2026-10-15-runtime-architecture.md)。
 
 ## 职责
 

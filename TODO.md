@@ -1,5 +1,10 @@
 # TODO
 
+- [x] 从 LianAgent 接入兼容前端依赖、179 个技能与 6 个 Lin 角色文件
+- [ ] 接入 Lin 角色的子代理提供器与工具桥接
+
+- [x] 统一当前架构与文档入口，标注历史设计并修复 Agent 运行列表路由优先级
+
 - [x] 将 Server 与 Pi SDK 适配层切换到独立 .lin 配置、项目资源和会话命名空间
 
 - [x] 首页中央添加开发、科研模式选择与对应引导文案
@@ -67,8 +72,8 @@
 ## 集成分支追加
 
 - [x] 合并 gateway / 移动薄客户端 / 桌面 Tauri 壳到集成工作树
-- [x] 移动端迁移到 mobile-app/，移除旧 yunfeng-mobile/ 原型目录
-- [x] 桌面壳接入可写 HOME / PI_CODING_AGENT_DIR（b80514a 已落地）
+- [x] 移动端迁移到 mobile-app/（旧 yunfeng-mobile/ 当前仍保留为历史原型）
+- [x] 桌面壳接入可写 HOME（历史提交 b80514a；当前使用 LIN_CODING_AGENT_DIR）
 - [x] 桌面壳一键启动编排（server + gateway + mobile-backend + RustDesk）
 - [x] 生产打包（pnpm deploy 自包含产物，含后端运行时与 pi-assets；RustDesk 可选）
 
@@ -78,7 +83,7 @@
 - [x] yunfeng-cli 独立 workspace 迁移（pnpm-workspace.yaml + link-workspace-packages）
 - [x] tauri beforeDev/BuildCommand 改 pnpm
 - [x] pi-assets 资产层：AGENTS.md 工程师规则 + SciVerse 扩展迁入
-- [x] 桌面壳 ensure_pi_assets 幂等播种（隔离 HOME 限定，先于 server 启动）
+- [x] 桌面壳 ensure_lin_assets 保留用户文件播种（当前支持默认或自定义 Lin 目录，先于 server 启动）
 - [x] 打包脚本 pnpm deploy 化并纳入 pi-assets（实测产物可启动）
 - [ ] SciVerse 在 0.83 真实会话内端到端冒烟（需 SCIVERSE_API_TOKEN）
 - [ ] lin-os / pi-crew / do-it-pi 三个扩展按需追加迁移

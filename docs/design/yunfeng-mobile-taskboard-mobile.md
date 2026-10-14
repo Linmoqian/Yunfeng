@@ -1,5 +1,7 @@
 # yunfeng-mobile 任务看板移动端适配与 UI 改造计划
 
+> 状态：设计提案与历史计划，正文不代表已实现范围。当前能力与入口见[运行架构](../development/2026-10-15-runtime-architecture.md)。
+
 ## 背景与现状（已实测）
 
 - 看板为整包移植的主应用同款 Dashi 看板（`src/features/taskboard`，92 文件），自带部分响应式断点：

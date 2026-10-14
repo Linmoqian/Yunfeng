@@ -1,5 +1,7 @@
 // Yunfeng Server 入口：HTTP + SSE 服务（Node 单进程，进程内嵌 pi SDK）。
-// 复刻 pi-web 的 API 面；仅监听 127.0.0.1。
+// 对外提供任务与兼容会话 API；仅监听 127.0.0.1。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import {
@@ -153,6 +155,12 @@ const server = createServer(async (req, res) => {
     if (method === "POST" && route === "/agent/new") {
       return sendResult(res, await handleAgentNew(await readJsonBody(req)));
     }
+    if (method === "GET" && route === "/agent/running") {
+      return sendResult(res, json({ runningSessionIds: (await import("./rpc-manager.js")).getRunningRpcSessionIds() }));
+    }
+    if (method === "GET" && route === "/agent/running/events") {
+      return sendResult(res, handleRunningEvents());
+    }
     const agentCommandMatch = route.match(/^\/agent\/([^/]+)$/);
     if (agentCommandMatch && method === "POST") {
       return sendResult(res, await handleAgentCommand(decodeURIComponent(agentCommandMatch[1]), await readJsonBody(req)));
@@ -163,12 +171,6 @@ const server = createServer(async (req, res) => {
     const agentEventsMatch = route.match(/^\/agent\/([^/]+)\/events$/);
     if (agentEventsMatch && method === "GET") {
       return sendResult(res, await handleAgentEvents(decodeURIComponent(agentEventsMatch[1])));
-    }
-    if (method === "GET" && route === "/agent/running") {
-      return sendResult(res, json({ runningSessionIds: (await import("./rpc-manager.js")).getRunningRpcSessionIds() }));
-    }
-    if (method === "GET" && route === "/agent/running/events") {
-      return sendResult(res, handleRunningEvents());
     }
 
     // 任务领域 API（阶段 0+）: /api/tasks/...

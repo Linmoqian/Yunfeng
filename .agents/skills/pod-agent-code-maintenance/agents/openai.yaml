@@ -1,0 +1,4 @@
+interface:
+  display_name: "PodAgent 代码维护"
+  short_description: "精简本项目代码，按功能封装模块和超薄入口，解耦前后端并聚焦核心验证"
+  default_prompt: "使用 $pod-agent-code-maintenance 维护指定功能，先做代码减法和模块封装，再执行静态检查与少量核心测试。"

@@ -9,9 +9,11 @@
 | 服务 | 包名 | 默认端口 | 绑定地址 | 运行时 | 定位 |
 | --- | --- | --- | --- | --- | --- |
 | yunfeng-server | `yunfeng-server` | 8000 | 127.0.0.1 | Node.js（进程内嵌 pi SDK） | **主后端**：Agent 会话、Sessions、Models、Files、Git、CWD、Tasks、Skills 全量 API |
-| yunfeng-server-rpc | `yunfeng-server-rpc` | 8001 | 127.0.0.1 | Node.js（pi 子进程模式） | **B 方案替代后端**：通过官方 RpcClient spawn pi 子进程，只暴露 Agent + Sessions 子集 |
+| yunfeng-server-rpc | `yunfeng-server-rpc` | 8001 | 127.0.0.1 | Node.js（pi 子进程模式） | **历史实验后端**：通过官方 RpcClient spawn pi 子进程，只暴露 Agent + Sessions 子集 |
 
-两个服务互斥部署，共用 pi 的 JSONL 会话文件目录。前端通过 Base URL 区分。所有路径兼容 `/api` 前缀（自动剥离）。
+当前桌面只启动 `yunfeng-server`，默认使用独立 Lin 配置和会话目录。`server-rpc` 作为子进程实验保留；下文标注的 RPC 专属接口不属于当前桌面运行链，也未接入 Lin 隔离规则。主服务路径兼容 `/api` 前缀。
+
+复审日期：2026-10-15。配置目录与数据权威见[运行架构](../development/2026-10-15-runtime-architecture.md)。
 
 ### 0.2 通用约定
 
@@ -259,7 +261,7 @@ server-rpc 通过官方 RpcCommand 透传，额外支持：`cycle_model`、`get_
 
 ## 3. 任务领域 API（仅 server）
 
-任务领域 API 在 pi Agent 会话之上引入了结构化的任务状态机、命令分发、事件持久化、审批流和 Git 闭环。所有数据持久化在 `~/.yunfeng/tasks/<task-id>/` 下。
+任务领域 API 在 pi Agent 会话之上引入了结构化的任务状态机、命令分发、事件持久化、审批流和 Git 闭环。所有数据持久化在 `~/.lin/tasks/<task-id>/` 下。
 
 ### 3.1 任务状态模型
 
@@ -936,13 +938,13 @@ Sessions API 直接读取 pi 的 JSONL 会话文件，无需启动 Agent 运行�
 | --- | --- | --- |
 | pi 会话文件 | pi agentDir 下的 sessions 目录 | JSONL（首行 header，后续 entries） |
 | 模型配置 | pi agentDir 下 `models.json` | JSON |
-| 任务状态 | `~/.yunfeng/tasks/<task-id>/state.json` | JSON（原子写入） |
-| 任务事件 | `~/.yunfeng/tasks/<task-id>/events.jsonl` | JSONL（每行一个 TaskEvent） |
-| 介入请求 | `~/.yunfeng/tasks/<task-id>/interventions.jsonl` | JSONL（每行一个 TaskIntervention） |
-| 记忆 | `~/.yunfeng/memory/memories.jsonl` | JSONL（每行一个 Memory） |
+| 任务状态 | `~/.lin/tasks/<task-id>/state.json` | JSON（原子写入） |
+| 任务事件 | `~/.lin/tasks/<task-id>/events.jsonl` | JSONL（每行一个 TaskEvent） |
+| 介入请求 | `~/.lin/tasks/<task-id>/interventions.jsonl` | JSONL（每行一个 TaskIntervention） |
+| 记忆 | `~/.lin/memory/memories.jsonl` | JSONL（每行一个 Memory） |
 | 项目信任 | pi agentDir 下 trust store | 内部格式 |
 
-环境变量 `YUNFENG_DATA_DIR` 可覆盖 `~/.yunfeng` 基础目录。
+环境变量 `YUNFENG_DATA_DIR` 可覆盖 `~/.lin` 基础目录。
 
 ### 12.2 会话生命周期
 
@@ -977,4 +979,5 @@ Sessions API 直接读取 pi 的 JSONL 会话文件，无需启动 Agent 运行�
 | --- | --- | --- |
 | 2026-08-15 | 0.1.0 | 不兼容（实验性）：`GET /tasks/:id/events` 未传 `afterSeq`/`Last-Event-ID` 时从全量补发改为仅推送实时事件，重连按 `Last-Event-ID` 补发；`afterSeq=0` 保留全量补发 |
 | 2026-08-15 | 0.1.0 | 修复任务 API 错误响应：结构化错误此前错误返回 HTTP 200，现与错误码表一致返回 400/404/409/500 |
+| 2026-10-15 | 0.1.0 | 同步 Lin 数据目录、实验后端边界及运行列表保留路由优先级 |
 | 2026-08-10 | 0.1.0 | 初始文档：基于 server/src 和 server-rpc/src 全量源码编写，覆盖全部路由 |

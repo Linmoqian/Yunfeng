@@ -1,5 +1,7 @@
 # yunfeng-mobile 前端补齐计划
 
+> 状态：设计提案与历史计划，正文不代表已实现范围。当前能力与入口见[运行架构](../development/2026-10-15-runtime-architecture.md)。
+
 对标：腾讯 Marvis（六 Agent 协作 / 任务进度 / 技能包 / 会话管理 / 语音输入 / 人设管理 / 本地+云端双模式 / 跨端协同 / L2 授权安全）与行业 agent 前端模式（AG-UI、CopilotKit、LangChain frontend：流式文本 / thinking 区块 / 工具调用生命周期卡片 / human-in-the-loop / 生成式 UI）。
 
 ## 现状基线

@@ -9,10 +9,10 @@
 ## 运行
 
 ```bash
-npm install
-npm run dev        # 浏览器预览（Vite，1420 端口）
-npm run tauri dev  # Tauri 桌面壳（用于桌面形态验证与系统通知）
-npm run build      # tsc + Vite 构建
+pnpm install
+pnpm dev        # 浏览器预览（Vite，1420 端口）
+pnpm tauri dev  # Tauri 桌面壳（用于桌面形态验证与系统通知）
+pnpm build      # tsc + Vite 构建
 ```
 
 首次打开会引导配置网关地址与 token（取自电脑端启动日志 `YF_GATEWAY_READY <host> <port> <token> <upstream>`，或用桌面托盘「复制连接信息」）。
@@ -31,8 +31,8 @@ src/
 
 ```bash
 npm test           # Vitest：GatewayClient、事件归约、审批映射、通知文案
-npm run build      # 类型检查 + 构建
-npm run check:api  # 对真实网关做 API 联通检测（需网关已启动并配置 token）
+pnpm build      # 类型检查 + 构建
+pnpm check:api  # 对真实网关做 API 联通检测（需网关已启动并配置 token）
 ```
 
 契约与设计见仓库根目录 `README.md`、`docs/api/gateway.md` 与 `docs/design/yunfeng-mobile-*.md`。
