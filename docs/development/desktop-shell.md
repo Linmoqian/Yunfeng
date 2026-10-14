@@ -57,17 +57,18 @@ macOS 原生进程已从开发应用包启动。窗口实际显示枫叶标题�
 
 外壳在每次启动全部服务前执行 `ensure_pi_assets`：
 
-- 仅当 `YUNFENG_RUNTIME_HOME` 或 `YUNFENG_AGENT_DIR` 生效时，把 `services_root()/pi-assets/` 幂等播种到 agent dir（内容一致则不重写，避免每启动重写文件）；
+- 默认把 `services_root()/pi-assets/` 幂等播种到 agent dir（只写入缺失文件，保留已有指令和扩展）；
 - AGENTS.md 对应官方 `agentDir/AGENTS.md` 全局指令位，extensions/ 对应 `agentDir/extensions/` 全局扩展目录；
-- dev 未设置 RUNTIME_HOME 时不播种，不触碰真实 `~/.pi/agent`；
+- dev 与打包版本均播种到独立的 `~/.lin/agent`，不读取或复制 `~/.pi/agent`；
 - `SCIVERSE_API_TOKEN` 环境变量由外壳自动透传给 server 子进程，未配置时 SciVerse 工具调用返回友好错误（见扩展 README）。
 
 ## 环境变量
 
 | 变量 | 默认 | 说明 |
 | --- | --- | --- |
-| `YUNFENG_RUNTIME_HOME` | 系统 HOME | 所有 Node 子进程的可写 HOME；并自动派生 `PI_CODING_AGENT_DIR=<home>/.pi/agent` |
-| `YUNFENG_AGENT_DIR` | 由 RUNTIME_HOME 派生 | 显式指定 pi agent 配置目录（优先） |
+| `YUNFENG_RUNTIME_HOME` | 系统 HOME | 所有 Node 子进程的可写 HOME；并自动派生 `LIN_CODING_AGENT_DIR=<home>/.lin/agent` |
+| `YUNFENG_AGENT_DIR` | `<home>/.lin/agent` | 显式指定 Lin Agent 配置目录（优先于 `LIN_CODING_AGENT_DIR`） |
+| `LIN_CODING_AGENT_DIR` | `<home>/.lin/agent` | Pi SDK 的 Lin 品牌配置目录；不继承 `PI_CODING_AGENT_DIR` |
 | `YUNFENG_SERVER_PORT` | 8000 | server 端口 |
 | `YUNFENG_SERVER_ENTRY` | — | 显式 server 入口；默认 `server/dist/index.js` |
 | `YUNFENG_GATEWAY_PORT` | 8787 | 网关端口 |
@@ -99,7 +100,7 @@ macOS 原生进程已从开发应用包启动。窗口实际显示枫叶标题�
 
 ## 注意事项
 
-- `YUNFENG_RUNTIME_HOME` 是解决系统 HOME 受保护时 `~/.pi/agent` 写入失败的关键开关；需要把模型配置复制到该 HOME（`cp -R ~/.pi <runtime-home>/.pi`）。
+- `YUNFENG_RUNTIME_HOME` 是解决系统 HOME 受保护时 `~/.lin/agent` 写入失败的关键开关；可在该 HOME 下配置独立的 `.lin/agent/models.json` 与认证，不自动迁移 Pi 的配置。
 - gateway token 与 mobile-backend 配对码在每次自动生成时会打印到外壳 stdout，并通过 Tauri 事件与托盘状态暴露，请勿写入仓库。
 - RustDesk 的 ID/一次性密码仍由 `yunfeng-mobile-backend` 提供；外壳只负责进程启停，避免密码逻辑漂移。
 - 生产打包：`pnpm package:backends [-- --out release/yunfeng-desktop] [-- --skip-rustdesk]` 用 `pnpm deploy --prod --legacy` 产出各自包含 node_modules 的服务目录，连同 `pi-assets/` 与 RustDesk 组装到 `release/yunfeng-desktop`；Tauri App 通过 `YUNFENG_SERVICES_DIR=<out>` 定位这些服务；脚本产物不包含 App 二进制。

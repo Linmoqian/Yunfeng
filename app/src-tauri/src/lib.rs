@@ -1,7 +1,9 @@
 // Yunfeng 桌面端外壳：
 // - 窗口 + 系统托盘（状态展示与分项快捷操作见 tray.rs）
 // - 一键启动编排：yunfeng-server + yunfeng-gateway + yunfeng-mobile-backend + RustDesk
-// - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 PI_CODING_AGENT_DIR
+// - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 LIN_CODING_AGENT_DIR
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 mod collaboration;
 mod component_sharing;
@@ -125,27 +127,54 @@ fn runtime_home() -> Option<PathBuf> {
         .filter(|path| !path.as_os_str().is_empty())
 }
 
-/// 派生 pi agent 配置目录，优先级与 apply_runtime_env 保持一致：
-/// 显式 YUNFENG_AGENT_DIR > YUNFENG_RUNTIME_HOME 派生 > None（未隔离时不播种）。
-fn pi_agent_dir() -> Option<PathBuf> {
-    if let Ok(agent_dir) = std::env::var("YUNFENG_AGENT_DIR") {
-        if !agent_dir.is_empty() {
-            return Some(PathBuf::from(agent_dir));
+/// 派生 Lin Agent 配置目录，优先级与 apply_runtime_env 保持一致：
+/// 显式 YUNFENG_AGENT_DIR > LIN_CODING_AGENT_DIR > 运行时 HOME 下 .lin/agent。
+fn lin_agent_dir() -> Option<PathBuf> {
+    let home = runtime_home()
+        .or_else(|| std::env::var_os("HOME").map(PathBuf::from))
+        .or_else(|| std::env::var_os("USERPROFILE").map(PathBuf::from));
+    let configured = std::env::var("YUNFENG_AGENT_DIR")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            std::env::var("LIN_CODING_AGENT_DIR")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        });
+    if let Some(configured) = configured {
+        let configured = configured.trim();
+        if configured == "~" {
+            return home;
         }
+        if let Some(suffix) = configured
+            .strip_prefix("~/")
+            .or_else(|| configured.strip_prefix("~\\"))
+        {
+            return home.map(|home| home.join(suffix));
+        }
+        return Some(PathBuf::from(configured));
     }
-    runtime_home().map(|home| home.join(".pi").join("agent"))
+    home.map(|home| home.join(".lin").join("agent"))
 }
 
-/// 同步单个文件；内容一致则跳过，缺失或不同才写入，保证幂等。
+/// 仅播种缺失文件，保留工程师已有的 Lin 指令和扩展。
 fn seed_file(src: &Path, dest: &Path, seeded: &mut Vec<String>) -> Result<(), String> {
-    let src_bytes = std::fs::read(src).map_err(|e| format!("读取 {}: {e}", src.display()))?;
-    if std::fs::read(dest).is_ok_and(|existing| existing == src_bytes) {
-        return Ok(());
-    }
+    use std::io::Write;
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("创建 {}: {e}", parent.display()))?;
     }
-    std::fs::write(dest, &src_bytes).map_err(|e| format!("写入 {}: {e}", dest.display()))?;
+    let src_bytes = std::fs::read(src).map_err(|e| format!("读取 {}: {e}", src.display()))?;
+    let mut file = match std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(dest)
+    {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => return Ok(()),
+        Err(error) => return Err(format!("创建 {}: {error}", dest.display())),
+    };
+    file.write_all(&src_bytes)
+        .map_err(|e| format!("写入 {}: {e}", dest.display()))?;
     seeded.push(dest.display().to_string());
     Ok(())
 }
@@ -167,9 +196,9 @@ fn seed_tree(src: &Path, dest: &Path, seeded: &mut Vec<String>) -> Result<(), St
 }
 
 /// 把 services_root()/pi-assets 播种到 agent dir（AGENTS.md + extensions/）。
-/// 仅在隔离的运行时 HOME/AGENT_DIR 下生效，不触碰真实 ~/.pi/agent。
-fn ensure_pi_assets() {
-    let Some(agent_dir) = pi_agent_dir() else {
+/// 默认播种到 ~/.lin/agent，不读取或复制 ~/.pi/agent。
+fn ensure_lin_assets() {
+    let Some(agent_dir) = lin_agent_dir() else {
         return;
     };
     let assets = services_root().join("pi-assets");
@@ -211,20 +240,13 @@ fn apply_runtime_env(command: &mut Command) {
         let home_string = home.to_string_lossy().into_owned();
         command.env("HOME", &home_string);
         command.env("USERPROFILE", &home_string);
-        // server 需要可写的 pi agent 配置目录；显式 YUNFENG_AGENT_DIR 优先。
-        if std::env::var("YUNFENG_AGENT_DIR").is_err() {
-            command.env(
-                "PI_CODING_AGENT_DIR",
-                home.join(".pi")
-                    .join("agent")
-                    .to_string_lossy()
-                    .into_owned(),
-            );
-        }
     }
-    if let Ok(agent_dir) = std::env::var("YUNFENG_AGENT_DIR") {
-        command.env("PI_CODING_AGENT_DIR", agent_dir);
+    if let Some(agent_dir) = lin_agent_dir() {
+        command.env("YUNFENG_AGENT_DIR", &agent_dir);
+        command.env("LIN_CODING_AGENT_DIR", agent_dir);
     }
+    command.env_remove("PI_CODING_AGENT_DIR");
+    command.env_remove("PI_CODING_AGENT_SESSION_DIR");
 }
 
 fn gateway_token() -> String {
@@ -687,7 +709,7 @@ pub(crate) fn start_all_inner(
     rustdesk: Arc<Mutex<Option<Child>>>,
 ) -> Result<OrchestrationStatus, String> {
     // 播种须先于 server 启动：server 进程启动时即读取 agent dir 的扩展与上下文。
-    ensure_pi_assets();
+    ensure_lin_assets();
     let server_status = spawn_server_service(app.clone(), server)?;
     let gateway_status = spawn_gateway_service(app.clone(), gateway)?;
     let mobile_backend_status = spawn_mobile_backend_service(app.clone(), mobile_backend)?;
@@ -880,12 +902,12 @@ mod tests {
         seed_file(&src, &dest, &mut seeded).expect("重复播种");
         assert!(seeded.is_empty());
 
-        // 内容变化时覆盖。
+        // 源内容变化也不覆盖工程师已有配置。
         fs::write(&src, b"v2").expect("更新源");
         let mut seeded = Vec::new();
         seed_file(&src, &dest, &mut seeded).expect("变更播种");
-        assert_eq!(fs::read(&dest).unwrap(), b"v2");
-        assert_eq!(seeded.len(), 1);
+        assert_eq!(fs::read(&dest).unwrap(), b"v1");
+        assert!(seeded.is_empty());
 
         let _ = fs::remove_dir_all(&root);
     }

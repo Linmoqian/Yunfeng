@@ -1,5 +1,7 @@
 // 冒烟测试：验证 server 核心逻辑模块可用（会话列表/文件授权/目录浏览）。
 // 运行：node --test 或 tsx --test（需要真实会话数据，仅做存在性断言）。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -9,6 +11,7 @@ import { existsSync } from "node:fs";
 import { isWindowsAbsolutePath, isFilePathAllowed } from "../src/file-access.js";
 import { sessionPathKey } from "../src/session-path.js";
 import { getParentDirectory, normalizeDirectory } from "../src/directory-browser.js";
+import { getAgentDir } from "../src/agent/sdk.js";
 import { listAllSessions, invalidateSessionListCache } from "../src/session-reader.js";
 
 describe("session-path", () => {
@@ -41,7 +44,7 @@ describe("directory-browser", () => {
 });
 
 describe("session-reader", () => {
-  it("列出与 pi CLI 共享的会话（存在性）", async () => {
+  it("列出 Lin 命名空间内的会话（存在性）", async () => {
     invalidateSessionListCache();
     const sessions = await listAllSessions();
     assert.ok(Array.isArray(sessions));
@@ -55,7 +58,6 @@ describe("session-reader", () => {
 
 describe("sdk 会话目录", () => {
   it("默认 agent 目录可访问", () => {
-    const agentDir = join(homedir(), ".pi", "agent");
-    assert.equal(existsSync(agentDir), true);
+    assert.equal(getAgentDir(), join(homedir(), ".lin", "agent"));
   });
 });

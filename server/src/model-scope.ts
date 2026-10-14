@@ -1,11 +1,13 @@
 // 模型作用域解析：供 UI 选择器与 AgentSession 启动共用。
 // 移植自 pi-web lib/model-scope.ts。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import {
   resolveModelScopeWithDiagnostics,
   type ModelRuntime,
   type ScopedModel,
-} from "@earendil-works/pi-coding-agent";
+} from "./agent/sdk.js";
 import type { Api, Model } from "@earendil-works/pi-ai";
 
 export interface ModelScopeResult {

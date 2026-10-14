@@ -1,11 +1,13 @@
 // 以可写 HOME 启动 yunfeng-server。
-// 解决系统 HOME 受 TCC/权限保护时 server 无法写 ~/.pi/agent 的问题。
+// 解决系统 HOME 受 TCC/权限保护时 server 无法写 ~/.lin/agent 的问题。
 // 调用模型时，需要先把已有 agent 配置复制到目标 HOME：
-//   macOS/Linux: cp -R ~/.pi <portable-home>/.pi
-//   Windows:     Copy-Item -Recurse $HOME\.pi <portable-home>\.pi
+//   macOS/Linux: cp -R ~/.lin <portable-home>/.lin
+//   Windows:     Copy-Item -Recurse $HOME\.lin <portable-home>\.lin
 //
 // 用法：
 //   node scripts/start-portable.mjs [--home <dir>] [--port <port>] [-- <server 额外参数>]
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { spawn } from "node:child_process";
 import { mkdirSync, existsSync } from "node:fs";
@@ -42,12 +44,12 @@ mkdirSync(home, { recursive: true });
 
 const tsxBin = join(root, "node_modules", ".bin", process.platform === "win32" ? "tsx.cmd" : "tsx");
 if (!existsSync(tsxBin)) {
-  console.error(`[server-home] 未找到 tsx，请先在 ${root} 执行 npm install`);
+  console.error(`[server-home] 未找到 tsx，请先在 ${root} 执行 pnpm install`);
   process.exit(1);
 }
 
 console.log(`[server-home] HOME=${home}`);
-console.log(`[server-home] agent 配置目录=${join(home, ".pi", "agent")}`);
+console.log(`[server-home] agent 配置目录=${join(home, ".lin", "agent")}`);
 console.log("[server-home] 调用模型前请先复制 agent 配置到该 HOME（见脚本头注释）");
 
 const child = spawn(
@@ -55,7 +57,7 @@ const child = spawn(
   ["src/index.ts", "--port", String(port), ...extra],
   {
     cwd: root,
-    env: { ...process.env, HOME: home, USERPROFILE: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home, YUNFENG_RUNTIME_HOME: home },
     stdio: "inherit",
     ...(process.platform === "win32" ? { shell: true } : {}),
   },

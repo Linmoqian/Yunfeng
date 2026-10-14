@@ -1,4 +1,6 @@
 // HTTP 路由处理器：复刻 pi-web 的 API 面（agent/sessions/models/files/git/cwd/auth/home）。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync, unlinkSync, readdirSync } from "node:fs";
@@ -10,7 +12,7 @@ import {
   getAgentDir,
   SessionManager,
   SettingsManager,
-} from "@earendil-works/pi-coding-agent";
+} from "./agent/sdk.js";
 import {
   getRpcSession,
   getRunningRpcSessionIds,

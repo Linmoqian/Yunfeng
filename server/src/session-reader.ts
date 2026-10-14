@@ -1,12 +1,14 @@
 // 会话列表与上下文读取：直接读 pi 的 JSONL 会话文件，无需启动 agent。
 // 移植自 pi-web lib/session-reader.ts。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import {
   SessionManager,
   buildContextEntries as piBuildContextEntries,
   buildSessionContext as piBuildSessionContext,
   getAgentDir,
-} from "@earendil-works/pi-coding-agent";
+} from "./agent/sdk.js";
 import { closeSync, openSync, readSync } from "node:fs";
 import { normalize as normalizePath } from "node:path";
 import type { SessionInfo, SessionContext, SessionMessage } from "./types.js";

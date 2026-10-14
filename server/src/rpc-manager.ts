@@ -1,5 +1,7 @@
 // RPC 会话管理：AgentSessionWrapper + 会话注册表。
 // 移植自 pi-web lib/rpc-manager.ts（精简扩展 UI 为最小实现）。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
 import { existsSync, realpathSync, writeFileSync } from "node:fs";
@@ -11,8 +13,8 @@ import {
   getAgentDir,
   initTheme,
   SessionManager,
-} from "@earendil-works/pi-coding-agent";
-import type { AgentSession, AgentSessionEvent, SlashCommandInfo } from "@earendil-works/pi-coding-agent";
+} from "./agent/sdk.js";
+import type { AgentSession, AgentSessionEvent, SlashCommandInfo } from "./agent/sdk.js";
 import type { AgentEvent, EventListener, RpcSessionStartOptions } from "./types.js";
 import { cacheSessionPath, invalidateSessionListCache } from "./session-reader.js";
 import { invalidateModelsCache } from "./models-cache.js";

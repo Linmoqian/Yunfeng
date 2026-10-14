@@ -1,6 +1,8 @@
 // TaskStore：任务领域状态的持久化与事件日志。
-// 保存到全局用户目录 ~/.yunfeng/tasks/<task-id>/ 下。
+// 保存到全局用户目录 ~/.lin/tasks/<task-id>/ 下。
 // state.json 采用临时文件加原子重命名；events.jsonl 使用任务内递增 seq 支持断线重放。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
 import {
@@ -20,13 +22,13 @@ import { homedir } from "node:os";
 import path from "node:path";
 import type { TaskEvent, TaskEventName, TaskIntervention, TaskSource, TaskState } from "./types.js";
 
-const YUNFENG_DIR = ".yunfeng";
+const YUNFENG_DIR = ".lin";
 const TASKS_DIR = "tasks";
 
 export function getYunfengDataDir(): string {
   const override = process.env.YUNFENG_DATA_DIR;
   if (override) return path.resolve(override);
-  return path.join(homedir(), YUNFENG_DIR);
+  return path.join(process.env.YUNFENG_RUNTIME_HOME?.trim() || homedir(), YUNFENG_DIR);
 }
 
 export function getTasksDir(dataDir = getYunfengDataDir()): string {

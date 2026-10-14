@@ -1,7 +1,9 @@
 // MemoryStore：分层记忆的持久化。
-// 保存到 ~/.yunfeng/memory/memories.jsonl（追加写）；
+// 保存到 ~/.lin/memory/memories.jsonl（追加写）；
 // 变更（更新/删除）时整文件重写为临时文件 + renameSync 原子替换。
 // 与 task-store 同一模式，不引入新依赖。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
 import {

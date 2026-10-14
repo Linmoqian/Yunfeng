@@ -1,6 +1,8 @@
 // 项目信任状态（移植自 pi-web lib/project-trust.ts）。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
-import { hasTrustRequiringProjectResources, ProjectTrustStore } from "@earendil-works/pi-coding-agent";
+import { hasTrustRequiringProjectResources, ProjectTrustStore } from "./agent/sdk.js";
 import type { ProjectTrustStatus } from "./types.js";
 
 export function getProjectTrustStatus(cwd: string, agentDir: string): ProjectTrustStatus {

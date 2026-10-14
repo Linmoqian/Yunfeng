@@ -23,3 +23,6 @@ src-tauri/gen/
 
 # 本地打包产物
 release/
+
+# Yunfeng 本机配置、凭据与会话
+.lin/
