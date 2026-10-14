@@ -1,6 +1,6 @@
 # Yunfeng Server
 
-本地 HTTP/SSE 服务负责管理任务、项目和会话。Agent 仍由 Pi SDK 组装，模型调用、工具循环、上下文压缩和 JSONL 会话格式沿用 Pi。
+本地 HTTP/SSE 服务负责管理任务、项目和会话。开发 Agent 由 Pi SDK 组装；科研模式使用四阶段核心与外层事件 Runtime，Pi 在无工具的临时会话中提供计划与反思。科研记录和检查点复用 TaskStore，候选学习复用 MemoryStore。
 
 ## 独立 Lin 配置
 
@@ -21,6 +21,8 @@ Server 不默认读取 `~/.pi` 或项目 `.pi`，也不自动复制旧配置、�
 `src/agent/sdk.ts` 是所有运行时 Pi SDK 导入的唯一入口。它在 SDK 首次加载前通过 Pi 的 `PI_PACKAGE_DIR` 与本包 `piConfig` 元数据，将 `name` 设为 `lin`、`configDir` 设为 `.lin`，随后把资产根恢复为原 SDK 包，保留其主题与导出模板。适配层检测到 SDK 提前按 `.pi` 初始化时会拒绝启动，避免静默回退。不要直接在其他 Server 模块中导入 SDK 的运行时值；类型导入可直接使用原包。
 
 ## 开发与验证
+
+科研实现入口见 [research/README](src/research/README.md)，公开契约见[科研任务 API](../docs/api/2026-10-15-research-runtime.md)。首页选择科研并输入项目目录与目标后启动；暂停/继续以服务端检查点为准。
 
 在 `server/` 执行 `pnpm build`、`pnpm test`。桌面联调使用 `app/` 的 `pnpm tauri dev`。独立启动使用 `pnpm start`，可写 HOME 启动使用 `pnpm start:portable`。
 

@@ -57,6 +57,7 @@ import { getTaskContext } from "./task/task-context.js";
 import { getPluginRegistry } from "./plugin/instance.js";
 import type { CollectedRoute } from "./plugin/registry.js";
 import type { RouteContext } from "./plugin/types.js";
+import { getResearchService } from "./research/service.js";
 
 interface CliArgs {
   port: number;
@@ -342,18 +343,22 @@ void getPluginRegistry()
   .initAll()
   .finally(() => {
     server.listen(args.port, "127.0.0.1", () => {
+      getResearchService().recover();
       console.log(`[server] listening on http://127.0.0.1:${args.port}`);
       console.log(`PI_SERVER_READY ${args.port}`);
     });
   });
 
+let shuttingDown = false;
 function shutdown(): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
   for (const cleanup of activeSse) {
     try { cleanup(); } catch { /* ignore */ }
   }
   destroyAllSessions();
   server.close();
-  void getPluginRegistry().disposeAll().finally(() => process.exit(0));
+  void getResearchService().close().then(() => getPluginRegistry().disposeAll()).finally(() => process.exit(0));
 }
 
 process.on("SIGINT", shutdown);

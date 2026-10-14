@@ -1,5 +1,7 @@
 // 任务领域 API 路由：/api/tasks/... 系列。
 // 保留 /api/agent 与 /api/sessions 供兼容使用，本模块为 Agent 工作台的真实状态来源。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -23,6 +25,7 @@ import {
 import { getGitFileDiff } from "../git-changes.js";
 import type { RouteResult } from "../routes.js";
 import { json } from "../routes.js";
+import { getResearchService, publicResearchTask } from "../research/service.js";
 
 function jsonApi(result: RouteResult, fallbackError: unknown): RouteResult {
   const bodyError =
@@ -55,7 +58,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function serializeTask(state: TaskState) {
-  return { ...state };
+  return publicResearchTask(state);
 }
 
 function ensureSessionForTask(sessionId: string): Promise<void> {
@@ -124,6 +127,7 @@ export async function handleTaskCreate(body: Record<string, unknown>): Promise<R
   const { store, runtime, hub } = getTaskContext();
   const cwd = typeof body.cwd === "string" && body.cwd.trim() ? body.cwd : process.cwd();
   const message = typeof body.message === "string" ? body.message : "";
+  if (body.mode !== undefined && body.mode !== "development" && body.mode !== "research") return jsonApi(json({ error: apiError("bad_request", "工作模式无效", { status: 400 }) }), null);
   if (!existsSync(cwd)) return jsonApi(json({ error: apiError("bad_request", `目录不存在: ${cwd}`, { status: 400 }) }), null);
 
   let provider: string | undefined;
@@ -139,6 +143,10 @@ export async function handleTaskCreate(body: Record<string, unknown>): Promise<R
   }
 
   try {
+    if (body.mode === "research") {
+      const state = await getResearchService().create(cwd, message, model, body);
+      return json({ task: serializeTask(state), sessionId: state.sessionId });
+    }
     const tempKey = `__task_new__${randomUUID()}`;
     const { session, realSessionId } = await startRpcSession(tempKey, "", cwd, {
       ...(provider && modelId ? { initialModel: { provider, modelId } } : {}),
@@ -200,6 +208,8 @@ export async function handleTaskConversation(id: string, query: URLSearchParams)
   const state = store.get(id);
   if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
 
+  if (state.mode === "research") return json(getResearchService().conversation(id));
+
   try {
     await ensureSessionForTask(state.sessionId);
   } catch (error) {
@@ -222,6 +232,7 @@ export async function handleTaskCommands(id: string, body: Record<string, unknow
   }
 
   try {
+    if (state.mode === "research") return json({ ok: true, result: await getResearchService().command(id, command) });
     await ensureSessionForTask(state.sessionId);
     const result = await runtime.dispatchCommand(state, command);
     await hub.emit(id, "task_updated", { status: state.status, phase: state.phase });
@@ -239,6 +250,7 @@ export async function handleTaskCapabilities(id: string): Promise<RouteResult> {
   const { store } = getTaskContext();
   const state = store.get(id);
   if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
+  if (state.mode === "research") return json({ capabilities: { model: state.model ?? null, thinkingLevel: null, activeTools: state.activeToolNames, tools: state.activeToolNames.map((name) => ({ name, active: true })) } });
 
   try {
     await ensureSessionForTask(state.sessionId);
@@ -287,6 +299,10 @@ export async function handleTaskInterventionResolve(id: string, requestId: strin
     return jsonApi(json({ error: apiError("bad_request", "decision 必须是 approve 或 reject", { status: 400 }) }), null);
   }
   const value = decision === "approve" ? true : false;
+  if (state.mode === "research") {
+    const ok = await getResearchService().resolve(id, requestId, value);
+    return ok ? json({ ok: true }) : jsonApi(json({ error: apiError("intervention_not_found", "科研授权已失效", { status: 404 }) }), null);
+  }
   // 也可携带 select/input 的选择值
   const choice = typeof body.value === "string" ? body.value : undefined;
   const finalValue: string | boolean | null = choice !== undefined && choice.length > 0 ? choice : value;

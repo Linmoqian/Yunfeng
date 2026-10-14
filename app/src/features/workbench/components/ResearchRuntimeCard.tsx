@@ -1,0 +1,31 @@
+/* 科研任务阶段与暂停恢复控制，以服务端检查点为准。
+ * Created on 2026-10-15
+ * @author: https://github.com/Linmoqian
+ */
+import { useState } from "react";
+import { Button } from "antd";
+import { Pause, Play } from "lucide-react";
+import { sendTaskCommand, type TaskState } from "../../../services/taskService";
+import styles from "./ResearchRuntimeCard.module.css";
+const labels = { OBSERVING: "观察", PLANNING: "计划", EXECUTING: "执行", WAITING: "等待事件", REFLECTING: "反思", PAUSED: "已暂停", COMPLETED: "已验收", FAILED: "需要处理" };
+export function ResearchRuntimeCard({ task }: { task: TaskState }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const state = task.autonomy;
+  if (!state) return null;
+  const paused = state.phase === "PAUSED" || state.phase === "FAILED";
+  async function control() {
+    setBusy(true); setError(null);
+    try { await sendTaskCommand(task.id, { type: paused ? "retry" : "abort" }); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : "操作失败"); }
+    finally { setBusy(false); }
+  }
+  return <aside className={styles.card} aria-label="科研自主任务">
+    <div className={styles.line}><strong>科研 · {labels[state.phase]}</strong><span>第 {state.cycle} / {state.maxCycles} 轮</span>
+      {state.phase !== "COMPLETED" && <Button size="small" loading={busy} onClick={() => void control()} icon={paused ? <Play size={14} /> : <Pause size={14} />}>{paused ? "继续" : "暂停"}</Button>}
+    </div>
+    <p aria-live="polite">{state.reason}</p>
+    <small title={task.cwd}>{task.cwd}</small>
+    {error && <p role="alert">{error}</p>}
+  </aside>;
+}

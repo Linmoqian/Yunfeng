@@ -1,5 +1,7 @@
 // 任务聚焦面板的事件流 Hook：聚合会话输出、工具调用、审批与任务状态变更。
-// 通过 EventSource 订阅单任务事件，将增量状态写入本地（Rust 后端仍是事实来源）。
+// 按服务端消息身份合并快照和增量；Server TaskStore 是任务事实来源。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -92,6 +94,16 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
       if (data && typeof data === "object" && currentTask) {
         setLocalTask((current) => ({ ...(current?.id === currentTask.id ? current : currentTask), ...data }) as TaskState);
       }
+      return;
+    }
+    if (event.type === "message_completed" && (event.data as { message?: unknown } | undefined)?.message) {
+      const next = normalizeConversationMessage((event.data as { message: unknown }).message, event.seq ?? 0);
+      if (next) setConversation((current) => {
+        if (current.some((item) => item.id === next.id)) return current;
+        const optimistic = next.role === "user" ? current.find((item) => item.status && item.role === "user" && item.text === next.text) : undefined;
+        return [...current.filter((item) => item.id !== optimistic?.id), next];
+      });
+      setStreamStatus("idle");
       return;
     }
 

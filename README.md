@@ -23,6 +23,8 @@ Yunfeng 是本地优先的个人 Agent 工作台。桌面 React 界面通过 HTT
 
 任务、会话的事实来源在 Server；文稿和本地协作数据的事实来源在 Rust SQLite。具体路径见[运行架构](docs/development/2026-10-15-runtime-architecture.md)。
 
+首页提供开发与科研模式。科研模式面向本地项目，以观察、计划、执行、反思形成自主闭环，等待作业或文件事件后继续，经验写入候选记忆。项目范围、执行授权与恢复规则见[科研任务契约](docs/api/2026-10-15-research-runtime.md)。
+
 ## 快速开始
 
 根目录使用 pnpm workspace；完整后端编排需要 Node 24 及 Rust/Tauri 开发环境。

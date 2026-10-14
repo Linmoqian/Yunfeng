@@ -1,3 +1,6 @@
+// 会话聚焦编排，科研展示由独立 Runtime 卡片承载。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 import { App } from "antd";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
@@ -15,6 +18,7 @@ import {
 } from "../../services/taskService";
 import { Composer } from "./components/Composer";
 import { ConversationWelcome } from "./components/ConversationWelcome";
+import { ResearchRuntimeCard } from "./components/ResearchRuntimeCard";
 import { SESSION_ENTER } from "./workspaceMotion";
 import { ConversationInfoCard } from "./components/ConversationInfoCard";
 import { ConversationLog } from "./components/ConversationLog";
@@ -39,6 +43,8 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
   const { message } = App.useApp();
   const reduced = useReducedMotion();
   const [sending, setSending] = useState(false);
+  const [workMode, setWorkMode] = useState<"development" | "research">("development");
+  const [researchProject, setResearchProject] = useState("");
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
   const [showThinking, setShowThinking] = useState(() => window.localStorage.getItem("yunfeng-show-thinking") === "true");
   const conversationLogRef = useRef<HTMLDivElement>(null);
@@ -97,7 +103,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
 
     try {
       if (draft) {
-        const { task: createdTask } = await createConversation(modelSelection, next);
+        const { task: createdTask } = await createConversation(modelSelection, next, { mode: workMode, ...(workMode === "research" && researchProject.trim() ? { cwd: researchProject.trim() } : {}) });
         setLocalTask(createdTask);
         setMessageStatus(optimisticId, "sent");
         onTaskUpdated(createdTask);
@@ -139,7 +145,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     setBusyCommand("abort");
     try {
       await sendTaskCommand(activeTask.id, { type: "abort" });
-      message.success("已停止生成。");
+      message.success(activeTask.mode === "research" ? "科研任务已暂停。" : "已停止生成。");
     } catch (error) {
       message.error(error instanceof Error ? error.message : "停止生成失败。");
     } finally {
@@ -197,8 +203,9 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
       transition={SESSION_ENTER}
     >
       <div className="focus-panel__body">
+        {activeTask?.mode === "research" && <ResearchRuntimeCard task={activeTask} />}
         <section className="conversation-section" aria-label="对话">
-          {draft && !conversation.length ? <ConversationWelcome /> : <ConversationLog
+          {draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} project={researchProject} onProjectChange={setResearchProject} /> : <ConversationLog
             ref={conversationLogRef}
             items={conversation}
             toolCalls={toolCalls}
@@ -207,7 +214,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
             approvals={approvals}
             streamError={streamError}
             busyCommand={busyCommand}
-            hasTask={Boolean(activeTask)}
+            hasTask={Boolean(activeTask) && activeTask?.mode !== "research"}
             showThinking={showThinking}
             onCopy={copyMessage}
             onFork={(entryId) => void handleFork(entryId)}
@@ -227,7 +234,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
           onStop={() => handleStop()}
         />
       </div>
-      {!draft && showInfo && infoContainer ? createPortal(
+      {!draft && activeTask?.mode !== "research" && showInfo && infoContainer ? createPortal(
         <ConversationInfoCard
           sessionId={sessionId}
           currentTitle={currentTitle}

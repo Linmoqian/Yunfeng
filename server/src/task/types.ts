@@ -1,5 +1,7 @@
 // 任务领域协议：显示任务模型、命令、事件与 API 类型。
-// 阶段 0 新增，作为前端 Agent 工作台的真实状态来源。
+// TaskStore 是前端 Agent 工作台和科研检查点的状态来源。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 export type TaskStatus =
   | "running"
@@ -32,6 +34,8 @@ export interface TaskState {
   cwd: string;
   title: string;
   source: TaskSource;
+  mode?: "development" | "research";
+  autonomy?: import("../research/types.js").ResearchCheckpoint;
   status: TaskStatus;
   phase: TaskPhase;
   currentAction: string;

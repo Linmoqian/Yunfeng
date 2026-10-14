@@ -36,6 +36,8 @@ export const {
   createAgentSessionFromServices,
   SessionManager,
   SettingsManager,
+  DefaultResourceLoader,
+  ModelRuntime,
   buildContextEntries,
   buildSessionContext,
   resolveModelScopeWithDiagnostics,
@@ -47,8 +49,8 @@ export type {
   AgentSession,
   AgentSessionEvent,
   SlashCommandInfo,
-  ModelRuntime,
   ScopedModel,
 } from "@earendil-works/pi-coding-agent";
 
 export type SettingsManager = import("@earendil-works/pi-coding-agent").SettingsManager;
+export type ModelRuntime = import("@earendil-works/pi-coding-agent").ModelRuntime;

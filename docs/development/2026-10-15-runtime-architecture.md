@@ -13,7 +13,8 @@
 | 内容 | 事实来源 | 默认位置 |
 | --- | --- | --- |
 | 模型、认证、全局设置和资源 | Lin 命名空间中的 Pi SDK | `~/.lin/agent/` |
-| Agent 会话 | Pi JSONL 会话管理 | `~/.lin/agent/sessions/` |
+| 开发 Agent 会话 | Pi JSONL 会话管理 | `~/.lin/agent/sessions/` |
+| 科研检查点与运行记录 | Server TaskStore；Pi 临时会话仅作决策 | `~/.lin/tasks/` |
 | 任务状态、事件和审批 | Server TaskStore | `~/.lin/tasks/` |
 | 记忆 | Server MemoryStore | `~/.lin/memory/` |
 | 项目设置、技能和扩展 | Lin 项目资源加载器 | `<项目>/.lin/`；Pi 也支持项目 `.agents/skills/` |
@@ -37,10 +38,12 @@ Agent 目录优先级为 `YUNFENG_AGENT_DIR` > `LIN_CODING_AGENT_DIR` > `<YUNFEN
 - `server-rpc/` 是另一条 Pi 子进程实验链，不属于当前桌面启动路径，也未承诺与 Lin 目录隔离规则相同。
 - `yunfeng-cli/` 当前是 TUI/CLI 组件演示，普通消息使用模拟回复。
 - `yunfeng-mobile/` 是历史原型；移动开发入口为 `mobile-app/`。
-- 首页“开发 / 科研”只切换引导文案，目前不影响 Agent 的模型、工具或提示词。
+- 首页“科研”启动本地自主 Runtime：四阶段核心、事件等待、候选记忆与暂停恢复。执行范围由任务权限及具体计划授权控制；真实模型决策与训练质量需另行验收。详见[科研 API](../api/2026-10-15-research-runtime.md)。
 - 本地协作 SQLite 已接入，不能据此声称跨设备同步已经完成。
 
 ## 维护入口
+
+前端科研卡片独立封装，`TaskFocusPanel` 与 `useTaskStream` 暂保留既有会话编排，文件分别略超 250 行和约 330 行，以限制本次对普通会话的改动范围；后续流协议调整时按快照、消息与审批职责拆分。
 
 - [Server 配置与适配规则](../../server/README.md)
 - [桌面启动与编排](desktop-shell.md)

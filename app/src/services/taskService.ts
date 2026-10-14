@@ -1,5 +1,7 @@
 // 任务领域 API 客户端：/api/tasks 系列 + 兼容旧 /api/sessions 浏览。
-// 阶段 1：工作台以真实任务状态为准，旧会话保留浏览与懒关联导入。
+// 工作台以服务端真实任务状态为准，科研模式复用任务接口。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 export interface TaskModelRef {
   provider: string;
@@ -13,6 +15,11 @@ export interface TaskState {
   cwd: string;
   title: string;
   source: "task" | "legacy" | "history";
+  mode?: "development" | "research";
+  autonomy?: {
+    phase: "OBSERVING" | "PLANNING" | "EXECUTING" | "WAITING" | "REFLECTING" | "PAUSED" | "COMPLETED" | "FAILED";
+    goal: string; reason: string; cycle: number; maxCycles: number; jobId?: string; approvalId?: string;
+  };
   status: "running" | "waiting_input" | "waiting_approval" | "failed" | "completed" | "archived";
   phase: "understanding" | "planning" | "implementing" | "verifying" | "committing" | "done" | "unknown";
   currentAction: string;
@@ -229,24 +236,28 @@ export async function createTask(
 export async function createConversation(
   model?: ModelSelection | null,
   message?: string,
+  options?: { mode: "development" | "research"; cwd?: string },
 ): Promise<{ task: TaskState; sessionId: string }> {
-  return createTaskRequest({ model, message });
+  return createTaskRequest({ model, message, ...options });
 }
 
 async function createTaskRequest({
   cwd,
   message,
   model,
+  mode,
 }: {
   cwd?: string;
   message?: string;
   model?: ModelSelection | null;
+  mode?: "development" | "research";
 }): Promise<{ task: TaskState; sessionId: string }> {
   const response = await fetch("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...(cwd ? { cwd } : {}),
+      ...(mode ? { mode } : {}),
       ...(message ? { message } : {}),
       ...(model ? { model: { provider: model.provider, modelId: model.modelId } } : {}),
     }),

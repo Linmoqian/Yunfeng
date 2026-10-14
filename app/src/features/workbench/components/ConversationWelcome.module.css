@@ -1,5 +1,5 @@
-/* 欢迎页仅使用既有 Yunfeng 主题变量。
- * Created on 2026-10-14
+/* 会话欢迎页与项目输入，沿用 Yunfeng 主题变量。
+ * Created on 2026-10-15
  * @author: https://github.com/Linmoqian
  */
 .welcome { display: flex; flex: 1; min-height: 0; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px; text-align: center; }
@@ -8,5 +8,6 @@
 .welcome p { margin: 0; color: var(--yf-text-secondary); font-size: 14px; }
 .welcome > span { color: var(--yf-text-tertiary); font-size: 12px; }
 .modeSelector { margin: 4px 0; max-width: 100%; }
+.project { max-width: 420px; }
 .modeLabel { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 76px; min-height: 44px; }
 @media (max-height: 540px) { .welcome { gap: 8px; padding: 12px; } .welcome img { width: 64px; height: 64px; } }

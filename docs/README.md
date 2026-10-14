@@ -29,6 +29,7 @@
 ## 接口契约（api/）
 
 - [backend-api.md](./api/backend-api.md)：yunfeng-server 任务 / 会话 / 审批 API
+- [科研自主任务](api/2026-10-15-research-runtime.md)：本地四阶段闭环、事件等待、授权、记忆与恢复。
 - [gateway.md](./api/gateway.md)：yunfeng-gateway 代理路径、认证与事件流
 - [组件共享](api/2026-10-14-component-sharing.md)、[本地协作](api/2026-10-14-collaboration-action.md)、[终端](api/2026-10-14-terminal-action.md)
 - [文稿图片](api/2026-10-14-paper-assets.md)、[PDF 导出](api/2026-10-14-paper-pdf.md)
