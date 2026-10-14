@@ -30,4 +30,7 @@
 .preview td, .preview th { padding: 8px; border: 1px solid var(--yf-border-divider); }
 .status { justify-content: space-between; color: var(--yf-text-secondary); font-size: 11px; }
 .error { color: var(--yf-text-primary); font-size: 12px; }
+.figure { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); overflow-wrap: anywhere; }
+.figure img, .preview img { max-width: 100%; max-height: 420px; object-fit: contain; border-radius: var(--yf-radius-md); }
+.figure small { color: var(--yf-text-secondary); }
 @container (max-width: 380px) { .canvas { padding: 14px; } .actions { width: 100%; } }

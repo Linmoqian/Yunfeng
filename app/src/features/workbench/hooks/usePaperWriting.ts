@@ -4,10 +4,12 @@
  */
 import { createContext, useContext, useState } from "react";
 import { useSharedComponent } from "./useSharedComponent";
+import { usePaperAssets } from "./usePaperAssets";
 export function usePaperWriting() {
   const shared = useSharedComponent("writing");
   const [view, setView] = useState("编辑");
-  return { ...shared, view, setView };
+  const materials = usePaperAssets();
+  return { ...shared, view, setView, materials };
 }
 export const PaperWritingContext = createContext<ReturnType<typeof usePaperWriting> | null>(null);
 export function usePaperContext() {

@@ -11,6 +11,7 @@ import { usePaperContext } from "../hooks/usePaperWriting";
 import { MAX_PAPER_BYTES, paperByteLength } from "../paperWriting";
 import { openComponentWindow, sharingError } from "../services/componentSharing";
 import styles from "./PaperWriting.module.css";
+import { PaperAssetImage } from "./PaperAssetImage";
 export function PaperWriting() {
   const paper = usePaperContext();
   const [notice, setNotice] = useState("");
@@ -23,7 +24,7 @@ export function PaperWriting() {
       {paper.view === "编辑" ? <label htmlFor={id}>Markdown 草稿<Input.TextArea id={id} disabled={!paper.ready} value={paper.value.body} spellCheck={false} autoSize={{ minRows: 15, maxRows: 30 }} placeholder="写下研究问题、方法和结果…" onChange={(event) => {
         if (paperByteLength(event.target.value) > MAX_PAPER_BYTES) { setNotice("文稿不能超过 64 KiB"); return; }
         paper.update({ body: event.target.value }); setNotice("");
-      }} /></label> : <article className={styles.preview}><ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>, img: () => <span>图片素材未接入</span> }}>{paper.value.body || "编辑文稿后在这里预览。"}</ReactMarkdown></article>}
+      }} /></label> : <article className={styles.preview}><ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml urlTransform={(url) => url.startsWith("paper-asset:") ? url : /^(https?:|mailto:|#)/i.test(url) ? url : ""} components={{ a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>, img: ({src,alt}) => <PaperAssetImage src={src} alt={alt} /> }}>{paper.value.body || "编辑文稿后在这里预览。"}</ReactMarkdown></article>}
     </div>
     <footer className={styles.status}><span>{Array.from(paper.value.body).length} 字符 · {(paperByteLength(paper.value.body) / 1024).toFixed(1)} / 64 KiB</span><span>{paper.syncing ? "正在保存…" : paper.error ? "保存失败" : paper.ready ? "已保存于本机" : "正在读取文稿…"}</span></footer>
     {notice && <p role="alert">{notice}</p>}

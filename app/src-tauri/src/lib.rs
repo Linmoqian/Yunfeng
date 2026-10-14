@@ -801,6 +801,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            component_sharing::paper_asset_action,
             terminal::terminal_action,
             collaboration::collaboration_action,
             component_sharing::component_read,

@@ -1,6 +1,7 @@
 //! Tauri 组件状态与独立窗口边界；子窗口只访问所属组件。
 //! Created on 2026-10-14
 //! @author: https://github.com/Linmoqian
+mod assets;
 mod model;
 mod persistence;
 use model::{authorize, error, title, Error, Snapshot, Store};
@@ -12,11 +13,24 @@ use std::{
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 #[derive(Default)]
-pub struct Runtime(pub Arc<Mutex<Store>>);
+pub struct Runtime(pub Arc<Mutex<Store>>, pub PathBuf);
 impl Runtime {
     pub fn new(path: PathBuf) -> Self {
-        Self(Arc::new(Mutex::new(Store::persistent(path))))
+        Self(Arc::new(Mutex::new(Store::persistent(path.clone()))), path)
     }
+}
+
+#[tauri::command]
+pub async fn paper_asset_action(
+    window: WebviewWindow,
+    runtime: State<'_, Runtime>,
+    request: assets::Request,
+) -> Result<Value, Error> {
+    authorize(window.label(), "writing")?;
+    let path = runtime.1.clone();
+    tauri::async_runtime::spawn_blocking(move || assets::execute(&path, request))
+        .await
+        .map_err(|_| error("STORAGE_ERROR", "图片素材任务失败"))?
 }
 
 #[tauri::command]
