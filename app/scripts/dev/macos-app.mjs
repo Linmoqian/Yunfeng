@@ -7,6 +7,7 @@ import { constants } from "node:fs";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stopOldDesktopProcesses } from "./processes.mjs";
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 if (!process.argv[2]) throw new Error("Cargo runner 未提供可执行文件");
@@ -14,6 +15,8 @@ const binary = resolve(process.argv[2]);
 const config = JSON.parse(await readFile(resolve(appRoot, "src-tauri/tauri.conf.json"), "utf8"));
 const contents = resolve(dirname(binary), "dev-bundle", `${config.productName} 开发.app`, "Contents");
 const executable = resolve(contents, "MacOS", basename(binary));
+// Tauri 重载可直接终止 runner；新一轮启动须回收已失去父进程的旧应用。
+await stopOldDesktopProcesses(true);
 await mkdir(dirname(executable), { recursive: true });
 await mkdir(resolve(contents, "Resources"), { recursive: true });
 await copyFile(binary, executable, constants.COPYFILE_FICLONE);

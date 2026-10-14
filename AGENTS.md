@@ -84,6 +84,8 @@ npm create tauri-app@latest
 
 本次接入规范与技能文档；专题中 `.githooks/` 和 `.pi/agents/` 的说明适用于已配置这些设施的项目，Yunfeng 当前使用已有提交检查与宿主子代理能力。
 
+桌面开发与原生验收加载 `.agents/skills/yunfeng-native-control/SKILL.md` 和 `hot-reload`；界面与交互变更加载 `.agents/skills/yunfeng-ui-simplification/SKILL.md`。参考 LianAgent 的技能已按本项目入口与组件适配，先复用现有实例，热重载后核对原生进程数。
+
 
 ### 身份与交流
 

@@ -9,6 +9,7 @@ description: >-
 ## 统一开发入口
 
 - 桌面开发统一使用项目定义的 `pnpm tauri dev`，由 Tauri CLI 同时管理前端开发服务器和 Rust 应用进程。
+- 遵循 [开发启动说明](../../../app/scripts/dev/README.md)：先复用现有实例。新启动清理经路径和进程身份核实的旧开发树；macOS runner 在每次 Rust 重载时回收旧原生应用。核对重载前后进程数量，不能只看编译成功。
 - `tauri.conf.json` 的 `build.beforeDevCommand` 启动 Vite，`build.devUrl` 必须与 Vite 的开发地址和端口一致。
 - 不额外编写重复的文件监听或进程守护脚本；确有性能问题时，优先使用 `.taurignore` 排除生成文件、构建产物等无关路径。
 - Vite 设置 `clearScreen: false`，避免前端刷新覆盖 Rust 编译错误。
