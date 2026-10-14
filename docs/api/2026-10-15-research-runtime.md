@@ -25,7 +25,9 @@
 | mode | body | string | 否 | development | development / research | 科研模式进入自主 Runtime |
 | cwd | body | string | 否 | Server 当前目录 | 必须为存在的目录 | 以真实路径作为项目与记忆范围 |
 | message | body | string | 科研时是 | — | 非空，最多 10000 字符 | 原始目标；不会因反思自动替换 |
-| model | body | object | 否 | Lin 设置选择的模型 | provider、modelId 字符串 | Pi 决策模型 |
+| model | body | object | 否 | Lin 设置选择的模型 | provider、modelId 字符串 | 当前节点的 Pi 规划/反思模型 |
+| decisionModel | body | object | 否 | 同 model；未指定时使用 Lin 设置 | provider、modelId 非空，分别 ≤200 字符 | 独立决策模型，用于目标树局部提案；可配置小模型 |
+| decisionBudget | body | number | 否 | 10 | 有限数值，0 < 值 ≤1000 | 相对估计成本总预算；不表示金额或 GPU 时间 |
 | maxCycles | body | integer | 否 | 20 | 1–1000 轮 | 本次规划预算 |
 | permissions.commands | body | object[] | 否 | [] | 最多 20 项；program ≤500 字符；args 最多 32 项，每项 ≤2000 字符，无 NUL | 完整程序和参数精确匹配的预授权命令 |
 | permissions.writeRoots | body | string[] | 否 | [".lin/experiments"] | 最多 8 个项目内相对目录，每项 ≤500 字符 | 自动写入范围，不覆盖目录自身 |
@@ -52,8 +54,16 @@
 | autonomy.result、lastResult | object | 否 | job_id、status、output、evaluation、completedAt | 当前待反思或上一作业结果 |
 | autonomy.learning | object | 否 | summary、knowledge_update、next_question | 最近候选学习；最多 8 条知识更新 |
 | autonomy.permissions | object | 是 | 同请求清单 | 当前执行范围 |
+| autonomy.decision | object | 新任务是；旧任务规划后是 | mission、nodes、horizon、selectedId、budget、reason | 持久化目标树及决策依据 |
+| autonomy.decisionModel | object | 否 | 同请求模型 | 显式指定的决策模型 |
 
 `observation` 完整事实保存在服务端检查点，不通过任务摘要返回。作业 status 为 running / succeeded / failed / cancelled / interrupted。验收引用项目普通文件，或 JSON 有限数值字段与 `>`、`>=`、`<`、`<=`、`==` 的比较；数值字符串不算达标。
+
+`decision.mission` 包含 id=mission、objective 和首次确定后锁定的 condition。`nodes` 最多 100 项，每项有 id、parent、objective、kind（group/explore/execute）、priority、confidence、cost、expected_gain、status、attempts，以及执行后的 fingerprint、jobId 和精简 result。节点身份和状态由服务端维护，父节点必须是 mission 或分组，最多四层。status 为 pending/running/succeeded/failed/blocked；分组仅用于目标层级，不单独执行或宣称实测通过。
+
+收益、成功概率和成本均为 0–1 的模型估计；priority=`expected_gain*0.5+confidence*0.3-cost*0.2`。horizon 为评分最高的最多五个可执行节点 ID；selectedId 是本轮选择。规则仅选择正评分、预算允许、尚未成功且未耗尽两次尝试的节点。预算 spent 在副作用前预留，成功、失败或中断均不退还。反思文本不能改变实测结果。
+
+模型 plan 的 complete 仅验收当前节点；服务端 Plan 可包含 node_id、mission_complete 或 pause，客户端不得通过模型输出直接设置这些字段。整个任务只在锁定的长期验收条件实测通过后结束。没有验收条件、没有候选、需要人工信息、停止探索或出现无效重复时暂停；wait 等待真实事件。补充人工目标时重新建立树，保留已用成本；普通 retry 不重置尝试次数、预算或验收条件。
 
 科研 conversation 返回 `{context:{messages,entryIds}}`，内容来自已有任务事件；SSE 的 `message_completed` 带 `{message:{id,role,content}}`，`task_updated` 带检查点摘要。断线补发继续沿用事件 seq；客户端按消息 ID 去重。capabilities 仅列出 observe、plan、execute、reflect。
 
@@ -71,15 +81,15 @@
 
 ## 权限与安全
 
-Pi 从 Lin 目录读取模型配置与认证。每次计划/反思使用临时无工具会话，禁用扩展、技能、上下文文件和提示模板。模型不能直接访问文件或执行系统命令；文件内容作为观察数据传入。
+决策模型与 Pi 从 Lin 目录读取模型配置与认证。每次 decide/plan/reflect 使用临时无工具会话，禁用扩展、技能、上下文文件和提示模板。Decision Layer 用结构化提案维护树，模型不能直接访问文件或执行系统命令；文件内容作为观察数据传入。
 
 读取和写入路径限制在项目内，拒绝符号链接、`.git`、`node_modules`、环境变量文件、认证文件和私钥；路径校验并非抵御并发恶意替换的操作系统沙箱。命令使用 `shell:false` 和参数数组，获准程序仍具有本机权限，也可访问项目之外的系统资源。不要将凭据写入目标、参数、观察文件或输出；计划、结果和候选经验会持久化。
 
 ## 行为约束
 
-- 执行器返回作业身份后进入 WAITING，完成事件唤醒反思；文件等待监听项目根及最多三个路径的既有父目录，优先验收路径，再按 observe_paths 顺序，空余位置监听 `.lin/experiments`。监听不递归；订阅后回读一次关闭事件间隙，等待期间不周期调用模型。
-- 单服务最多 4 个活跃自主任务与 4 个作业，计划每次最多 8 步并顺序执行。每次计划/反思 120 秒超时，作业总时限 30 分钟；输出保留最后 65536 字符，观察与单次写入文件限制 64 KiB。
-- 默认预算 20 轮；用完后暂停。继续时将上限提升至至少当前轮次加 20。成功完成实验后先反思，再根据同一目标规划；只有完成决定通过实测验收才结束。
+- 执行器返回作业身份后进入 WAITING，完成事件唤醒反思；文件等待监听项目根及最多三个路径的既有父目录，优先长期验收路径、节点验收路径，再按 observe_paths 顺序，空余位置监听 `.lin/experiments`。监听不递归；订阅后回读一次关闭事件间隙，等待期间不周期调用模型。
+- 单服务最多 4 个活跃自主任务与 4 个作业，计划每次最多 8 步并顺序执行。每次 decide/plan/reflect 120 秒超时，作业总时限 30 分钟；输出保留最后 65536 字符，观察与单次写入文件限制 64 KiB。
+- 默认预算 20 轮；用完后暂停。继续时将轮次上限提升至至少当前轮次加 20，成本预算不增加。每轮提出最多五个任务和五个分组，只执行一个节点后重新观察。同一观测文件和 Git 状态下，相同步骤不重复执行，更换验收阈值不能绕过限制；改变项目输入仍受每节点两次限制。节点通过后继续核验长期目标，只有整体实测条件通过才结束。
 - 暂停取消当前决策与作业并关闭监听。POSIX 回收命令进程组；Windows 当前仅保证直接子进程，后代进程需后续原生验证。已完成的文件写入不会回滚。
 - 检查点先于副作用保存。服务异常重启时未知作业标记 interrupted 并暂停，继续后先反思，禁止自动重放命令。正常关闭也保存暂停状态。无作业、无待授权的活动检查点可在服务恢复时继续，容量之外的任务暂停。
 - 创建没有幂等键，重复调用产生不同任务；授权按请求 ID 校验，旧请求不能复用。memory.read 映射既有 MemoryService.retrieve，memory.write 映射 add；反思将知识写为候选 episode，按 job_id 去重，不自动确认候选。
@@ -89,11 +99,14 @@ Pi 从 Lin 目录读取模型配置与认证。每次计划/反思使用临时�
 sequenceDiagram
   participant UI as 工作台
   participant R as Runtime
-  participant P as Pi 决策
+  participant D as Decision Layer
+  participant P as Pi 节点规划
   participant J as 本地作业
   UI->>R: 创建研究目标
   R->>R: observe 真实状态
-  R->>P: plan 状态和约束
+  R->>D: 当前状态、目标树和预算
+  D-->>R: 合并局部候选，规则选择一个节点
+  R->>P: plan 节点、状态和约束
   P-->>R: 可执行计划和验收条件
   R->>J: execute 授权计划
   J-->>R: job_id / running
@@ -101,6 +114,7 @@ sequenceDiagram
   J-->>R: 完成事件与实测结果
   R->>P: reflect 结果
   P-->>R: 候选知识与下一问题
+  R->>D: 实测结果更新节点状态
   R->>R: 保存记忆并 observe 下一轮
 ```
 
@@ -109,10 +123,16 @@ sequenceDiagram
 以下为契约示例；可控决策下的真实本地作业已由核心测试覆盖，真实模型输出质量需独立验收。
 
 ```json
-{"mode":"research","cwd":"/example/project","message":"核验实验 accuracy 至少 0.93","maxCycles":20}
+{"mode":"research","cwd":"/example/project","message":"核验实验 accuracy 至少 0.93","maxCycles":20,"decisionBudget":10,"decisionModel":{"provider":"local","modelId":"decision-small"}}
 ```
 
-模型 plan 示例：
+模型名为契约示例，实际需在 Lin 模型配置中存在且可用。省略 decisionModel 时沿用任务模型。Decision Layer 提案示例：
+
+```json
+{"decision":"select","reason":"先处理低成本的数据问题","mission_condition":{"kind":"metric","path":".lin/experiments/metrics.json","key":"accuracy","operator":">=","value":0.93},"candidates":[{"key":"clean","parent":"mission","objective":"核查错误标签并做对照实验","kind":"explore","confidence":0.8,"cost":0.2,"expected_gain":0.9}]}
+```
+
+Pi plan 示例（验收当前选中的节点）：
 
 ```json
 {"decision":"complete","reason":"项目结果已存在，进行实测核验","steps":[],"success_condition":{"kind":"metric","path":".lin/experiments/metrics.json","key":"accuracy","operator":">=","value":0.93}}
@@ -127,3 +147,4 @@ sequenceDiagram
 | 日期 | 版本 | 变更类型 | 内容 | 迁移说明 |
 | --- | --- | --- | --- | --- |
 | 2026-10-15 | 0.1.0 | 兼容 | 本地科研自主任务、检查点、事件、计划授权 | 既有调用无需迁移；新客户端显式选择 research |
+| 2026-10-15 | 0.1.0 | 兼容 | 目标树、决策模型、规则评分与预算 | 可选新增字段；旧任务下轮规划时建立树，未知作业恢复规则不变 |

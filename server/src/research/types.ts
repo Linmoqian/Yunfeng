@@ -9,11 +9,14 @@ export type Step = { action: "write_file"; path: string; content: string }
 export type Condition = { kind: "file_exists"; path: string }
   | { kind: "metric"; path: string; key: string; operator: ">" | ">=" | "<" | "<=" | "=="; value: number };
 export interface Plan {
-  decision: "act" | "wait" | "complete";
+  decision: "act" | "wait" | "complete" | "pause";
   reason: string;
   steps: Step[];
   success_condition?: Condition;
   observe_paths?: string[];
+  /** 由服务端决策层绑定，模型不能自行声明长期目标完成。 */
+  node_id?: string;
+  mission_complete?: boolean;
 }
 export interface Result {
   job_id: string;
@@ -29,6 +32,7 @@ export interface Learning {
 }
 /** 每个阶段只交换结构化结果，执行完成由外层事件唤醒。 */
 export interface AgentCore {
+  readonly decision?: import("./decision/types.js").DecisionState;
   observe(): Promise<State>;
   plan(state: State): Promise<Plan>;
   execute(plan: Plan): Promise<Result>;
@@ -50,5 +54,7 @@ export interface ResearchCheckpoint {
   jobId?: string;
   approvalId?: string;
   authorizedPlan?: string;
+  decision?: import("./decision/types.js").DecisionState;
+  decisionModel?: import("../task/types.js").TaskModelRef;
   permissions: { commands: { program: string; args: string[] }[]; writeRoots: string[] };
 }

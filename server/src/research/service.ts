@@ -14,6 +14,7 @@ import { JobExecutor } from "./executor.js";
 import { ResearchRuntime } from "./runtime.js";
 import { projectPath, readProjectText } from "./project.js";
 import { record, step, text } from "./validation.js";
+import { createDecision } from "./decision/engine.js";
 import type { Plan } from "./types.js";
 import type { TaskCommand, TaskModelRef, TaskState } from "../task/types.js";
 
@@ -34,6 +35,10 @@ export class ResearchService {
     if (this.closed || this.instances.size >= 4) throw new Error("自主任务容量已满，先暂停一个任务");
     const maxCycles = options.maxCycles ?? 20;
     if (!Number.isInteger(maxCycles) || Number(maxCycles) < 1 || Number(maxCycles) > 1000) throw new Error("轮次预算必须在 1 到 1000 之间");
+    const decisionBudget = options.decisionBudget ?? 10;
+    if (typeof decisionBudget !== "number" || !Number.isFinite(decisionBudget) || decisionBudget <= 0 || decisionBudget > 1000) throw new Error("决策成本预算必须在 0 到 1000 之间");
+    const decisionModel = options.decisionModel === undefined ? undefined : record(options.decisionModel);
+    const strategyModel = decisionModel ? { provider: text(decisionModel.provider, 200), modelId: text(decisionModel.modelId, 200) } : undefined;
     const permissions = options.permissions === undefined ? {} : record(options.permissions);
     const commands = permissions.commands ?? [];
     const roots = permissions.writeRoots ?? [".lin/experiments"];
@@ -48,7 +53,7 @@ export class ResearchService {
     const task = this.context.store.create({ cwd: root, sessionId: `research-${randomUUID()}`, title: goal.slice(0, 60), source: "task" });
     this.context.store.update(task.id, (s) => {
       s.mode = "research"; s.model = model; s.activeToolNames = ["observe", "plan", "execute", "reflect"];
-      s.autonomy = { schemaVersion: 1, goal, phase: "OBSERVING", cycle: 0, maxCycles: Number(maxCycles), reason: "开始观察项目", permissions: { commands: parsedCommands, writeRoots } };
+      s.autonomy = { schemaVersion: 1, goal, phase: "OBSERVING", cycle: 0, maxCycles: Number(maxCycles), reason: "开始观察项目", permissions: { commands: parsedCommands, writeRoots }, decision: createDecision(goal, decisionBudget), ...(strategyModel ? { decisionModel: strategyModel } : {}) };
     });
     await this.message(task.id, goal, "user");
     this.start(task.id);
@@ -64,7 +69,7 @@ export class ResearchService {
     const task = this.context.store.get(id)!;
     const controller = new AbortController();
     let runtime: ResearchRuntime;
-    const core = new ProjectCore(() => this.context.store.get(id)!, this.reasoner(task.cwd, task.model), this.memory, this.jobs, controller.signal, (result) => runtime.receive(result));
+    const core = new ProjectCore(() => this.context.store.get(id)!, this.reasoner(task.cwd, task.model), this.memory, this.jobs, controller.signal, (result) => runtime.receive(result), this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model));
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {
@@ -101,7 +106,7 @@ export class ResearchService {
     item.watchers.splice(0).forEach((watcher) => watcher.close());
     const state = task.autonomy;
     if (state.phase !== "WAITING" || state.jobId || state.approvalId) return;
-    const paths = [...new Set([...(state.plan?.success_condition ? [state.plan.success_condition.path] : []), ...(state.plan?.observe_paths ?? []), ".lin/experiments"])].slice(0, 3);
+    const paths = [...new Set([...(state.decision?.mission.condition ? [state.decision.mission.condition.path] : []), ...(state.plan?.success_condition ? [state.plan.success_condition.path] : []), ...(state.plan?.observe_paths ?? []), ".lin/experiments"])].slice(0, 3);
     const targets = new Set([task.cwd]);
     for (const path of paths) {
       try {

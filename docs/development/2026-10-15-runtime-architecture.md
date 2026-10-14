@@ -38,7 +38,7 @@ Agent 目录优先级为 `YUNFENG_AGENT_DIR` > `LIN_CODING_AGENT_DIR` > `<YUNFEN
 - `server-rpc/` 是另一条 Pi 子进程实验链，不属于当前桌面启动路径，也未承诺与 Lin 目录隔离规则相同。
 - `yunfeng-cli/` 当前是 TUI/CLI 组件演示，普通消息使用模拟回复。
 - `yunfeng-mobile/` 是历史原型；移动开发入口为 `mobile-app/`。
-- 首页“科研”启动本地自主 Runtime：四阶段核心、事件等待、候选记忆与暂停恢复。执行范围由任务权限及具体计划授权控制；真实模型决策与训练质量需另行验收。详见[科研 API](../api/2026-10-15-research-runtime.md)。
+- 首页“科研”启动本地自主 Runtime：Decision Layer 维护目标树与最多五个候选窗口，用规则评分、预算和尝试上限选择一个节点；Pi 负责该节点的计划与反思，工具执行后将实测反馈交回决策层。Runtime 管理四阶段核心、事件等待、候选记忆与暂停恢复。模型提案不具备工具或聊天会话；可通过 decisionModel 指定小模型。执行范围由任务权限及具体计划授权控制，节点通过后仍需核验长期目标；真实模型决策与训练质量需另行验收。详见[科研 API](../api/2026-10-15-research-runtime.md)与[决策层模块](../../server/src/research/decision/README.md)。
 - 本地协作 SQLite 已接入，不能据此声称跨设备同步已经完成。
 
 ## 维护入口

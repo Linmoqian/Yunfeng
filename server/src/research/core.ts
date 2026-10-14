@@ -1,15 +1,18 @@
-/* 四阶段核心：事实观察、Pi 决策、受控作业、候选知识沉淀。
+/* 四阶段核心：真实观察、目标树选点与 Pi 规划、受控作业、候选知识沉淀。
  * Created on 2026-10-15
  * @author: https://github.com/Linmoqian
  */
 import type { TaskState } from "../task/types.js";
 import type { MemoryService } from "../plugins/memory/service.js";
-import { projectPath, observeProject } from "./project.js";
+import { projectPath, observeProject, evaluate } from "./project.js";
 import { relative } from "node:path";
 import { parsePlan, parseLearning } from "./validation.js";
 import type { Reasoner } from "./reasoner.js";
 import type { AgentCore, Plan, Result, State } from "./types.js";
 import type { JobExecutor } from "./executor.js";
+import { createDecision, decide } from "./decision/engine.js";
+import { parseProposal } from "./decision/proposal.js";
+import type { DecisionState } from "./decision/types.js";
 
 export async function planAuthorized(task: TaskState, plan: Plan): Promise<boolean> {
   const config = task.autonomy!;
@@ -25,12 +28,15 @@ export async function planAuthorized(task: TaskState, plan: Plan): Promise<boole
 }
 
 export class ProjectCore implements AgentCore {
+  decision?: DecisionState;
   constructor(private readonly task: () => TaskState, private readonly reason: Reasoner, private readonly memory: MemoryService,
-    private readonly jobs: JobExecutor, private readonly signal: AbortSignal, private readonly completed: (result: Result) => Promise<void>) {}
+    private readonly jobs: JobExecutor, private readonly signal: AbortSignal, private readonly completed: (result: Result) => Promise<void>,
+    private readonly strategy: Reasoner = reason) {}
   async observe(): Promise<State> {
     const task = this.task();
     const plan = task.autonomy?.plan;
-    const paths = [...(plan?.observe_paths ?? []), ...(plan?.success_condition ? [plan.success_condition.path] : [])];
+    const mission = task.autonomy?.decision?.mission.condition;
+    const paths = [...(mission ? [mission.path] : []), ...(plan?.success_condition ? [plan.success_condition.path] : []), ...(plan?.observe_paths ?? [])];
     const result = task.autonomy?.result ?? task.autonomy?.lastResult;
     const state = await observeProject(task.cwd, paths, this.memory.retrieve({ projectKey: task.cwd, limit: 8 }), result ? [result] : []);
     state.facts.push({ key: "task.status", value: task.status, timestamp: new Date().toISOString(), source: "TaskStore" });
@@ -38,7 +44,28 @@ export class ProjectCore implements AgentCore {
   }
   async plan(state: State): Promise<Plan> {
     const task = this.task();
-    return parsePlan(await this.reason("plan", { goal: task.autonomy!.goal, state, previous: task.autonomy!.learning, permissions: task.autonomy!.permissions }, AbortSignal.any([this.signal, AbortSignal.timeout(120_000)])));
+    const checkpoint = task.autonomy!;
+    let tree = structuredClone(checkpoint.decision ?? createDecision(checkpoint.goal));
+    if (tree.mission.objective !== checkpoint.goal) {
+      const budget = tree.budget;
+      tree = createDecision(checkpoint.goal, budget.limit); tree.budget.spent = budget.spent;
+    }
+    this.decision = tree;
+    const complete = (): Plan => {
+      tree.horizon = []; delete tree.selectedId; tree.reason = "长期目标实测验收已通过";
+      return { decision: "complete", reason: tree.reason, steps: [], success_condition: tree.mission.condition!, mission_complete: true };
+    };
+    if (tree.mission.condition && (await evaluate(task.cwd, tree.mission.condition)).passed) return complete();
+    const proposal = parseProposal(await this.strategy("decide", { goal: checkpoint.goal, state, tree, previous: checkpoint.learning }, AbortSignal.any([this.signal, AbortSignal.timeout(120_000)])));
+    if (proposal.mission_condition) await projectPath(task.cwd, proposal.mission_condition.path);
+    for (const path of proposal.observe_paths) await projectPath(task.cwd, path);
+    tree = decide(tree, proposal); this.decision = tree;
+    if (tree.mission.condition && (await evaluate(task.cwd, tree.mission.condition)).passed) return complete();
+    if (proposal.decision === "wait") return { decision: "wait", reason: proposal.reason, steps: [], observe_paths: [...(tree.mission.condition ? [tree.mission.condition.path] : []), ...proposal.observe_paths].slice(0, 8) };
+    if (proposal.decision !== "select" || !tree.selectedId || !tree.mission.condition) return { decision: "pause", reason: !tree.mission.condition ? `需要工程师明确长期目标的实测验收条件：${proposal.reason}` : proposal.decision === "complete" ? "决策模型声明完成，但长期目标实测验收未通过" : tree.reason, steps: [] };
+    const node = tree.nodes.find((n) => n.id === tree.selectedId)!;
+    const plan = parsePlan(await this.reason("plan", { goal: node.objective, mission: tree.mission, node, state, previous: checkpoint.learning, permissions: checkpoint.permissions }, AbortSignal.any([this.signal, AbortSignal.timeout(120_000)])));
+    return { ...plan, node_id: node.id };
   }
   async execute(plan: Plan): Promise<Result> {
     const task = this.task();

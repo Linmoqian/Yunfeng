@@ -8,6 +8,19 @@ export interface TaskModelRef {
   modelId: string;
 }
 
+export type ResearchCondition = { kind: "file_exists"; path: string }
+  | { kind: "metric"; path: string; key: string; operator: ">" | ">=" | "<" | "<=" | "=="; value: number };
+export interface ResearchDecisionState {
+  mission: { id: "mission"; objective: string; condition?: ResearchCondition };
+  nodes: { id: string; parent: string; objective: string; kind: "group" | "explore" | "execute";
+    priority: number; confidence: number; cost: number; expected_gain: number;
+    status: "pending" | "running" | "succeeded" | "failed" | "blocked"; attempts: number }[];
+  horizon: string[];
+  selectedId?: string;
+  budget: { limit: number; spent: number };
+  reason: string;
+}
+
 export interface TaskState {
   schemaVersion: number;
   id: string;
@@ -19,6 +32,8 @@ export interface TaskState {
   autonomy?: {
     phase: "OBSERVING" | "PLANNING" | "EXECUTING" | "WAITING" | "REFLECTING" | "PAUSED" | "COMPLETED" | "FAILED";
     goal: string; reason: string; cycle: number; maxCycles: number; jobId?: string; approvalId?: string;
+    decision?: ResearchDecisionState;
+    decisionModel?: TaskModelRef;
   };
   status: "running" | "waiting_input" | "waiting_approval" | "failed" | "completed" | "archived";
   phase: "understanding" | "planning" | "implementing" | "verifying" | "committing" | "done" | "unknown";
@@ -236,7 +251,7 @@ export async function createTask(
 export async function createConversation(
   model?: ModelSelection | null,
   message?: string,
-  options?: { mode: "development" | "research"; cwd?: string },
+  options?: { mode: "development" | "research"; cwd?: string; decisionModel?: TaskModelRef; decisionBudget?: number },
 ): Promise<{ task: TaskState; sessionId: string }> {
   return createTaskRequest({ model, message, ...options });
 }
@@ -246,11 +261,15 @@ async function createTaskRequest({
   message,
   model,
   mode,
+  decisionModel,
+  decisionBudget,
 }: {
   cwd?: string;
   message?: string;
   model?: ModelSelection | null;
   mode?: "development" | "research";
+  decisionModel?: TaskModelRef;
+  decisionBudget?: number;
 }): Promise<{ task: TaskState; sessionId: string }> {
   const response = await fetch("/api/tasks", {
     method: "POST",
@@ -260,6 +279,8 @@ async function createTaskRequest({
       ...(mode ? { mode } : {}),
       ...(message ? { message } : {}),
       ...(model ? { model: { provider: model.provider, modelId: model.modelId } } : {}),
+      ...(decisionModel ? { decisionModel } : {}),
+      ...(decisionBudget === undefined ? {} : { decisionBudget }),
     }),
   });
   const data = await readJson<{ task: TaskState; sessionId: string }>(response);

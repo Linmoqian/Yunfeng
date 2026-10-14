@@ -22,7 +22,7 @@ export function step(value: unknown): Step {
   }
   throw new Error("计划只支持受控文件写入和无 shell 的命令执行");
 }
-function condition(value: unknown): Condition {
+export function condition(value: unknown): Condition {
   const item = record(value);
   const path = text(item.path, 500);
   if (item.kind === "file_exists") return { kind: "file_exists", path };

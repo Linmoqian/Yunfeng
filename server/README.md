@@ -1,6 +1,6 @@
 # Yunfeng Server
 
-本地 HTTP/SSE 服务负责管理任务、项目和会话。开发 Agent 由 Pi SDK 组装；科研模式使用四阶段核心与外层事件 Runtime，Pi 在无工具的临时会话中提供计划与反思。科研记录和检查点复用 TaskStore，候选学习复用 MemoryStore。
+本地 HTTP/SSE 服务负责管理任务、项目和会话。开发 Agent 由 Pi SDK 组装；科研模式使用四阶段核心与外层事件 Runtime，决策模型提出局部候选，规则维护目标树、排序与预算，再由 Pi 在无工具的临时会话中提供节点计划与反思。科研记录和检查点复用 TaskStore，候选学习复用 MemoryStore。
 
 ## 独立 Lin 配置
 

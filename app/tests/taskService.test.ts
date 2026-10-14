@@ -14,8 +14,9 @@ test("科研任务携带模式和项目目录走现有创建接口", async (cont
     payload = JSON.parse(String(init?.body));
     return new Response(JSON.stringify({ task: { id: "research" }, sessionId: "research-runtime" }), { status: 200 });
   }) as typeof fetch;
-  await createConversation(null, "验证实验结果", { mode: "research", cwd: "/example/project" });
-  assert.deepEqual(payload, { message: "验证实验结果", mode: "research", cwd: "/example/project" });
+  const decisionModel = { provider: "local", modelId: "decision-small" };
+  await createConversation(null, "验证实验结果", { mode: "research", cwd: "/example/project", decisionModel, decisionBudget: 2 });
+  assert.deepEqual(payload, { message: "验证实验结果", mode: "research", cwd: "/example/project", decisionModel, decisionBudget: 2 });
 });
 
 test("createConversation 不要求目录或首条消息", async (context) => {
