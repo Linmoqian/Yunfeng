@@ -5,6 +5,7 @@
 
 mod collaboration;
 mod desktop_window;
+mod terminal;
 mod tray;
 
 use std::{
@@ -759,6 +760,7 @@ fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    app.manage(terminal::Runtime::default());
     app.manage(collaboration::Runtime::new(
         app.path()
             .app_data_dir()?
@@ -793,6 +795,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            terminal::terminal_action,
             collaboration::collaboration_action,
             start_server,
             stop_server,
@@ -821,6 +824,7 @@ pub fn run() {
                 }
             }
             if let RunEvent::Exit = event {
+                app.state::<terminal::Runtime>().stop_all();
                 let server = app.state::<ServerState>();
                 stop_service(&server.inner);
                 let gateway = app.state::<GatewayState>();

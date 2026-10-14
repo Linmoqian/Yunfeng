@@ -1,0 +1,25 @@
+/* 终端表面与标签：浅白画布、淡紫选中态和圆角。
+ * Created on 2026-10-14
+ * @author: https://github.com/Linmoqian
+ */
+.panel { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; height: 100%; background: var(--yf-bg-canvas); border-radius: var(--yf-radius-md); overflow: hidden; }
+.tabs { display: flex; align-items: center; flex-shrink: 0; gap: 4px; padding: 6px; overflow: auto; border-bottom: 1px solid var(--yf-border-divider); }
+.tab { display: flex; flex-shrink: 0; align-items: center; border-radius: var(--yf-radius-sm); }
+.tab[data-active="true"] { background: color-mix(in srgb, var(--yf-brand-primary) 12%, var(--yf-bg-canvas)); }
+.tab button { display: flex; align-items: center; gap: 5px; border: 0; padding: 6px; background: transparent; color: var(--yf-text-secondary); font-size: 11px; white-space: nowrap; cursor: pointer; }
+.tab[data-active="true"] button { color: var(--yf-brand-primary); }
+.tab button:active { transform: scale(.97); }
+.tab button:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: -2px; border-radius: var(--yf-radius-sm); }
+.view { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+.view[hidden] { display: none; }
+.toolbar { display: flex; align-items: center; padding: 4px 6px; flex-shrink: 0; }
+.toolbar > span { margin-right: auto; font-size: 11px; color: var(--yf-text-secondary); }
+.viewport { flex: 1; min-height: 120px; min-width: 0; padding: 8px; overflow: hidden; }
+.viewport :global(.xterm) { height: 100%; }
+.viewport :global(.xterm-viewport) { scrollbar-width: none; }
+.viewport :global(.xterm-viewport::-webkit-scrollbar) { display: none; }
+.empty { display: flex; flex: 1; flex-direction: column; gap: 12px; justify-content: center; align-items: center; padding: 24px 12px; color: var(--yf-text-secondary); font-size: 12px; text-align: center; }
+.empty p { margin: 0; }
+.empty svg { color: var(--yf-brand-primary); }
+.empty small { font-size: 11px; }
+.error { margin: 6px 10px; color: var(--yf-semantic-error); font-size: 12px; overflow-wrap: anywhere; }

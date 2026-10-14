@@ -4,11 +4,12 @@
  */
 import { Button, Input, Segmented } from "antd";
 import { Activity, FolderOpen, MonitorSmartphone } from "lucide-react";
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { WORKBENCH_TOOLS } from "../workbenchTools";
 import styles from "./UtilityPanels.module.css";
 import shell from "./WorkspaceShell.module.css";
 
+const TerminalPanel = lazy(() => import("./TerminalPanel").then((module) => ({ default: module.TerminalPanel })));
 export function WorkspaceUtility({ id, title }: { id: string; title: string }) {
   const [files, setFiles] = useState<{ name: string; size: number }[]>([]);
   const [view, setView] = useState("文件");
@@ -18,6 +19,7 @@ export function WorkspaceUtility({ id, title }: { id: string; title: string }) {
   const [body, setBody] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const tool = WORKBENCH_TOOLS.find((item) => id === `tool-${item.id}`);
+  if (id === "tool-terminal") return <Suspense fallback={<p role="status">正在加载终端…</p>}><TerminalPanel /></Suspense>;
   return <section className={styles.resourceStage} aria-label={title}>
     <header className={styles.sectionTitle}><h1>{title}</h1><span>前端交互预览</span></header>
     {(id === "resources" || id === "workbench-files" || tool?.id === "resources") && <>
