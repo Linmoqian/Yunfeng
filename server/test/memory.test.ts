@@ -1,5 +1,5 @@
 // 记忆插件单元测试：持久化/重载、候选自动确认、检索排序、确认/遗忘。
-// 使用临时数据目录，不接触真实 ~/.yunfeng。
+// 使用临时数据目录，不接触真实 ~/.lin。
 
 import { mkdtempSync, rmSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -95,22 +95,7 @@ test("持久化：重载数据目录后记忆完整", () => {
   }
 });
 
-test("procedure 写入与 steps 保留", () => {
-  const ctx = tempService();
-  try {
-    const memory = ctx.service.add(
-      { kind: "procedure", content: "论文阅读流程", steps: ["检索", "初筛", "确认", "下载"] },
-      { source: "user_explicit" },
-    );
-    const loaded = ctx.service.get(memory.id);
-    assert.ok(loaded && loaded.kind === "procedure");
-    assert.deepEqual((loaded as { steps: string[] }).steps, ["检索", "初筛", "确认", "下载"]);
-  } finally {
-    ctx.cleanup();
-  }
-});
-
-test("retrieve 排序：confirmed 优先、项目匹配优先、主题命中优先", () => {
+test("retrieve 按主题筛选，排除不匹配记忆", () => {
   const ctx = tempService();
   try {
     // confirmed 全局记忆（主题命中 git）

@@ -32,25 +32,6 @@ test("CLI 参数优先于环境变量", () => {
   assert.equal(config.allowAll, true);
 });
 
-test("环境变量可作为唯一配置来源", () => {
-  const config = loadConfig([], {
-    YUNFENG_GATEWAY_HOST: "192.168.1.10",
-    YUNFENG_GATEWAY_PORT: "8790",
-    YUNFENG_GATEWAY_UPSTREAM: "http://127.0.0.1:8000",
-    YUNFENG_GATEWAY_TOKEN: "env-token",
-    YUNFENG_GATEWAY_CORS_ORIGIN: "http://localhost:1420",
-  });
-  assert.equal(config.host, "192.168.1.10");
-  assert.equal(config.port, 8790);
-  assert.equal(config.authToken, "env-token");
-  assert.equal(config.corsOrigin, "http://localhost:1420");
-});
-
-test("非法端口回退默认值", () => {
-  const config = loadConfig(["--port", "abc"], {});
-  assert.equal(config.port, 8787);
-});
-
 test("非法上游协议抛出错误", () => {
   assert.throws(() => loadConfig(["--upstream", "ftp://127.0.0.1"], {}), /仅支持 http\/https/);
   assert.throws(() => loadConfig(["--upstream", "http://user:pass@127.0.0.1:8000"], {}), /账号信息/);

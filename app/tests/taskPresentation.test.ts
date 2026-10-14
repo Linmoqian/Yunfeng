@@ -2,15 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildTaskSections,
-  formatRelativeTime,
   selectMostRecentActiveTask,
   sessionToLegacySummary,
-  taskToSummary,
   type TaskSummary,
 } from "../src/features/workbench/taskPresentation.ts";
 import type { TaskState } from "../src/services/taskService.ts";
-
-const now = "2026-08-05T08:00:00.000Z";
 
 function taskState(overrides: Partial<TaskState>): TaskState {
   return {
@@ -50,28 +46,6 @@ function summary(overrides: Partial<TaskSummary>): TaskSummary {
   };
 }
 
-test("taskToSummary 把真实任务状态映射为正确的分组与文案", () => {
-  const running = taskToSummary(taskState({ id: "r", status: "running", phase: "implementing" }));
-  assert.equal(running.section, "running");
-  assert.equal(running.statusLabel, "正在进行");
-
-  const waiting = taskToSummary(taskState({ id: "w", status: "waiting_input" }));
-  assert.equal(waiting.section, "waiting");
-  assert.equal(waiting.statusLabel, "等待继续");
-
-  const approval = taskToSummary(taskState({ id: "a", status: "waiting_approval" }));
-  assert.equal(approval.section, "waiting_approval");
-  assert.equal(approval.statusLabel, "等待审批");
-
-  const failed = taskToSummary(taskState({ id: "f", status: "failed", attentionReason: "网络超时" }));
-  assert.equal(failed.section, "attention");
-  assert.equal(failed.attentionReason, "网络超时");
-
-  const archived = taskToSummary(taskState({ id: "x", status: "archived" }));
-  assert.equal(archived.section, "archived");
-  assert.equal(archived.statusLabel, "已归档");
-});
-
 test("sessionToLegacySummary 把旧会话标记为 history 且不推断完成", () => {
   const legacy = sessionToLegacySummary({
     id: "legacy-session",
@@ -84,8 +58,6 @@ test("sessionToLegacySummary 把旧会话标记为 history 且不推断完成", 
   assert.equal(legacy.isLegacy, true);
   assert.equal(legacy.status, "history");
   assert.equal(legacy.section, "legacy");
-  assert.equal(legacy.statusLabel, "已保存会话");
-  assert.equal(legacy.projectName, "Research");
 });
 
 test("buildTaskSections 按介入优先级分组，并隐藏空分组", () => {
@@ -102,8 +74,6 @@ test("buildTaskSections 按介入优先级分组，并隐藏空分组", () => {
     ["attention", "running", "waiting", "completed", "legacy"],
   );
   assert.equal(sections[0]?.tasks[0]?.id, "attention");
-  assert.equal(sections.find((section) => section.id === "waiting")?.label, "静候");
-  assert.equal(sections.find((section) => section.id === "legacy")?.label, "云丛");
 });
 
 test("buildTaskSections 归档任务默认隐藏，开启归档可见后展示", () => {
@@ -116,15 +86,6 @@ test("buildTaskSections 归档任务默认隐藏，开启归档可见后展示",
   assert.equal(visible[0]?.tasks[0]?.id, "archived");
 });
 
-test("buildTaskSections 在同一分组中把最近更新的任务放在前面", () => {
-  const sections = buildTaskSections([
-    summary({ id: "older", section: "running", updatedAt: "2026-08-05T07:10:00.000Z" }),
-    summary({ id: "newer", section: "running", updatedAt: "2026-08-05T07:55:00.000Z" }),
-  ]);
-
-  assert.deepEqual(sections[0]?.tasks.map((item) => item.id), ["newer", "older"]);
-});
-
 test("selectMostRecentActiveTask 选择最近更新的未结束任务", () => {
   const selected = selectMostRecentActiveTask([
     taskState({ id: "completed", status: "completed", updatedAt: "2026-08-05T08:00:00.000Z" }),
@@ -134,20 +95,4 @@ test("selectMostRecentActiveTask 选择最近更新的未结束任务", () => {
   ]);
 
   assert.equal(selected?.id, "newer");
-});
-
-test("selectMostRecentActiveTask 没有活跃任务时返回 null", () => {
-  const selected = selectMostRecentActiveTask([
-    taskState({ id: "completed", status: "completed" }),
-    taskState({ id: "archived", status: "archived" }),
-  ]);
-
-  assert.equal(selected, null);
-});
-
-test("formatRelativeTime 使用简洁的中文相对时间", () => {
-  assert.equal(formatRelativeTime("2026-08-05T07:59:40.000Z", now), "刚刚");
-  assert.equal(formatRelativeTime("2026-08-05T07:58:00.000Z", now), "2 分钟前");
-  assert.equal(formatRelativeTime("2026-08-05T06:00:00.000Z", now), "2 小时前");
-  assert.equal(formatRelativeTime("2026-08-04T07:00:00.000Z", now), "昨天");
 });

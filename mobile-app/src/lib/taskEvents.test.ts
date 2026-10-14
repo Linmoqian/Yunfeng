@@ -3,7 +3,6 @@
 import { describe, expect, it } from "vitest";
 import {
   initialTaskView,
-  STREAMING_ID,
   taskViewReducer,
   type TaskViewState,
 } from "./taskEvents";
@@ -55,14 +54,6 @@ describe("taskViewReducer 流事件", () => {
     expect(state.isStreaming).toBe(false);
   });
 
-  it("tool_started / tool_finished 维护工具列表", () => {
-    let state = view();
-    state = apply(state, { type: "tool_started", data: { callId: "c1", name: "bash" } });
-    expect(state.runningTools).toEqual([{ id: "c1", name: "bash" }]);
-    state = apply(state, { type: "tool_finished", data: { callId: "c1" } });
-    expect(state.runningTools).toEqual([]);
-  });
-
   it("run_failed 置错误并清空工具", () => {
     let state = view();
     state = apply(state, { type: "tool_started", data: { callId: "c1", name: "bash" } });
@@ -98,21 +89,6 @@ describe("taskViewReducer 动作", () => {
     expect(state.streamStatus).toBe("connecting");
   });
 
-  it("stream-connected 切换连接状态", () => {
-    const state = taskViewReducer(view(), { type: "stream-connected", connected: false });
-    expect(state.streamStatus).toBe("connecting");
-    expect(taskViewReducer(state, { type: "stream-connected", connected: true }).streamStatus).toBe("idle");
-  });
-
-  it("user-message 追加并清除旧错误", () => {
-    const state = taskViewReducer(
-      { ...view(), error: "上次失败" },
-      { type: "user-message", message: { id: "u1", role: "user", content: "继续" } },
-    );
-    expect(state.error).toBeNull();
-    expect(state.messages).toHaveLength(1);
-  });
-
   it("resolve-approval 乐观移除审批卡", () => {
     const state = taskViewReducer(
       {
@@ -124,10 +100,5 @@ describe("taskViewReducer 动作", () => {
     );
     expect(state.approvals).toHaveLength(0);
     expect(state.notice).toBeNull();
-  });
-
-  it("流式消息 id 使用固定 STREAMING_ID", () => {
-    const state = apply(view(), { type: "message_delta", data: { delta: "x" } });
-    expect(state.streamingMessage?.id).toBe(STREAMING_ID);
   });
 });

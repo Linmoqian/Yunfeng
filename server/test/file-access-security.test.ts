@@ -1,12 +1,25 @@
 // 文件授权安全测试：符号链接不得把读取能力带到允许根之外。
 // 平台不支持创建符号链接（如 Windows 权限受限）时，相关用例跳过。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isExistingFilePathAllowed } from "../src/file-access.js";
+import { isExistingFilePathAllowed, isFilePathAllowed, isWindowsAbsolutePath } from "../src/file-access.js";
+import { sessionPathKey } from "../src/session-path.js";
+
+test("Windows 路径规范化后仍限制在允许根内", () => {
+  assert.equal(sessionPathKey("C:\\Project\\Foo"), "c:/project/foo");
+  assert.equal(isWindowsAbsolutePath("C:\\foo"), true);
+  assert.equal(isWindowsAbsolutePath("\\\\server\\share"), true);
+  assert.equal(isWindowsAbsolutePath("/home/user"), false);
+  const roots = new Set(["c:/project/yunfeng"]);
+  assert.equal(isFilePathAllowed("C:\\project\\Yunfeng\\server", roots), true);
+  assert.equal(isFilePathAllowed("C:\\project\\yunfeng-other", roots), false);
+});
 
 function tempRoot(prefix: string): string {
   return mkdtempSync(path.join(tmpdir(), prefix));

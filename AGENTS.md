@@ -47,6 +47,7 @@ npm create tauri-app@latest
     - 后端重启后，前端必须能恢复 IPC 调用、订阅和必要状态
 
 - 前端自动化测试使用 Vitest、React Testing Library、`@testing-library/user-event`、`@testing-library/jest-dom` 和 jsdom，不使用 Playwright
+- 测试保留核心流程、权限、持久化、异常恢复和关键回归，不追求全量覆盖；简单默认值、文案和透传实现不逐项测试，同一路径避免重复验证
 
 - 代码注释遵循 [详细规范](docs/development/code-comments.md)：
 

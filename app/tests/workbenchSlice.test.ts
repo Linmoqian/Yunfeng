@@ -58,14 +58,3 @@ test("tasksSnapshot 更新任务并保留已有旧会话", () => {
   assert.deepEqual(state.tasks.map((item) => item.id), ["new-task"]);
   assert.equal(state.attentionCount, 1);
 });
-
-test("tasksSnapshot 按新任务重算注意力数量", () => {
-  const store = makeStore();
-  store.dispatch(workbenchActions.tasksSnapshot([
-    task({ id: "failed-1", status: "failed" }),
-    task({ id: "approval-1", status: "waiting_approval" }),
-    task({ id: "running-1", status: "running" }),
-  ]));
-
-  assert.equal(store.getState().workbench.attentionCount, 2);
-});

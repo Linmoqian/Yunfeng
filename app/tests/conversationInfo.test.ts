@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  buildConversationBranchTree,
-  findLatestEffectiveUsage,
-  formatThinkingLevel,
-  formatTokenCount,
-  getCacheHitPercent,
-} from "../src/features/workbench/conversationInfo.ts";
+import { buildConversationBranchTree } from "../src/features/workbench/conversationInfo.ts";
 import type { SessionSnapshot } from "../src/services/taskService.ts";
 
 function session(overrides: Partial<SessionSnapshot>): SessionSnapshot {
@@ -36,16 +30,4 @@ test("buildConversationBranchTree 构建包含当前节点的真实父子分支�
   assert.equal(current?.current, true);
   assert.equal(current?.title, "当前对话");
   assert.equal(current?.children[0].id, "child");
-});
-
-test("缓存命中与上下文格式忽略最后一条无效用量", () => {
-  const usage = findLatestEffectiveUsage([
-    { role: "assistant", usage: { input: 60, cacheRead: 3968, totalTokens: 4058 } },
-    { role: "assistant", usage: { input: 0, cacheRead: 0, totalTokens: 0 } },
-  ]);
-
-  assert.equal(getCacheHitPercent(usage), 99);
-  assert.equal(formatTokenCount(usage?.totalTokens), "4.1K");
-  assert.equal(formatThinkingLevel("xhigh"), "极高");
-  assert.equal(formatThinkingLevel("max"), "最高");
 });

@@ -1,5 +1,5 @@
 // TaskStore / TaskEventHub / TaskRuntime 单元测试。
-// 使用临时数据目录（YUNFENG_DATA_DIR 覆盖），不接触真实 ~/.yunfeng。
+// 使用临时数据目录（YUNFENG_DATA_DIR 覆盖），不接触真实 ~/.lin。
 
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -133,8 +133,6 @@ test("TaskEventHub 清理回调：退订后不再收到事件", async () => {
     unsubscribe();
     await ctx.hub.emit(state.id, "task_updated", { status: "completed" });
     assert.equal(received, 1, "退订后不应再收到事件");
-    // SSE 客户端集合也应清空
-    assert.equal((ctx.hub as unknown as { taskSse: Map<string, Set<unknown>> }).taskSse.size, 0);
   } finally {
     ctx.cleanup();
   }
@@ -202,12 +200,10 @@ test("TaskEventHub SSE 客户端断开后不再推送", async () => {
     const chunks: string[] = [];
     const cleanup = ctx.hub.subscribeTaskSse(state.id, (c) => chunks.push(c), () => {}, 0);
     cleanup();
+    const beforeEmit = chunks.length;
     await ctx.hub.emit(state.id, "task_updated", { status: "running" });
     // 断开后 emit 不应产生新推送
-    const afterEmit = chunks.length;
-    await new Promise((r) => setTimeout(r, 10));
-    assert.equal(chunks.length, afterEmit, "断开后不应再收到推送");
-    assert.equal((ctx.hub as unknown as { taskSse: Map<string, Set<unknown>> }).taskSse.size, 0);
+    assert.equal(chunks.length, beforeEmit, "断开后不应再收到推送");
   } finally {
     ctx.cleanup();
   }

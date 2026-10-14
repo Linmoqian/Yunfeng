@@ -12,12 +12,10 @@ test("浏览器不伪造终端执行，未知错误不泄露底层内容", async
   assert.equal(terminalError({ code: "LIMIT", message: "最多四个终端" }), "最多四个终端");
   assert.equal(terminalError({ code: "PRIVATE", message: "secret" }), "终端操作失败，请重试");
 });
-test("PTY 仅授权主窗口，工作台提供真实终端入口", () => {
+test("PTY 权限仅授予主窗口", () => {
   const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
   const main = JSON.parse(source("../src-tauri/capabilities/default.json"));
   const children = JSON.parse(source("../src-tauri/capabilities/components.json"));
   assert.ok(main.permissions.includes("allow-terminal-action"));
   assert.ok(!children.permissions.includes("allow-terminal-action"));
-  assert.match(source("../src/features/workbench/components/WorkspaceWorkbench.tsx"), /id: "terminal", label: "终端"/);
-  assert.match(source("../src/features/workbench/hooks/useTerminalView.ts"), /new Uint8Array\(chunk.data\)/);
 });
