@@ -4,9 +4,9 @@
  */
 .document { display: flex; flex-direction: column; min-width: 0; gap: 16px; overflow: auto; padding: 20px; height: 100%; box-sizing: border-box; color: var(--yf-text-primary); container-type: inline-size; }
 .sidebar { display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: auto; min-width: 0; color: var(--yf-text-primary); }
-.sidebar h3 { display: flex; align-items: center; gap: 8px; margin-top: 0; font-size: 14px; }
-.sidebar p { color: var(--yf-text-secondary); font-size: 12px; line-height: 1.8; }
-.referenceForm { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.sidebar h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
+.sidebar p { margin: 0; color: var(--yf-text-secondary); font-size: 12px; line-height: 1.8; }
+.referenceForm { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .referenceForm label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
 .toolbar, .actions, .status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .toolbar { justify-content: space-between; }
@@ -17,6 +17,10 @@
 .canvas h3 { margin-top: 0; font-size: 17px; }
 .canvas p { color: var(--yf-text-secondary); font-size: 13px; line-height: 1.8; }
 .canvas textarea { font-family: var(--yf-font-mono, monospace); line-height: 1.8; }
+.editor { display: flex; flex: 1 0 240px; min-height: 240px; padding: 16px; }
+.editor > label { flex: 1; min-width: 0; min-height: 0; }
+.editor textarea { flex: 1; min-height: 0; resize: none; }
+.document > :not(.editor) { flex-shrink: 0; }
 .outline { padding: 0; list-style-position: inside; }
 .outline li { padding-block: 10px; border-bottom: 1px solid var(--yf-border-divider); font-size: 13px; }
 .outline li::marker { color: var(--yf-brand-primary); }
@@ -30,7 +34,10 @@
 .preview td, .preview th { padding: 8px; border: 1px solid var(--yf-border-divider); }
 .status { justify-content: space-between; color: var(--yf-text-secondary); font-size: 11px; }
 .error { color: var(--yf-text-primary); font-size: 12px; }
-.figure { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); overflow-wrap: anywhere; }
+.figure { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); overflow-wrap: anywhere; }
+.figure > * { min-width: 0; max-width: 100%; }
+.figure > input, .figure > button { width: 100%; }
+.figure > img { width: 100%; }
 .figure img, .preview img { max-width: 100%; max-height: 420px; object-fit: contain; border-radius: var(--yf-radius-md); }
 .figure small { color: var(--yf-text-secondary); }
 @container (max-width: 380px) { .canvas { padding: 14px; } .actions { width: 100%; } }
