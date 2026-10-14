@@ -4,7 +4,8 @@
  */
 import type { TaskState } from "../task/types.js";
 import type { MemoryService } from "../plugins/memory/service.js";
-import { projectPath, observeProject, evaluate } from "./project.js";
+import { projectPath, evaluate } from "./project.js";
+import { buildContext } from "./context.js";
 import { relative } from "node:path";
 import { parsePlan, parseLearning } from "./validation.js";
 import type { Reasoner } from "./reasoner.js";
@@ -34,13 +35,7 @@ export class ProjectCore implements AgentCore {
     private readonly strategy: Reasoner = reason) {}
   async observe(): Promise<State> {
     const task = this.task();
-    const plan = task.autonomy?.plan;
-    const mission = task.autonomy?.decision?.mission.condition;
-    const paths = [...(mission ? [mission.path] : []), ...(plan?.success_condition ? [plan.success_condition.path] : []), ...(plan?.observe_paths ?? [])];
-    const result = task.autonomy?.result ?? task.autonomy?.lastResult;
-    const state = await observeProject(task.cwd, paths, this.memory.retrieve({ projectKey: task.cwd, limit: 8 }), result ? [result] : []);
-    state.facts.push({ key: "task.status", value: task.status, timestamp: new Date().toISOString(), source: "TaskStore" });
-    return state;
+    return buildContext(task, this.memory.retrieve({ projectKey: task.cwd, limit: 8 }));
   }
   async plan(state: State): Promise<Plan> {
     const task = this.task();

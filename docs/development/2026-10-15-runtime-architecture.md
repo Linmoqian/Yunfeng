@@ -43,6 +43,8 @@ Agent 目录优先级为 `YUNFENG_AGENT_DIR` > `LIN_CODING_AGENT_DIR` > `<YUNFEN
 
 ## 维护入口
 
+科研常驻调度由 [Hook 层](../../server/src/research/hooks/README.md) 接收本地事件，合并后经 Context Builder 重读事实，再交给 Decision Layer 和 Pi。作业、模型规划和授权等待期间事件排队，单元释放后处理；文件通知只有实际内容改变才进入模型。当前接入生命周期、文件、授权和本地作业，机器人与远程平台适配器尚未接入。
+
 前端科研卡片独立封装，`TaskFocusPanel` 与 `useTaskStream` 暂保留既有会话编排，文件分别略超 250 行和约 330 行，以限制本次对普通会话的改动范围；后续流协议调整时按快照、消息与审批职责拆分。
 
 - [Server 配置与适配规则](../../server/README.md)

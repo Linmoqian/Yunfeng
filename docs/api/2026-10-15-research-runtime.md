@@ -56,6 +56,7 @@
 | autonomy.permissions | object | 是 | 同请求清单 | 当前执行范围 |
 | autonomy.decision | object | 新任务是；旧任务规划后是 | mission、nodes、horizon、selectedId、budget、reason | 持久化目标树及决策依据 |
 | autonomy.decisionModel | object | 否 | 同请求模型 | 显式指定的决策模型 |
+| autonomy.trigger | object | 接收首个 Hook 批次后是 | receivedAt、signals，最多 32 项 | 最近触发原因；通知不能充当实测指标 |
 
 `observation` 完整事实保存在服务端检查点，不通过任务摘要返回。作业 status 为 running / succeeded / failed / cancelled / interrupted。验收引用项目普通文件，或 JSON 有限数值字段与 `>`、`>=`、`<`、`<=`、`==` 的比较；数值字符串不算达标。
 
@@ -66,6 +67,8 @@
 模型 plan 的 complete 仅验收当前节点；服务端 Plan 可包含 node_id、mission_complete 或 pause，客户端不得通过模型输出直接设置这些字段。整个任务只在锁定的长期验收条件实测通过后结束。没有验收条件、没有候选、需要人工信息、停止探索或出现无效重复时暂停；wait 等待真实事件。补充人工目标时重新建立树，保留已用成本；普通 retry 不重置尝试次数、预算或验收条件。
 
 科研 conversation 返回 `{context:{messages,entryIds}}`，内容来自已有任务事件；SSE 的 `message_completed` 带 `{message:{id,role,content}}`，`task_updated` 带检查点摘要。断线补发继续沿用事件 seq；客户端按消息 ID 去重。capabilities 仅列出 observe、plan、execute、reflect。
+
+`trigger.signals` 每项包含 hook、reason、event。event 有 id、occurredAt，以及 kind：lifecycle（action=started/resumed/recovered）、files_changed（最多八个项目内 paths）、job_completed（jobId、status）、approval_granted（requestId）。这些事件来自受信任的本地适配器；没有新增 HTTP 事件注入接口。Hook 筛选通知，Context Builder 重读真实状态，Decision Layer 判断是否值得行动。具体模块见 [Hook 说明](../../server/src/research/hooks/README.md)。
 
 ## 错误码
 
@@ -87,11 +90,13 @@
 
 ## 行为约束
 
-- 执行器返回作业身份后进入 WAITING，完成事件唤醒反思；文件等待监听项目根及最多三个路径的既有父目录，优先长期验收路径、节点验收路径，再按 observe_paths 顺序，空余位置监听 `.lin/experiments`。监听不递归；订阅后回读一次关闭事件间隙，等待期间不周期调用模型。
+- 执行器返回作业身份后进入 WAITING，结果先持久化再进入作业 Hook。文件 Hook 跟踪最多八个文件，优先长期验收路径、节点验收路径、observe_paths、已观察文件和 README/package.json；最多监听项目根及前三个路径的最近既有父目录，不递归。相同内容和未跟踪文件不唤醒；父目录创建事件重绑，订阅后回读一次关闭观察间隙。监听在工作和等待期间持续保留。
+- Hook 队列最多 32 项，最近 128 个通知 ID 去重，文件路径合并最多八项；文件扫描和 Hook 文件派发各有一次性 50 ms 合并窗口，无定时模型轮询。每次只运行一个决策单元，繁忙、作业运行或审批等待时保留通知。排队期间事实已被观察过时跳过模型，不消耗轮次；Decision Layer 选择 wait 时不调用 Pi 规划。
 - 单服务最多 4 个活跃自主任务与 4 个作业，计划每次最多 8 步并顺序执行。每次 decide/plan/reflect 120 秒超时，作业总时限 30 分钟；输出保留最后 65536 字符，观察与单次写入文件限制 64 KiB。
 - 默认预算 20 轮；用完后暂停。继续时将轮次上限提升至至少当前轮次加 20，成本预算不增加。每轮提出最多五个任务和五个分组，只执行一个节点后重新观察。同一观测文件和 Git 状态下，相同步骤不重复执行，更换验收阈值不能绕过限制；改变项目输入仍受每节点两次限制。节点通过后继续核验长期目标，只有整体实测条件通过才结束。
 - 暂停取消当前决策与作业并关闭监听。POSIX 回收命令进程组；Windows 当前仅保证直接子进程，后代进程需后续原生验证。已完成的文件写入不会回滚。
 - 检查点先于副作用保存。服务异常重启时未知作业标记 interrupted 并暂停，继续后先反思，禁止自动重放命令。正常关闭也保存暂停状态。无作业、无待授权的活动检查点可在服务恢复时继续，容量之外的任务暂停。
+- 最新触发批次随检查点和任务事件记录持久化；排队通知在内存中，恢复 Hook 重新读取状态，不保证离线期间的每个瞬时事件。文件 Hook 出错会暂停任务；任务状态、助手消息不会反向触发思考。审批 Hook 只继续已确认计划。
 - 创建没有幂等键，重复调用产生不同任务；授权按请求 ID 校验，旧请求不能复用。memory.read 映射既有 MemoryService.retrieve，memory.write 映射 add；反思将知识写为候选 episode，按 job_id 去重，不自动确认候选。
 - 仅实现本地项目：文件、Git、任务、基础系统内存与实验结果。GPU、传感器、issue 服务与训练平台未接入，不能推定其状态。没有新增线程池或第三方运行时依赖。
 
@@ -99,10 +104,12 @@
 sequenceDiagram
   participant UI as 工作台
   participant R as Runtime
+  participant H as Hook Layer
   participant D as Decision Layer
   participant P as Pi 节点规划
   participant J as 本地作业
-  UI->>R: 创建研究目标
+  UI->>H: 启动、继续或授权事件
+  H->>R: 合并批次，等待运行单元空闲
   R->>R: observe 真实状态
   R->>D: 当前状态、目标树和预算
   D-->>R: 合并局部候选，规则选择一个节点
@@ -111,11 +118,13 @@ sequenceDiagram
   R->>J: execute 授权计划
   J-->>R: job_id / running
   R-->>UI: WAITING
-  J-->>R: 完成事件与实测结果
+  J-->>R: 持久化实测结果
+  J-->>H: 完成事件
+  H->>R: 唤醒核验与反思
   R->>P: reflect 结果
   P-->>R: 候选知识与下一问题
   R->>D: 实测结果更新节点状态
-  R->>R: 保存记忆并 observe 下一轮
+  R->>R: 保存记忆，构建此事件的最新上下文
 ```
 
 ## 调用示例
@@ -148,3 +157,4 @@ Pi plan 示例（验收当前选中的节点）：
 | --- | --- | --- | --- | --- |
 | 2026-10-15 | 0.1.0 | 兼容 | 本地科研自主任务、检查点、事件、计划授权 | 既有调用无需迁移；新客户端显式选择 research |
 | 2026-10-15 | 0.1.0 | 兼容 | 目标树、决策模型、规则评分与预算 | 可选新增字段；旧任务下轮规划时建立树，未知作业恢复规则不变 |
+| 2026-10-15 | 0.1.0 | 兼容 | 本地 Hook 层、事件上下文、去重与背压 | 新增可选 trigger；既有 API 不变，旧检查点恢复时重新观察 |

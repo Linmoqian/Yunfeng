@@ -39,10 +39,10 @@ async function fixture(reasoner: Reasoner, missionCondition: Condition = conditi
       return { decision: "select", reason: "先核验目标", mission_condition: missionCondition, candidates: [{ key: "verify", parent: "mission", objective: "核验本地实验", kind: "execute", confidence: 0.9, cost: 0.1, expected_gain: 0.8 }] };
     };
   });
-  const phase = (expected: ResearchPhase) => new Promise<TaskState>((resolve) => {
+  const phase = (expected: ResearchPhase, minCycle = 0) => new Promise<TaskState>((resolve) => {
     const stop = context.hub.subscribeGlobal((event) => {
       const state = context.store.get(event.taskId)!;
-      if (state.autonomy?.phase === expected) { stop(); resolve(state); }
+      if (state.autonomy?.phase === expected && state.autonomy.cycle >= minCycle) { stop(); resolve(state); }
     });
   });
   return { root, cwd, context, memory, service, phase, selectedModels, close: async () => { await service.close(); await rm(root, { recursive: true, force: true }); } };
@@ -106,6 +106,47 @@ test("执行前阻断越界、链接和未授权命令，不将字符串指标�
     assert.equal((await evaluate(ctx.cwd, condition)).passed, false);
     assert.throws(() => parsePlan({ decision: "act", reason: "无验收", steps: plan.steps }), /验收/);
     assert.throws(() => parsePlan({ ...plan, steps: [{ action: "write_file", path: "large.txt", content: "中".repeat(30000) }] }), /过长/);
+  } finally { await ctx.close(); }
+});
+
+test("真实文件 Hook 交给决策层判断价值，无需行动时不调用 Pi 规划", { timeout: 10000 }, async () => {
+  let decisions = 0;
+  const contexts: { state: { facts: { key: string; value: unknown }[]; events: unknown[] } }[] = [];
+  const ctx = await fixture(async () => { throw new Error("无需行动，不应调用 Pi"); }, condition, async (_phase, data) => {
+    decisions += 1; contexts.push(data as typeof contexts[number]);
+    return { decision: "wait", reason: "文件变化没有足够行动价值", mission_condition: condition, candidates: [], observe_paths: ["README.md"] };
+  });
+  try {
+    await writeFile(join(ctx.cwd, "README.md"), "before");
+    const waiting = ctx.phase("WAITING");
+    const task = await ctx.service.create(ctx.cwd, "等待值得执行的实验", undefined, {});
+    await waiting;
+    assert.equal(decisions, 1);
+    assert.equal(task.autonomy!.trigger!.signals[0]!.hook, "lifecycle");
+    const again = ctx.phase("WAITING", 2);
+    await writeFile(join(ctx.cwd, "unrelated.tmp"), "ignored");
+    await writeFile(join(ctx.cwd, "README.md"), "before");
+    await writeFile(join(ctx.cwd, "README.md"), "after");
+    await again;
+    assert.equal(decisions, 2); assert.equal(task.autonomy!.cycle, 2);
+    assert.equal(contexts[1]!.state.facts.find((f) => f.key === "file:README.md")!.value, "after");
+    assert.ok(contexts[1]!.state.events.some((e) => (e as { hook?: string }).hook === "file"));
+    assert.equal(task.autonomy!.decision!.budget.spent, 0);
+    assert.equal(task.autonomy!.jobId, undefined);
+  } finally { await ctx.close(); }
+});
+
+test("等待目标父目录不存在时，创建目录事件重绑监听后继续验收", { timeout: 10000 }, async () => {
+  const target = { ...condition, path: "future/deep/metrics.json" };
+  const ctx = await fixture(async (phase) => phase === "reflect" ? learning : ({ decision: "wait", reason: "等待结果", steps: [], observe_paths: [target.path] }), target);
+  try {
+    const waiting = ctx.phase("WAITING");
+    await ctx.service.create(ctx.cwd, "等待未来实验指标", undefined, {});
+    await waiting;
+    const complete = ctx.phase("COMPLETED");
+    await mkdir(join(ctx.cwd, "future/deep"), { recursive: true });
+    await writeFile(join(ctx.cwd, target.path), '{"accuracy":0.934}');
+    await complete;
   } finally { await ctx.close(); }
 });
 

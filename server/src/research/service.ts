@@ -3,18 +3,19 @@
  * @author: https://github.com/Linmoqian
  */
 import { randomUUID } from "node:crypto";
-import { watch, type FSWatcher } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
-import { dirname } from "node:path";
 import { getTaskContext } from "../task/task-context.js";
 import { getMemoryContext } from "../plugins/memory/index.js";
 import { ProjectCore, planAuthorized } from "./core.js";
 import { piReasoner } from "./reasoner.js";
 import { JobExecutor } from "./executor.js";
 import { ResearchRuntime } from "./runtime.js";
-import { projectPath, readProjectText } from "./project.js";
+import { projectPath } from "./project.js";
 import { record, step, text } from "./validation.js";
 import { createDecision } from "./decision/engine.js";
+import { HookLayer } from "./hooks/layer.js";
+import { FileHooks } from "./hooks/files.js";
+import { researchEvent } from "./hooks/types.js";
 import type { Plan } from "./types.js";
 import type { TaskCommand, TaskModelRef, TaskState } from "../task/types.js";
 
@@ -25,7 +26,7 @@ export function publicResearchTask(task: TaskState) {
 export class ResearchService {
   constructor(private readonly context = getTaskContext(), private readonly memory = getMemoryContext().service, private readonly reasoner = piReasoner) {}
   private readonly jobs = new JobExecutor();
-  private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; watchers: FSWatcher[]; watchEpoch: number }>();
+  private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; hooks: HookLayer; files: FileHooks }>();
   private closed = false;
 
   async create(cwd: string, goal: string, model: TaskModelRef | undefined, options: Record<string, unknown>): Promise<TaskState> {
@@ -60,7 +61,7 @@ export class ResearchService {
     return task;
   }
 
-  private start(id: string): void {
+  private start(id: string, action: "started" | "resumed" | "recovered" = "started"): void {
     if (this.instances.has(id)) return;
     if (this.closed || this.instances.size >= 4) {
       this.context.store.update(id, (s) => { s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "等待自主任务空位后手动继续"; s.status = "waiting_input"; });
@@ -69,7 +70,13 @@ export class ResearchService {
     const task = this.context.store.get(id)!;
     const controller = new AbortController();
     let runtime: ResearchRuntime;
-    const core = new ProjectCore(() => this.context.store.get(id)!, this.reasoner(task.cwd, task.model), this.memory, this.jobs, controller.signal, (result) => runtime.receive(result), this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model));
+    const hooks = new HookLayer(() => task.autonomy!, (signals) => !runtime.busy && !task.autonomy!.approvalId && (!task.autonomy!.jobId || (!!task.autonomy!.result && signals.some((s) => s.event.kind === "job_completed" || s.event.kind === "lifecycle"))), (signals) => runtime.trigger(signals));
+    const files = new FileHooks(() => task, (event) => { hooks.publish(event); }, (error) => {
+      void this.pause(id, `项目 Hook 失效：${error.message}`).then(() => this.context.hub.emit(id, "task_updated", publicResearchTask(task))).catch((failure) => console.error("[research] Hook 停止失败", (failure as Error).message));
+    });
+    const core = new ProjectCore(() => this.context.store.get(id)!, this.reasoner(task.cwd, task.model), this.memory, this.jobs, controller.signal, async (result) => {
+      if (await runtime.receive(result)) hooks.publish(researchEvent({ kind: "job_completed", jobId: result.job_id, status: result.status }));
+    }, this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model));
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {
@@ -85,55 +92,20 @@ export class ResearchService {
       message: (value) => this.message(id, value),
       authorize: (plan) => planAuthorized(this.context.store.get(id)!, plan),
       requestApproval: (plan) => this.requestApproval(id, plan),
+      settled: () => hooks.flush(),
     });
-    this.instances.set(id, { runtime, controller, watchers: [], watchEpoch: 0 });
+    this.instances.set(id, { runtime, controller, hooks, files });
     const listener = this.context.hub.subscribeTask(id, (event) => {
-      if (event.type === "task_updated") void this.watchWaiting(id).catch((error) => console.error("[research] 文件事件订阅失败", (error as Error).message));
+      if (event.type === "task_updated") files.refresh();
       if (["COMPLETED", "FAILED", "PAUSED"].includes(task.autonomy!.phase)) {
         controller.abort();
-        this.instances.get(id)?.watchers.forEach((w) => w.close());
-        void runtime.stop().finally(() => { if (this.instances.get(id)?.runtime === runtime) this.instances.delete(id); });
+        hooks.close();
+        void Promise.all([runtime.stop(), files.close()]).finally(() => { if (this.instances.get(id)?.runtime === runtime) this.instances.delete(id); });
       }
     });
     controller.signal.addEventListener("abort", listener, { once: true });
-    runtime.wake();
-  }
-
-  private async watchWaiting(id: string): Promise<void> {
-    const item = this.instances.get(id), task = this.context.store.get(id);
-    if (!item || !task?.autonomy) return;
-    const epoch = ++item.watchEpoch;
-    item.watchers.splice(0).forEach((watcher) => watcher.close());
-    const state = task.autonomy;
-    if (state.phase !== "WAITING" || state.jobId || state.approvalId) return;
-    const paths = [...new Set([...(state.decision?.mission.condition ? [state.decision.mission.condition.path] : []), ...(state.plan?.success_condition ? [state.plan.success_condition.path] : []), ...(state.plan?.observe_paths ?? []), ".lin/experiments"])].slice(0, 3);
-    const targets = new Set([task.cwd]);
-    for (const path of paths) {
-      try {
-        let target = await projectPath(task.cwd, path);
-        while (target !== task.cwd) {
-          try { if ((await stat(target)).isDirectory()) break; } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
-          target = dirname(target);
-        }
-        targets.add(target);
-      } catch { /* 不可观察的路径依靠项目根事件。 */ }
-    }
-    if (item.watchEpoch !== epoch || item.controller.signal.aborted || task.autonomy !== state || state.phase !== "WAITING" || state.jobId || state.approvalId) return;
-    for (const target of targets) {
-      const watcher = watch(target, (_kind, filename) => {
-        if (!filename || /^(?:\.git|node_modules|\.DS_Store)$/.test(String(filename))) return;
-        if (task.autonomy?.phase === "WAITING" && !task.autonomy.jobId && !task.autonomy.approvalId) item.runtime.wake();
-      });
-      watcher.on("error", () => watcher.close()); item.watchers.push(watcher);
-    }
-    // 订阅后回读一次，封闭观察结束到监听建立之间的事件间隙；没有周期轮询。
-    const facts = state.observation?.facts.filter((f) => f.key.startsWith("file:")) ?? [];
-    for (const path of new Set([...paths, ...facts.map((f) => f.key.slice(5))])) {
-      try {
-        const value = await readProjectText(task.cwd, path);
-        if (value !== facts.find((f) => f.key === `file:${path}`)?.value && state.phase === "WAITING" && !state.jobId && !state.approvalId && !item.controller.signal.aborted) { item.runtime.wake(); return; }
-      } catch { /* 文件仍不可读时不自旋。 */ }
-    }
+    files.refresh();
+    hooks.publish(researchEvent({ kind: "lifecycle", action }));
   }
 
   private async requestApproval(id: string, plan: Plan): Promise<void> {
@@ -149,7 +121,7 @@ export class ResearchService {
     if (!task?.autonomy || task.autonomy.approvalId !== requestId || !this.context.store.listInterventions(id).some((i) => i.id === requestId && i.status === "pending")) return false;
     this.context.runtime.resolveIntervention(id, requestId, approved);
     this.context.store.update(id, (s) => { delete s.autonomy!.approvalId; if (approved) s.autonomy!.authorizedPlan = JSON.stringify(s.autonomy!.plan); });
-    if (approved) this.instances.get(id)?.runtime.wake();
+    if (approved) this.instances.get(id)?.hooks.publish(researchEvent({ kind: "approval_granted", requestId }));
     else await this.pause(id, "工程师拒绝了实验计划");
     return true;
   }
@@ -179,10 +151,12 @@ export class ResearchService {
     this.context.store.update(id, (s) => { s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = reason; s.status = "waiting_input"; delete s.autonomy!.authorizedPlan; });
     this.context.runtime.invalidateInterventionsForTask(id);
     this.context.store.update(id, (s) => { delete s.autonomy!.approvalId; });
-    item?.controller.abort(); item?.watchers.forEach((w) => w.close());
+    item?.controller.abort(); item?.hooks.close();
+    const fileStopping = item?.files.close();
     const stopping = item?.runtime.stop();
     if (task.autonomy?.jobId) await this.jobs.cancel(task.autonomy.jobId);
     await stopping;
+    await fileStopping;
     if (task.autonomy?.jobId && !task.autonomy.result) {
       this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; });
     }
@@ -192,7 +166,7 @@ export class ResearchService {
     await this.pause(id, "准备继续");
     if (this.closed || this.instances.size >= 4) throw new Error("自主任务容量已满");
     this.context.store.update(id, (s) => { s.autonomy!.phase = "OBSERVING"; s.autonomy!.maxCycles = Math.max(s.autonomy!.maxCycles, s.autonomy!.cycle + 20); });
-    this.start(id);
+    this.start(id, "resumed");
   }
   recover(): void {
     for (const task of this.context.store.findAll().filter((s) => s.mode === "research" && s.autonomy?.schemaVersion === 1)) {
@@ -201,7 +175,7 @@ export class ResearchService {
         this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; });
       } else if (state.approvalId) {
         this.context.store.update(task.id, (s) => { delete s.autonomy!.approvalId; delete s.autonomy!.authorizedPlan; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "重启后授权已失效"; });
-      } else if (!["PAUSED", "FAILED", "COMPLETED"].includes(state.phase) && task.status !== "archived") this.start(task.id);
+      } else if (!["PAUSED", "FAILED", "COMPLETED"].includes(state.phase) && task.status !== "archived") this.start(task.id, "recovered");
     }
   }
   conversation(id: string) {

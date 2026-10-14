@@ -56,5 +56,6 @@ export interface ResearchCheckpoint {
   authorizedPlan?: string;
   decision?: import("./decision/types.js").DecisionState;
   decisionModel?: import("../task/types.js").TaskModelRef;
+  trigger?: { signals: import("./hooks/types.js").HookSignal[]; receivedAt: string };
   permissions: { commands: { program: string; args: string[] }[]; writeRoots: string[] };
 }

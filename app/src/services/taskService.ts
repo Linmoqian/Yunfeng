@@ -34,6 +34,10 @@ export interface TaskState {
     goal: string; reason: string; cycle: number; maxCycles: number; jobId?: string; approvalId?: string;
     decision?: ResearchDecisionState;
     decisionModel?: TaskModelRef;
+    trigger?: { receivedAt: string; signals: { hook: string; reason: string;
+      event: { id: string; occurredAt: string } & ({ kind: "lifecycle"; action: "started" | "resumed" | "recovered" }
+        | { kind: "files_changed"; paths: string[] } | { kind: "job_completed"; jobId: string; status: "running" | "succeeded" | "failed" | "cancelled" | "interrupted" }
+        | { kind: "approval_granted"; requestId: string }) }[] };
   };
   status: "running" | "waiting_input" | "waiting_approval" | "failed" | "completed" | "archived";
   phase: "understanding" | "planning" | "implementing" | "verifying" | "committing" | "done" | "unknown";
