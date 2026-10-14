@@ -4,6 +4,7 @@
 // - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 PI_CODING_AGENT_DIR
 
 mod collaboration;
+mod component_sharing;
 mod desktop_window;
 mod terminal;
 mod tray;
@@ -761,6 +762,11 @@ fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(terminal::Runtime::default());
+    app.manage(component_sharing::Runtime::new(
+        app.path()
+            .app_data_dir()?
+            .join("paper-writing/store.sqlite3"),
+    ));
     app.manage(collaboration::Runtime::new(
         app.path()
             .app_data_dir()?
@@ -797,6 +803,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             terminal::terminal_action,
             collaboration::collaboration_action,
+            component_sharing::component_read,
+            component_sharing::component_patch,
+            component_sharing::component_window,
             start_server,
             stop_server,
             server_status,

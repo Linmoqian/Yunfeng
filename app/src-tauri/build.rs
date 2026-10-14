@@ -3,6 +3,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         tauri_build::AppManifest::new().commands(&[
             "terminal_action",
             "collaboration_action",
+            "component_read",
+            "component_patch",
+            "component_window",
             "start_server",
             "stop_server",
             "server_status",

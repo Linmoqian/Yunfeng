@@ -9,10 +9,13 @@ import { useWorkspaceLayout } from "../hooks/useWorkspaceLayout";
 import { DockPanel } from "./DockPanel";
 import styles from "./WorkspaceShell.module.css";
 
-export function WorkspaceShell({ navigation, workbench, children, team = false }: {
+export function WorkspaceShell({ navigation, workbench, children, team = false, toolPanels }: {
   navigation: ReactNode; workbench: ReactNode; children: ReactNode; team?: boolean;
+  toolPanels?: { leftTitle: string; rightTitle: string; left: ReactNode; right: ReactNode };
 }) {
   const dock = useWorkspaceLayout();
+  const leftTitle = toolPanels?.leftTitle ?? (team ? "通讯录" : "工作区");
+  const rightTitle = toolPanels?.rightTitle ?? (team ? "共享工作台" : "工作台");
   useEffect(() => {
     const reset = () => dock.reset();
     window.addEventListener("yunfeng-reset-layout", reset);
@@ -26,7 +29,7 @@ export function WorkspaceShell({ navigation, workbench, children, team = false }
         { key: "swap", label: "左右分栏互换" }, { key: "reset", label: "重置分栏布局", icon: <RotateCcw size={14} /> },
       ]} onAction={(key) => { if (key === "swap") dock.swap(); else if (key === "reset") dock.reset(); else if (key === "navigation" || key === "workbench") dock.toggle(key); }}>
         <div className={styles.body}>
-          <DockPanel panel="navigation" title={team ? "通讯录" : "工作区"} dock={dock}>{navigation}</DockPanel>
+          <DockPanel panel="navigation" title={leftTitle} dock={dock}>{toolPanels?.left ?? navigation}</DockPanel>
           <main className={styles.center} style={{ order: 1 }}>
             <div className={styles.recall}>
               <button type="button" aria-label="显示或隐藏工作区" aria-pressed={dock.layout.navigationOpen} onClick={() => dock.toggle("navigation")} title="显示或隐藏工作区"><PanelLeft size={16} /></button>
@@ -34,7 +37,7 @@ export function WorkspaceShell({ navigation, workbench, children, team = false }
             </div>
             {children}
           </main>
-          <DockPanel panel="workbench" title={team ? "共享工作台" : "工作台"} dock={dock}>{workbench}</DockPanel>
+          <DockPanel panel="workbench" title={rightTitle} dock={dock}>{toolPanels?.right ?? workbench}</DockPanel>
         </div>
       </AppContextMenu>
     </div>

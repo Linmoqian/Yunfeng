@@ -1,0 +1,33 @@
+/* 论文写作沿用 Yunfeng 浅白、淡紫与圆角 token。
+ * Created on 2026-10-14
+ * @author: https://github.com/Linmoqian
+ */
+.document { display: flex; flex-direction: column; min-width: 0; gap: 16px; overflow: auto; padding: 20px; height: 100%; box-sizing: border-box; color: var(--yf-text-primary); container-type: inline-size; }
+.sidebar { display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: auto; min-width: 0; color: var(--yf-text-primary); }
+.sidebar h3 { display: flex; align-items: center; gap: 8px; margin-top: 0; font-size: 14px; }
+.sidebar p { color: var(--yf-text-secondary); font-size: 12px; line-height: 1.8; }
+.referenceForm { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.referenceForm label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.toolbar, .actions, .status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.toolbar { justify-content: space-between; }
+.toolbar strong { display: inline-flex; align-items: center; gap: 7px; }
+.toolbar svg { color: var(--yf-brand-primary); }
+.title, .canvas > label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+.canvas { padding: 24px; min-height: 260px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-canvas); overflow-wrap: anywhere; }
+.canvas h3 { margin-top: 0; font-size: 17px; }
+.canvas p { color: var(--yf-text-secondary); font-size: 13px; line-height: 1.8; }
+.canvas textarea { font-family: var(--yf-font-mono, monospace); line-height: 1.8; }
+.outline { padding: 0; list-style-position: inside; }
+.outline li { padding-block: 10px; border-bottom: 1px solid var(--yf-border-divider); font-size: 13px; }
+.outline li::marker { color: var(--yf-brand-primary); }
+.preview { line-height: 1.8; font-size: 14px; }
+.preview h1 { font-size: 26px; }
+.preview h2 { font-size: 21px; }
+.preview h3 { font-size: 17px; }
+.preview a { color: var(--yf-brand-primary); }
+.preview pre { padding: 14px; overflow: auto; border-radius: var(--yf-radius-md); background: var(--yf-bg-surface); }
+.preview table { display: block; max-width: 100%; overflow: auto; border-collapse: collapse; }
+.preview td, .preview th { padding: 8px; border: 1px solid var(--yf-border-divider); }
+.status { justify-content: space-between; color: var(--yf-text-secondary); font-size: 11px; }
+.error { color: var(--yf-text-primary); font-size: 12px; }
+@container (max-width: 380px) { .canvas { padding: 14px; } .actions { width: 100%; } }

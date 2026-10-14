@@ -18,6 +18,10 @@ import { TeamWorkbench } from "./TeamWorkbench";
 import { WorkspaceSettings, type WorkspaceSettingsProps } from "./WorkspaceSettings";
 import { OverviewPane } from "../../../routes/workbench/components/OverviewPane";
 import shell from "./WorkspaceShell.module.css";
+import { PaperWritingContext, usePaperWriting } from "../hooks/usePaperWriting";
+import { PaperNavigation } from "./PaperNavigation";
+import { PaperMaterials } from "./PaperMaterials";
+import { PaperWriting } from "./PaperWriting";
 
 const TaskFocusPanel = lazy(() => import("../TaskFocusPanel").then((module) => ({ default: module.TaskFocusPanel })));
 const TaskboardPage = lazy(() => import("../../../routes/taskboard/TaskboardPage").then((module) => ({ default: module.TaskboardPage })));
@@ -35,8 +39,9 @@ interface WorkspaceViewProps {
 }
 export function WorkspaceView(props: WorkspaceViewProps) {
   const tabs = useWorkspaceTabs();
-  const team = useTeamWorkspace(teamOpen);
+  const paper = usePaperWriting();
   const [teamOpen, setTeamOpen] = useState(false);
+  const team = useTeamWorkspace(teamOpen);
   const [infoContainer, setInfoContainer] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     if (props.currentTaskId) {
@@ -90,6 +95,7 @@ export function WorkspaceView(props: WorkspaceViewProps) {
     const session = props.sessions.find((item) => item.id === tab.entityId);
     if (tab.kind === "utility") {
       if (tab.id === "board") return tabs.active === tab.id && !teamOpen ? <TaskboardPage embedded /> : null;
+      if (tab.id === "tool-writing") return <PaperWriting />;
       return <WorkspaceUtility id={tab.id} title={tab.title} />;
     }
     if (tab.kind !== "draft" && !task && !session) return <p className={shell.notice}>正在读取会话…</p>;
@@ -100,8 +106,9 @@ export function WorkspaceView(props: WorkspaceViewProps) {
       onTaskUpdated={props.onTaskUpdated}
       onTaskCreated={(created, text) => { tabs.replace(tab.id, { id: `task-${created.id}`, title: created.title, kind: "task", entityId: created.id }); props.onTaskCreated(created, text); }} />;
   }
-  return <>
+  return <PaperWritingContext.Provider value={paper}>
     <WorkspaceShell team={teamOpen}
+      toolPanels={!teamOpen && tabs.active === "tool-writing" ? { leftTitle: "参考文献与章节", rightTitle: "图文素材", left: <PaperNavigation onBack={() => { tabs.setActive("home"); props.onClear(); }} />, right: <PaperMaterials /> } : undefined}
       navigation={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceNavigation tasks={props.summaries} activeId={props.currentTaskId ?? props.currentSessionId ?? undefined}
         search={props.search} onSearch={props.onSearch} onOpen={openTask} onNew={startNew} onUtility={openUtility} onTeam={() => setTeamOpen(true)} onSettings={props.onSettings} onRename={props.onRename} onArchive={props.onArchive} onReopen={props.onReopen} archived={props.archived} onArchivedChange={props.onArchivedChange} /></div>
         <div className={shell.dockStage} hidden={!teamOpen}><TeamContacts state={team} onBack={() => setTeamOpen(false)} /></div></>}
@@ -117,5 +124,5 @@ export function WorkspaceView(props: WorkspaceViewProps) {
       </div>
     </WorkspaceShell>
     <WorkspaceSettings {...props.settings} />
-  </>;
+  </PaperWritingContext.Provider>;
 }

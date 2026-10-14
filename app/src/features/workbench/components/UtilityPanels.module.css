@@ -3,6 +3,8 @@
  * @author: https://github.com/Linmoqian
  */
 .pane { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 0; padding: 12px; overflow: auto; }
+.terminalStage { display: flex; flex: 1; min-height: 240px; flex-direction: column; }
+.terminalStage[hidden] { display: none; }
 .pane :global(.ant-tabs) { min-height: 0; }
 .pane :global(.ant-tabs-tab) span { display: inline-flex; align-items: center; gap: 5px; }
 .pane :global(.ant-tabs-tab) { font-size: 12px; }
