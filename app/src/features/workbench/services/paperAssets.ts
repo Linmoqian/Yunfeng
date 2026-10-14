@@ -4,7 +4,7 @@
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
 export interface PaperAsset { id: string; name: string; mime: string; width: number; height: number; size: number; caption: string; archived: boolean }
-export type AssetAction = { action: "list" } | { action: "import"; name: string; bytes: number[] } | { action: "read" | "archive" | "restore"; id: string } | { action: "caption"; id: string; caption: string };
+export type AssetAction = { action: "list" } | { action: "import" | "importPdf"; name: string; bytes: number[] } | { action: "read" | "archive" | "restore"; id: string } | { action: "caption"; id: string; caption: string };
 export function paperAssetAction<T>(request: AssetAction): Promise<T> {
   if (!isTauri()) return Promise.reject(new Error("图片素材需要 Tauri 原生应用"));
   return invoke<T>("paper_asset_action", { request });

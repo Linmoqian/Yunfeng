@@ -25,6 +25,7 @@ base64 = "0.22"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 tauri-plugin-dialog = "=2.7.3"
 tempfile = "3"
+zip = { version = "2.4.2", default-features = false, features = ["deflate"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

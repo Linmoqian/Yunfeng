@@ -154,7 +154,7 @@ pub fn render(path: &Path, snapshot: &Snapshot) -> Result<Vec<u8>, Error> {
     }
     Ok(bytes)
 }
-fn program(variable: &str, name: &str) -> Result<PathBuf, Error> {
+pub(super) fn program(variable: &str, name: &str) -> Result<PathBuf, Error> {
     if let Some(path) = std::env::var_os(variable) {
         let path = PathBuf::from(path);
         if path.is_absolute() && path.is_file() {
@@ -181,7 +181,7 @@ fn program(variable: &str, name: &str) -> Result<PathBuf, Error> {
         "PDF 导出需要安装 Pandoc 与 XeLaTeX，并加入 PATH",
     ))
 }
-fn run(command: &mut Command, directory: &Path, deadline: Instant) -> Result<(), Error> {
+pub(super) fn run(command: &mut Command, directory: &Path, deadline: Instant) -> Result<(), Error> {
     command
         .current_dir(directory)
         .stdin(Stdio::null())

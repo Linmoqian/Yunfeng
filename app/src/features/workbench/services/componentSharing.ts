@@ -4,9 +4,10 @@
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import type { ResearchState } from "../research-tools/model";
 
 export interface ComponentStates {
-  writing: { name: string; body: string };
+  writing: ResearchState;
   resources: { view: string; files: { name: string; size: number }[] };
 }
 export type SharedComponentId = keyof ComponentStates;

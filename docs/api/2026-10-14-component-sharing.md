@@ -34,6 +34,20 @@
 
 文稿不接受资源字段，资源不接受文稿字段。资源项只接受 name/size；非法字段、类型和大小原子拒绝。
 
+研究写作扩展字段（writing 组件）：
+
+| 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
+| --- | --- | --- | --- | --- | --- | --- |
+| patch.analysis / literature / design | IPC | object | 否 | 无 | 仅 name/body，200 字符标题、65536 字节正文 | 各工具文稿，缺省视为空文稿 |
+| patch.references | IPC | array | 否 | 无 | 最多 200 项 | 完整替换文献库 |
+| patch.references[].id / title / citation / url / notes | IPC | string | 是 | — | 分别最多 64/800/4096/2048/65536 字节 | 标识、标题、出处、链接、笔记；URL 为空或 HTTP/HTTPS |
+| patch.references[].text | IPC | string | 否 | 无 | 65536 字节 | 导入全文 |
+| patch.references[].pdfAssetId | IPC | string | 否 | 无 | UUID | 本机 PDF 素材 |
+| patch.dataFiles | IPC | array | 否 | 无 | 最多 20 项 | 完整替换文本摘录 |
+| patch.dataFiles[].id / name / content | IPC | string | 是 | — | 分别最多 64/800/65536 字节 | 稳定标识、文件名、正文 |
+
+研究工具快照最多 4 MiB，正文与资料文本不含 NUL；未知字段原子拒绝。每个文稿独立，旧快照无需数据转换。库和各工具文稿对象仍采用同字段后写覆盖。
+
 ## 响应
 
 read/patch 返回完整快照，window 成功返回 null。
@@ -103,5 +117,6 @@ await componentSharing.close("writing");
 | --- | --- | --- | --- | --- |
 | 2026-10-14 | 0.1.0 | 新增 | 文稿与资源状态、独立窗口、SDK | 文稿从标签局部状态改为进程内状态 |
 | 2026-10-14 | 0.1.0 | 兼容 | 文稿保存到 SQLite，read/patch 改为异步 | IPC 名称与字段不变；资源清单不持久化 |
+| 2026-10-15 | 0.1.0 | 兼容扩展 | 四工具文稿、文献和摘录，输入合并 700 ms 保存 | 旧快照直接读取，name/body 保留 |
 
 验证：Rust 字段合并、原子拒绝、窗口授权测试；SDK 读写、打开关闭载荷及浏览器拒绝测试。macOS 原生文稿双向编辑、重复打开聚焦、关闭重开、资源分类同步通过。文件清单选入和其他桌面平台尚未原生验收。

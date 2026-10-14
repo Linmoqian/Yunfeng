@@ -111,15 +111,7 @@ impl Store {
 }
 fn validate(component: &str, state: &Map<String, Value>) -> Result<(), Error> {
     let valid = if component == "writing" {
-        state.len() == 2
-            && state
-                .get("name")
-                .and_then(Value::as_str)
-                .is_some_and(|v| v.chars().count() <= 200)
-            && state
-                .get("body")
-                .and_then(Value::as_str)
-                .is_some_and(|v| v.len() <= 64 * 1024)
+        super::research::valid(state)
     } else {
         state.len() == 2
             && state

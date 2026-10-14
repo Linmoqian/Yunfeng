@@ -17,6 +17,7 @@ pub const MAX_BYTES: usize = 20 * 1024 * 1024;
 pub enum Request {
     List,
     Import { name: String, bytes: Vec<u8> },
+    ImportPdf { name: String, bytes: Vec<u8> },
     Read { id: String },
     Caption { id: String, caption: String },
     Archive { id: String },
@@ -60,6 +61,34 @@ pub fn execute(path: &Path, request: Request) -> Result<Value, Error> {
             }
             let id = uuid::Uuid::new_v4().to_string();
             tx.execute("INSERT INTO paper_asset(id,name,mime,width,height,bytes) VALUES (?1,?2,?3,?4,?5,?6)",params![id,name,mime,width,height,bytes]).map_err(|_| failure())?;
+            tx.commit().map_err(|_| failure())?;
+            Ok(json!({"id":id}))
+        }
+        Request::ImportPdf { name, bytes } => {
+            if name.is_empty()
+                || name.chars().count() > 255
+                || name.contains(['/', '\\', '\0'])
+                || bytes.len() > MAX_BYTES
+                || !bytes.starts_with(b"%PDF-")
+                || !bytes.windows(5).any(|part| part == b"%%EOF")
+            {
+                return Err(error("INVALID_ASSET", "请选择不超过 20 MiB 的 PDF 文献"));
+            }
+            let tx = conn
+                .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+                .map_err(|_| failure())?;
+            let (count, total): (u32, i64) = tx
+                .query_row(
+                    "SELECT count(*),coalesce(sum(length(bytes)),0) FROM paper_asset",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .map_err(|_| failure())?;
+            if count >= 100 || total + bytes.len() as i64 > 200 * 1024 * 1024 {
+                return Err(error("ASSET_LIMIT", "素材库最多 100 项、200 MiB"));
+            }
+            let id = uuid::Uuid::new_v4().to_string();
+            tx.execute("INSERT INTO paper_asset(id,name,mime,width,height,bytes) VALUES (?1,?2,'application/pdf',0,0,?3)", params![id,name,bytes]).map_err(|_| failure())?;
             tx.commit().map_err(|_| failure())?;
             Ok(json!({"id":id}))
         }

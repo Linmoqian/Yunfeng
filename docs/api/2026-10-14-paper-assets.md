@@ -20,9 +20,9 @@
 
 | 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
-| request.action | IPC | string | 是 | — | list/import/read/caption/archive/restore | 操作 |
-| request.name | IPC | string | import | — | 1 至 255 字符，无路径分隔符/NUL | 原始文件名 |
-| request.bytes | IPC | number[] | import | — | 每项 0 至 255，最多 20 MiB | PNG/JPEG/WebP 原始字节 |
+| request.action | IPC | string | 是 | — | list/import/importPdf/read/caption/archive/restore | 操作 |
+| request.name | IPC | string | import/importPdf | — | 1 至 255 字符，无路径分隔符/NUL | 原始文件名 |
+| request.bytes | IPC | number[] | import/importPdf | — | 每项 0 至 255，最多 20 MiB | 图片或 PDF 字节 |
 | request.id | IPC | string | read/caption/archive/restore | — | UUID | 素材标识 |
 | request.caption | IPC | string | caption | — | 最多 500 字符 | 图注 |
 
@@ -70,3 +70,5 @@ list 返回元数据数组，import 返回 `{id}`，read 返回 `{url}`，修改
 ## 兼容性与变更记录
 
 2026-10-14，0.1.0：新增接口和素材表，现有文稿字段不变。无废弃计划。
+
+2026-10-15，0.1.0：新增 importPdf，返回同样的 id；application/pdf 的 width/height 为 0，读取返回 PDF data URL。校验 %PDF- 头与 %%EOF 标识和容量，不承诺 PDF 内容语义有效；由系统组件阅读，不执行抽取或脚本转换。图片和 PDF 合计 100 项、200 MiB，归档不释放容量。

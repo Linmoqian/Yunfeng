@@ -28,8 +28,18 @@ pub async fn paper_export_pdf(
     window: WebviewWindow,
     runtime: State<'_, Runtime>,
     exporting: State<'_, ExportRuntime>,
+    tool: Option<String>,
+    format: Option<String>,
 ) -> Result<bool, Error> {
     authorize(window.label(), "writing")?;
+    let tool = tool.unwrap_or_else(|| "writing".into());
+    if !["writing", "analysis", "literature", "design"].contains(&tool.as_str()) {
+        return Err(error("INVALID_STATE", "研究工具无效"));
+    }
+    let format = format.unwrap_or_else(|| "pdf".into());
+    if !["pdf", "md", "zip", "docx"].contains(&format.as_str()) {
+        return Err(error("INVALID_STATE", "导出格式无效"));
+    }
     exporting
         .0
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -43,7 +53,10 @@ pub async fn paper_export_pdf(
             .lock()
             .map_err(|_| error("STATE_ERROR", "文稿状态不可用"))?
             .get("writing")?;
-        let name = snapshot.state["name"].as_str().unwrap_or("论文");
+        let mut document = snapshot.clone();
+        document.state = super::document_export::selected(&snapshot, &tool);
+        document.state["body"] = super::document_export::content(&snapshot, &tool).into();
+        let name = document.state["name"].as_str().unwrap_or("文稿");
         let filename = name
             .chars()
             .filter(|c| !c.is_control() && !"/\\:*?\"<>|".contains(*c))
@@ -57,8 +70,8 @@ pub async fn paper_export_pdf(
         let Some(destination) = window
             .dialog()
             .file()
-            .add_filter("PDF", &["pdf"])
-            .set_file_name(format!("{filename}.pdf"))
+            .add_filter("文稿", &[&format])
+            .set_file_name(format!("{filename}.{format}"))
             .blocking_save_file()
         else {
             return Ok(false);
@@ -66,7 +79,11 @@ pub async fn paper_export_pdf(
         let destination = destination
             .into_path()
             .map_err(|_| error("EXPORT_FAILED", "请选择本地保存位置"))?;
-        let bytes = pdf::render(&path, &snapshot)?;
+        let bytes = if format == "pdf" {
+            pdf::render(&path, &document)?
+        } else {
+            super::document_export::render(&path, &snapshot, &tool, &format)?
+        };
         pdf::save(&destination, &bytes)?;
         Ok(true)
     })

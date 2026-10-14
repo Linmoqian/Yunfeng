@@ -2,10 +2,12 @@
 //! Created on 2026-10-14
 //! @author: https://github.com/Linmoqian
 mod assets;
+mod document_export;
 pub mod export;
 mod model;
 mod pdf;
 mod persistence;
+mod research;
 use model::{authorize, error, title, Error, Snapshot, Store};
 use serde_json::{Map, Value};
 use std::{
