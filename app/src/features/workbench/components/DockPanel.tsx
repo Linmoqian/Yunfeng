@@ -53,7 +53,7 @@ export function DockPanel({ panel, title, dock, children }: {
           if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
           event.preventDefault();
           dock.resize(panel, event.key === "Home" ? 64 : event.key === "End" ? PANEL_MAX_WIDTH[panel]
-            : width + (event.key === "ArrowRight" ? 16 : -16) * (left ? 1 : -1), true);
+            : width + (event.key === "ArrowRight" ? 16 : -16) * (left ? 1 : -1), event.key === "Home" || event.key === "End");
         }} />}
     </motion.aside>
   );

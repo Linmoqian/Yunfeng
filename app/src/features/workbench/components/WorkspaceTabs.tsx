@@ -8,6 +8,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useRef } from "react";
 import type { useWorkspaceTabs, WorkspaceTab } from "../hooks/useWorkspaceTabs";
 import { SPRING_LAYOUT } from "../workspaceMotion";
+import { visibleWorkspaceTabs } from "../workspaceTabsState";
 import styles from "./WorkspaceShell.module.css";
 
 export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, resolveTitle }: {
@@ -17,8 +18,9 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
   const reduced = useReducedMotion();
   const { modal } = App.useApp();
   const root = useRef<HTMLDivElement>(null);
+  const menuOrigin = useRef<HTMLButtonElement | null>(null);
   const shownGroups = new Set<string>();
-  const visibleTabs = tabs.items.filter((tab) => !tab.group || !tabs.collapsedGroups.includes(tab.group));
+  const visibleTabs = visibleWorkspaceTabs(tabs.items, tabs.collapsedGroups);
   function rename(tab: WorkspaceTab) {
     let title = resolveTitle(tab);
     modal.confirm({ title: "重命名标签", icon: null, content: <Input defaultValue={title} maxLength={80} aria-label="标签名称" onChange={(event) => { title = event.target.value; }} />,
@@ -26,7 +28,9 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
   }
   function renderTab(tab: WorkspaceTab) {
     const title = resolveTitle(tab);
-    return <Dropdown key={tab.id} trigger={["contextMenu"]} menu={{ items: [
+    return <Dropdown key={tab.id} trigger={["contextMenu"]} autoFocus menu={{ onKeyDown: (event) => {
+      if (event.key === "Escape") menuOrigin.current?.focus({ preventScroll: true });
+    }, items: [
       { key: "rename", label: "重命名标签" }, { key: "close", label: "关闭标签页" },
       { key: "others", label: "关闭其他标签页" }, { key: "group", label: tab.group ? "移出分组" : "新建分组" },
     ], onClick: ({ key }) => {
@@ -36,7 +40,7 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
       if (key === "group") tab.group ? tabs.removeFromGroup(tab.id) : tabs.group(tab.id);
     }}}>
       <motion.div layout={reduced ? false : "position"} transition={SPRING_LAYOUT} className={styles.tab} data-active={tabs.active === tab.id || undefined}
-        onContextMenu={(event) => event.stopPropagation()}
+        onContextMenu={(event) => { event.stopPropagation(); menuOrigin.current = event.currentTarget.querySelector<HTMLButtonElement>('[role="tab"]'); menuOrigin.current?.focus({ preventScroll: true }); }}
         draggable onDragStartCapture={(event) => event.dataTransfer.setData("application/yunfeng-tab", tab.id)}
         onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const drag = event as unknown as React.DragEvent; tabs.reorder(drag.dataTransfer.getData("application/yunfeng-tab"), tab.id, drag.altKey); }}
         onAuxClick={(event) => { if (event.button === 1) { event.preventDefault(); onClose(tab.id); } }}>

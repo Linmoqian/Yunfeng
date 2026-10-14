@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { closeWorkspaceTabs, EMPTY_TABS, type WorkspaceTab } from "../src/features/workbench/workspaceTabsState.ts";
+import { closeWorkspaceTabs, EMPTY_TABS, visibleWorkspaceTabs, type WorkspaceTab } from "../src/features/workbench/workspaceTabsState.ts";
 
 const items: WorkspaceTab[] = ["a", "b", "c"].map((id) => ({ id, title: id, kind: "draft" }));
+test("标签键盘顺序跟随实际分组渲染并跳过折叠成员", () => {
+  const grouped = items.map((item) => item.id !== "b" ? { ...item, group: "group" } : item);
+  assert.deepEqual(visibleWorkspaceTabs(grouped, []).map((item) => item.id), ["a", "c", "b"]);
+  assert.deepEqual(visibleWorkspaceTabs(grouped, ["group"]).map((item) => item.id), ["b"]);
+});
 test("批量关闭其他标签保留当前标签与全部恢复记录", () => {
   const result = closeWorkspaceTabs({ ...EMPTY_TABS, items, active: "b" }, ["a", "c"]);
   assert.deepEqual(result.items.map((item) => item.id), ["b"]);

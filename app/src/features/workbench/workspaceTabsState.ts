@@ -10,6 +10,16 @@ export interface WorkspaceTabsState {
   items: WorkspaceTab[]; active: string; closed: WorkspaceTab[]; collapsedGroups: string[];
 }
 export const EMPTY_TABS: WorkspaceTabsState = { items: [], active: "home", closed: [], collapsedGroups: [] };
+/** 按实际分组渲染顺序导航，避免非相邻成员造成焦点与激活标签不一致。 */
+export function visibleWorkspaceTabs(items: WorkspaceTab[], collapsed: string[]): WorkspaceTab[] {
+  const seen = new Set<string>();
+  return items.flatMap((tab) => {
+    if (!tab.group) return [tab];
+    if (seen.has(tab.group)) return [];
+    seen.add(tab.group);
+    return collapsed.includes(tab.group) ? [] : items.filter((member) => member.group === tab.group);
+  });
+}
 export function closeWorkspaceTabs(state: WorkspaceTabsState, ids: string[]): WorkspaceTabsState {
   const removed = state.items.filter((tab) => ids.includes(tab.id));
   const items = state.items.filter((tab) => !ids.includes(tab.id));

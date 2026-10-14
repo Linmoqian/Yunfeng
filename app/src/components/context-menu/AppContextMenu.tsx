@@ -32,8 +32,9 @@ export function AppContextMenu({ children, extraItems = [], onAction }: {
     if (event.defaultPrevented) return;
     event.preventDefault();
     event.stopPropagation();
-    origin.current = event.target as HTMLElement;
-    const target = captureEditTarget(origin.current);
+    const clicked = event.target as HTMLElement;
+    origin.current = clicked.closest<HTMLElement>('button,input,textarea,select,[tabindex],[contenteditable="true"]') ?? document.activeElement as HTMLElement;
+    const target = captureEditTarget(clicked);
     edit.current = target;
     const editing = target.editable !== null;
     setItems([
@@ -47,10 +48,11 @@ export function AppContextMenu({ children, extraItems = [], onAction }: {
         { key: "back", label: "返回", icon: <ArrowLeft size={15} />, disabled: window.history.length < 2 },
         { key: "reload", label: "刷新页面", icon: <RefreshCw size={15} /> }] : []),
     ]);
-    setPoint({ x: event.clientX, y: event.clientY });
+    const rect = clicked.getBoundingClientRect();
+    setPoint({ x: event.clientX || rect.left, y: event.clientY || rect.bottom });
   }}>
     {children}
-    <Dropdown trigger={[]} open={point !== null} placement="bottomLeft" autoAdjustOverflow autoFocus overlayClassName={styles.popup}
+    <Dropdown trigger={[]} open={point !== null} placement="bottomLeft" autoAdjustOverflow autoFocus classNames={{ root: styles.popup }}
       onOpenChange={(open) => { if (!open) { setPoint(null); origin.current?.focus({ preventScroll: true }); } }}
       menu={{ items, onKeyDown: (event) => { if (event.key === "Escape") { setPoint(null); origin.current?.focus({ preventScroll: true }); } }, onClick: ({ key }) => {
         setPoint(null);

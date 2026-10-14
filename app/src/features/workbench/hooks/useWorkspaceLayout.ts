@@ -33,6 +33,7 @@ export function useWorkspaceLayout() {
   function begin(event: PointerEvent<HTMLElement>, panel: PanelId, left: boolean) {
     if (!event.isPrimary || event.button !== 0) return;
     event.preventDefault();
+    event.currentTarget.focus();
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { panel, x: event.clientX, width: renderedLayout[panel], latest: renderedLayout[panel], original: layout, left };
     setLayout((current) => ({ ...current, navigation: renderedLayout.navigation, workbench: renderedLayout.workbench }));

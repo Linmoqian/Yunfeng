@@ -17,7 +17,7 @@ export function WorkspaceShell({ navigation, workbench, children, team = false, 
   const leftTitle = toolPanels?.leftTitle ?? (team ? "通讯录" : "工作区");
   const rightTitle = toolPanels?.rightTitle ?? (team ? "共享工作台" : "工作台");
   function toolContent(panel: "navigation" | "workbench", title: string, content: ReactNode) {
-    if (!toolPanels) return content;
+    if (!toolPanels && !team) return content;
     return <div className={styles.toolPanel}><button className={styles.toolRecall} type="button" onClick={() => dock.setLayout((current) => ({ ...current, [panel]: panel === "navigation" ? 248 : 320, [panel === "navigation" ? "workbenchOpen" : "navigationOpen"]: false }))}>展开{title}</button><div className={styles.toolContent}>{content}</div></div>;
   }
   useEffect(() => {
