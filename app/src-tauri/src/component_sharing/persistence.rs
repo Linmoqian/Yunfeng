@@ -80,6 +80,23 @@ mod tests {
         assert_eq!(second.get("writing").unwrap().revision, 1);
     }
     #[test]
+    fn reads_refresh_an_existing_cache() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("paper.sqlite3");
+        let mut observer = Store::persistent(path.clone());
+        assert_eq!(observer.get("writing").unwrap().revision, 0);
+        let mut writer = Store::persistent(path);
+        writer
+            .patch(
+                "writing",
+                json!({"body":"重新加载"}).as_object().unwrap().clone(),
+            )
+            .unwrap();
+        let refreshed = observer.get("writing").unwrap();
+        assert_eq!(refreshed.revision, 1);
+        assert_eq!(refreshed.state["body"], "重新加载");
+    }
+    #[test]
     fn future_schema_is_not_overwritten() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("future.sqlite3");

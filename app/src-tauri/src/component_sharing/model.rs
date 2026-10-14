@@ -52,7 +52,7 @@ impl Store {
     }
     pub fn get(&mut self, component: &str) -> Result<Snapshot, Error> {
         title(component)?;
-        if component == "writing" && !self.states.contains_key(component) {
+        if component == "writing" {
             if let Some(path) = &self.path {
                 if let Some(snapshot) = super::persistence::read(path)? {
                     validate(

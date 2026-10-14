@@ -2,7 +2,9 @@
 //! Created on 2026-10-14
 //! @author: https://github.com/Linmoqian
 mod assets;
+pub mod export;
 mod model;
+mod pdf;
 mod persistence;
 use model::{authorize, error, title, Error, Snapshot, Store};
 use serde_json::{Map, Value};
@@ -116,7 +118,14 @@ pub async fn component_window(
         WebviewUrl::App(format!("component/{component}").into()),
     )
     .title(format!("云枫 · {name}"))
-    .inner_size(720.0, 680.0)
+    .inner_size(
+        if component == "writing" {
+            1120.0
+        } else {
+            720.0
+        },
+        if component == "writing" { 760.0 } else { 680.0 },
+    )
     .min_inner_size(420.0, 360.0)
     .decorations(false);
     #[cfg(target_os = "macos")]

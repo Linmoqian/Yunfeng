@@ -14,6 +14,10 @@
 .panelHeader .grip { flex: 1; justify-content: flex-start; gap: 6px; width: auto; cursor: grab; font-size: 12px; }
 .panelHeader .grip:active { cursor: grabbing; }
 .panelBody { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: auto; }
+.toolPanel, .toolContent { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.toolRecall { display: none; margin: 6px; padding: 10px 6px; border: 0; border-radius: var(--yf-radius-sm); color: var(--yf-text-secondary); background: var(--yf-bg-secondary); cursor: pointer; }
+.panel[data-compact="true"] .toolContent { display: none; }
+.panel[data-compact="true"] .toolRecall { display: block; writing-mode: vertical-rl; align-self: center; }
 .dockStage { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .dockStage[hidden] { display: none; }
 .resize { position: absolute; z-index: 12; top: 0; bottom: 0; width: 20px; cursor: col-resize; touch-action: none; }
@@ -104,6 +108,8 @@
 .navButton:active, .iconButton:active { transform: scale(.97); }
 .navButton, .iconButton { transition: transform 120ms ease-out, background-color 140ms ease; }
 @media (max-width: 655px) {
+  .panel[data-compact="true"] .toolContent { display: flex; }
+  .panel[data-compact="true"] .toolRecall { display: none; }
   .panel { position: absolute; top: 52px; bottom: 6px; width: min(320px, 85vw) !important; max-width: none; box-shadow: var(--yf-shadow-lg); }
   .panel[data-side="left"] { left: 6px; } .panel[data-side="right"] { right: 6px; }
   .panel[data-open="false"] { width: 0 !important; box-shadow: none; }

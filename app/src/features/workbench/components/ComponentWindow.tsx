@@ -12,7 +12,7 @@ import { PaperNavigation } from "./PaperNavigation";
 import { PaperMaterials } from "./PaperMaterials";
 function PaperWindow() {
   const paper = usePaperWriting();
-  return <PaperWritingContext.Provider value={paper}><WorkspaceShell navigation={null} workbench={null} toolPanels={{ leftTitle: "参考文献与章节", rightTitle: "图文素材", left: <PaperNavigation />, right: <PaperMaterials /> }}><PaperWriting /></WorkspaceShell></PaperWritingContext.Provider>;
+  return <PaperWritingContext.Provider value={paper}><WorkspaceShell navigation={null} workbench={null} toolPanels={{ leftTitle: "参考文献与章节", rightTitle: "图文素材", left: <PaperNavigation />, right: <PaperMaterials /> }}><PaperWriting independent /></WorkspaceShell></PaperWritingContext.Provider>;
 }
 export function ComponentWindow() {
   const { component = "" } = useParams();

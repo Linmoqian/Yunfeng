@@ -6,6 +6,7 @@
   "windows": ["component-writing", "component-resources"],
   "permissions": [
     "allow-paper-asset-action",
+    "allow-paper-export-pdf",
     "allow-component-read", "allow-component-patch",
     "core:event:allow-listen", "core:event:allow-unlisten",
     "core:window:allow-is-maximized", "core:window:allow-is-focused",

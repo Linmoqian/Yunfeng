@@ -11,6 +11,7 @@ export function usePaperAssets() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const fetching = useRef(false);
+  const reading = useRef(new Set<string>());
   const alive = useRef(true);
   const refresh = useCallback(async () => {
     if (!isTauri() || fetching.current) return;
@@ -30,9 +31,11 @@ export function usePaperAssets() {
     return () => { alive.current = false; clearTimeout(timer); window.removeEventListener("focus", refresh); };
   }, [refresh]);
   async function load(id: string) {
-    if (urls[id]) return;
+    if (urls[id] || reading.current.has(id)) return;
+    reading.current.add(id);
     try { const result = await paperAssetAction<{url:string}>({ action:"read",id }); if (alive.current) setUrls((current) => ({ ...current, [id]:result.url })); }
     catch (reason) { if (alive.current) setError(paperError(reason)); }
+    finally { reading.current.delete(id); }
   }
   async function act(request: AssetAction) {
     if (busy) return;

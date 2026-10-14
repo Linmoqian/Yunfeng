@@ -5,6 +5,7 @@
   "windows": ["main"],
   "permissions": [
     "allow-paper-asset-action",
+    "allow-paper-export-pdf",
     "allow-terminal-action",
     "allow-collaboration-action",
     "desktop-services",

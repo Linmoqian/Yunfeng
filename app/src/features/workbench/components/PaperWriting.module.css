@@ -13,7 +13,7 @@
 .toolbar strong { display: inline-flex; align-items: center; gap: 7px; }
 .toolbar svg { color: var(--yf-brand-primary); }
 .title, .canvas > label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
-.canvas { padding: 24px; min-height: 260px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-canvas); overflow-wrap: anywhere; }
+.canvas { flex-shrink: 0; padding: 24px; min-height: 260px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-canvas); overflow-wrap: anywhere; }
 .canvas h3 { margin-top: 0; font-size: 17px; }
 .canvas p { color: var(--yf-text-secondary); font-size: 13px; line-height: 1.8; }
 .canvas textarea { font-family: var(--yf-font-mono, monospace); line-height: 1.8; }

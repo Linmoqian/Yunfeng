@@ -8,11 +8,14 @@ import { useRef, useState } from "react";
 import { usePaperContext } from "../hooks/usePaperWriting";
 import { decodePaperFile, MAX_PAPER_BYTES, PAPER_TEMPLATE, paperFilename } from "../paperWriting";
 import styles from "./PaperWriting.module.css";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { paperError } from "../services/paperAssets";
 export function PaperOperations() {
   const paper = usePaperContext();
   const input = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState("");
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const disabled = !paper.ready || importing;
   async function importFile(file: File) {
     setImporting(true); setNotice("");
@@ -28,11 +31,21 @@ export function PaperOperations() {
     document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function template() { paper.update({ body: PAPER_TEMPLATE }); paper.setView("编辑"); }
+  async function exportPdf() {
+    setExporting(true); setNotice("");
+    try {
+      if (!isTauri()) throw new Error("PDF 导出需要 Tauri 原生应用");
+      const saved = await invoke<boolean>("paper_export_pdf");
+      setNotice(saved ? "PDF 已保存" : "已取消导出");
+    } catch (reason) { setNotice(paperError(reason)); }
+    finally { setExporting(false); }
+  }
   return <section className={styles.referenceForm} aria-label="文稿操作"><h3>文稿操作</h3>
     {paper.value.body ? <Popconfirm title="用论文提纲替换当前正文？" onConfirm={template} okText="替换" cancelText="取消"><Button disabled={disabled} icon={<ListTree size={14} />}>建立提纲</Button></Popconfirm>
       : <Button disabled={disabled} icon={<ListTree size={14} />} onClick={template}>建立提纲</Button>}
     <Popconfirm title="导入将替换当前文稿" disabled={!paper.value.body || disabled} onConfirm={() => input.current?.click()} okText="选择文件" cancelText="取消"><Button disabled={disabled} loading={importing} icon={<Upload size={14} />} onClick={() => { if (!paper.value.body) input.current?.click(); }}>导入文稿</Button></Popconfirm>
     <Button disabled={disabled || !paper.value.body || paper.syncing || Boolean(paper.error)} icon={<Download size={14} />} onClick={exportFile}>导出 Markdown</Button>
+    <Button loading={exporting} disabled={disabled || !paper.value.body || paper.syncing || Boolean(paper.error)} icon={<Download size={14} />} onClick={() => { void exportPdf(); }}>导出 PDF</Button>
     <input hidden ref={input} type="file" accept=".md,.markdown" aria-label="导入 Markdown 文稿" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void importFile(file); }} />
     {notice && <p role="alert">{notice}</p>}
   </section>;

@@ -800,8 +800,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .manage(component_sharing::export::ExportRuntime::default())
         .invoke_handler(tauri::generate_handler![
             component_sharing::paper_asset_action,
+            component_sharing::export::paper_export_pdf,
             terminal::terminal_action,
             collaboration::collaboration_action,
             component_sharing::component_read,
