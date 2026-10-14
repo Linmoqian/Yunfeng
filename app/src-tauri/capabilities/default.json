@@ -4,6 +4,8 @@
   "description": "主窗口默认能力",
   "windows": ["main"],
   "permissions": [
+    "allow-collaboration-action",
+    "desktop-services",
     "core:default",
     "core:window:allow-start-dragging",
     "core:window:allow-internal-toggle-maximize",

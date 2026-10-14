@@ -1,3 +1,23 @@
-fn main() {
-    tauri_build::build()
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
+        tauri_build::AppManifest::new().commands(&[
+            "collaboration_action",
+            "start_server",
+            "stop_server",
+            "server_status",
+            "start_gateway",
+            "stop_gateway",
+            "gateway_status",
+            "start_mobile_backend",
+            "stop_mobile_backend",
+            "mobile_backend_status",
+            "start_all",
+            "stop_all",
+            "orchestration_status",
+            "rustdesk_open",
+            "rustdesk_close",
+            "rustdesk_status",
+        ]),
+    ))?;
+    Ok(())
 }

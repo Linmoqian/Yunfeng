@@ -6,7 +6,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import type { ModelCatalog, ModelSelection, SessionSnapshot, TaskState } from "../../../services/taskService";
 import { sessionToLegacySummary, taskToSummary, type TaskSummary } from "../taskPresentation";
 import { useWorkspaceTabs, type WorkspaceTab } from "../hooks/useWorkspaceTabs";
-import { useTeamPreview } from "../hooks/useTeamPreview";
+import { useTeamWorkspace } from "../hooks/useTeamWorkspace";
 import { WorkspaceShell } from "./WorkspaceShell";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { WorkspaceTabs } from "./WorkspaceTabs";
@@ -35,7 +35,7 @@ interface WorkspaceViewProps {
 }
 export function WorkspaceView(props: WorkspaceViewProps) {
   const tabs = useWorkspaceTabs();
-  const team = useTeamPreview();
+  const team = useTeamWorkspace(teamOpen);
   const [teamOpen, setTeamOpen] = useState(false);
   const [infoContainer, setInfoContainer] = useState<HTMLDivElement | null>(null);
   useEffect(() => {

@@ -3,6 +3,7 @@
 // - 一键启动编排：yunfeng-server + yunfeng-gateway + yunfeng-mobile-backend + RustDesk
 // - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 PI_CODING_AGENT_DIR
 
+mod collaboration;
 mod desktop_window;
 mod tray;
 
@@ -431,12 +432,7 @@ fn monitor_service(
         let mut guard = state.lock().unwrap();
         if let Some(entry) = guard.as_mut() {
             if entry.pid == pid {
-                let code = entry
-                    .child
-                    .wait()
-                    .ok()
-                    .map(|status| status.code())
-                    .flatten();
+                let code = entry.child.wait().ok().and_then(|status| status.code());
                 *guard = None;
                 code
             } else {
@@ -763,6 +759,11 @@ fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    app.manage(collaboration::Runtime::new(
+        app.path()
+            .app_data_dir()?
+            .join("collaboration/store.sqlite3"),
+    ));
     app.manage(ServerState::default());
     app.manage(GatewayState::default());
     app.manage(MobileBackendState::default());
@@ -792,6 +793,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            collaboration::collaboration_action,
             start_server,
             stop_server,
             server_status,
