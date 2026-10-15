@@ -1,0 +1,12 @@
+/* 队列以输入框上方的轻量窄条呈现，长消息保持单行。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.queue { margin: 0 10px -1px; padding: 3px 10px 6px; border: 1px solid var(--yf-border-divider); border-bottom: 0; border-radius: 16px 16px 0 0; background: var(--yf-bg-canvas); }
+.header { display: flex; align-items: center; justify-content: space-between; color: var(--yf-text-tertiary); font-size: 11px; }
+.queue ul { max-height: 120px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.queue li { display: flex; align-items: center; gap: 8px; min-height: 30px; color: var(--yf-text-secondary); font-size: 12px; }
+.queue li > svg { flex: none; color: var(--yf-text-tertiary); }
+.text { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.label { flex: none; padding: 1px 6px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-tertiary); font-size: 11px; }
+.error { color: var(--yf-semantic-error); font-size: 12px; }

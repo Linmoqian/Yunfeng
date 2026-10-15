@@ -11,6 +11,7 @@
 .mode { display: inline-flex; flex: none; align-items: center; gap: 5px; min-height: 26px; padding: 2px 8px; border: 1px solid color-mix(in srgb, var(--yf-brand-primary) 12%, var(--yf-border-divider)); border-radius: 999px; background: color-mix(in srgb, var(--yf-brand-primary) 4%, var(--yf-bg-canvas)); color: var(--yf-brand-primary); font-size: 12px; }
 .model { display: flex; align-items: center; gap: 5px; min-width: 0; max-width: 65%; min-height: 26px; margin-left: auto; padding: 2px 8px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-secondary); font-size: 12px; }
 .model > svg { flex: none; }
+.queueMode:global(.ant-btn) { padding: 0 7px; border-radius: 999px; color: var(--yf-text-secondary); font-size: 12px; }
 .model > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .submit:global(.ant-btn) { flex: none; width: 30px; min-width: 30px; height: 30px; border: 0; color: var(--yf-bg-canvas); background: var(--yf-text-primary); box-shadow: none; }
 .submit:global(.ant-btn):not(:disabled):hover { color: var(--yf-bg-canvas); background: var(--yf-text-secondary); }

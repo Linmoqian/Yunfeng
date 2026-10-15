@@ -48,6 +48,7 @@ export interface StreamResult {
   toolActivity: string | null;
   toolCalls: ToolCallInfo[];
   approvals: ApprovalInfo[];
+  queueRevision: number;
   /** 更新某条消息的发送状态。 */
   setMessageStatus: (id: string, status: NonNullable<ConversationItem["status"]>) => void;
   /** 移除一条待审批。 */
@@ -64,6 +65,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [toolCalls, setToolCalls] = useState<ToolCallInfo[]>([]);
   const [approvals, setApprovals] = useState<ApprovalInfo[]>([]);
+  const [queueRevision, setQueueRevision] = useState(0);
   const [localTask, setLocalTask] = useState<TaskState | null>(task ?? null);
 
   const activeTask = localTask?.id === task?.id ? localTask : task ?? localTask;
@@ -86,6 +88,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
   }, []);
 
   const handleStreamEvent = useCallback((event: TaskStreamEvent) => {
+    if (event.type === "queue_updated") setQueueRevision((value) => value + 1);
     const currentTask = activeTaskRef.current;
     if (event.type === "task_updated") {
       const data = event.data as Partial<TaskState> & { kind?: string } | undefined;
@@ -313,6 +316,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
     toolActivity,
     toolCalls,
     approvals,
+    queueRevision,
     setMessageStatus: (id: string, status: NonNullable<ConversationItem["status"]>) => {
       setConversation((current) => current.map((item) => item.id === id ? { ...item, status } : item));
     },

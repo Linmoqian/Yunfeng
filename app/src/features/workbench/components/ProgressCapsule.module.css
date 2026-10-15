@@ -1,0 +1,8 @@
+/* 进度胶囊使用细刻度和紧凑计数，沿用品牌色。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.capsule { display: inline-flex; align-items: center; flex: none; gap: 6px; min-height: 28px; max-width: 100%; padding: 3px 9px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-secondary); font-size: 12px; line-height: 1.4; white-space: nowrap; -webkit-user-select: none; user-select: none; }
+.value { font-variant-numeric: tabular-nums; color: var(--yf-brand-primary); }
+.track { display: inline-block; width: 24px; height: 4px; overflow: hidden; border-radius: 999px; background: var(--yf-bg-secondary); }
+.track > span { display: block; height: 100%; border-radius: inherit; background: var(--yf-brand-primary); }

@@ -2,8 +2,8 @@
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
-import { Button, Input } from "antd";
-import { ArrowUp, Code2, FlaskConical, Square, Zap } from "lucide-react";
+import { Button, Dropdown, Input } from "antd";
+import { ArrowUp, ChevronDown, Code2, FlaskConical, Square, Zap } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import styles from "./Composer.module.css";
 
@@ -13,6 +13,8 @@ interface ComposerProps {
   isDraft: boolean;
   research?: boolean;
   status?: ReactNode;
+  changes?: ReactNode;
+  queued?: ReactNode;
   modelLabel?: string;
   running: boolean;
   isLegacy: boolean;
@@ -23,7 +25,7 @@ interface ComposerProps {
   onStop: () => Promise<void>;
 }
 
-export function Composer({ isDraft, research = false, status, modelLabel, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
+export function Composer({ isDraft, research = false, status, changes, queued, modelLabel, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const messageId = useId();
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -48,7 +50,9 @@ export function Composer({ isDraft, research = false, status, modelLabel, runnin
 
   return (
     <div className={styles.dock}>
+    {changes}
     {status}
+    {queued}
     <form
       className={styles.composer}
       onSubmit={(event) => {
@@ -72,30 +76,12 @@ export function Composer({ isDraft, research = false, status, modelLabel, runnin
         disabled={sending}
         maxLength={10000}
       />
-      {!research && running && hasDraft ? (
-        <div className="focus-panel__mode-switch" role="group" aria-label="下一轮处理方式">
-          <span className="focus-panel__mode-label">运行中发送为</span>
-          <Button
-            size="small"
-            type={nextActionMode === "steer" ? "primary" : "text"}
-            onClick={() => setNextActionMode("steer")}
-            aria-pressed={nextActionMode === "steer"}
-          >
-            steer 影响当前运行
-          </Button>
-          <Button
-            size="small"
-            type={nextActionMode === "followUp" ? "primary" : "text"}
-            onClick={() => setNextActionMode("followUp")}
-            aria-pressed={nextActionMode === "followUp"}
-          >
-            下一轮处理
-          </Button>
-        </div>
-      ) : null}
       {feedback && <p className={styles.feedback} role="alert">{feedback}</p>}
       <div className={styles.footer}>
         <span className={styles.mode}>{research ? <FlaskConical size={14} /> : <Code2 size={14} />}{research ? "科研" : "开发"}</span>
+        {!research && running && <Dropdown trigger={["click"]} menu={{ selectable: true, selectedKeys: [nextActionMode], items: [{ key: "followUp", label: "排队到下一轮" }, { key: "steer", label: "立即引导" }], onClick: ({ key }) => setNextActionMode(key as "steer" | "followUp") }}>
+          <Button type="text" size="small" className={styles.queueMode} aria-label="消息处理方式">{nextActionMode === "followUp" ? "排队" : "引导"}<ChevronDown size={11} /></Button>
+        </Dropdown>}
         <span className={styles.model} title={modelLabel}><Zap size={13} aria-hidden="true" /><span>{modelLabel || (research ? "项目默认模型" : "服务默认模型")}</span></span>
         {showStop ? (
           <Button

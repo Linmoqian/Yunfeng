@@ -13,6 +13,7 @@ import { MAX_PAPER_BYTES, paperByteLength } from "../paperWriting";
 import { openComponentWindow, sharingError } from "../services/componentSharing";
 import styles from "./PaperWriting.module.css";
 import { PaperAssetImage } from "./PaperAssetImage";
+import { ProgressCapsule } from "./ProgressCapsule";
 export function PaperWriting({ independent = false }: { independent?: boolean }) {
   const paper = usePaperContext();
   const [notice, setNotice] = useState("");
@@ -27,7 +28,7 @@ export function PaperWriting({ independent = false }: { independent?: boolean })
         paper.update({ body: event.target.value }); setNotice("");
       }} /></label> : <article className={styles.preview}><ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml urlTransform={(url) => url.startsWith("paper-asset:") ? url : /^(https?:|mailto:|#)/i.test(url) ? url : ""} components={{ a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>, img: ({src,alt}) => <PaperAssetImage src={src} alt={alt} /> }}>{paper.value.body || "编辑文稿后在这里预览。"}</ReactMarkdown></article>}
     </div>
-    <footer className={styles.status}><span>{Array.from(paper.value.body).length} 字符 · {(paperByteLength(paper.value.body) / 1024).toFixed(1)} / 64 KiB</span><span>{!isTauri() ? "浏览器预览，尚未持久化" : paper.syncing ? "正在保存…" : paper.error ? "保存失败" : paper.ready ? "已保存于本机" : "正在读取文稿…"}</span></footer>
+    <footer className={styles.status}><span><ProgressCapsule label="文稿" current={Array.from(paper.value.body).length} unit="字符" /> · {(paperByteLength(paper.value.body) / 1024).toFixed(1)} / 64 KiB</span><span>{!isTauri() ? "浏览器预览，尚未持久化" : paper.syncing ? "正在保存…" : paper.error ? "保存失败" : paper.ready ? "已保存于本机" : "正在读取文稿…"}</span></footer>
     {notice && <p role="alert">{notice}</p>}
     {paper.error && <p role="alert">{paper.error}<Button size="small" onClick={paper.retry}>重试保存</Button></p>}
   </section>;

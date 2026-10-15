@@ -17,6 +17,8 @@ import {
   type TaskState,
 } from "../../services/taskService";
 import { Composer } from "./components/Composer";
+import { ChangeSummary } from "./components/ChangeSummary";
+import { QueuedMessages } from "./components/QueuedMessages";
 import { ConversationWelcome } from "./components/ConversationWelcome";
 import { ResearchRuntimeCard } from "./components/ResearchRuntimeCard";
 import { researchConversation } from "./researchPresentation";
@@ -60,6 +62,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     streamError,
     toolCalls,
     approvals,
+    queueRevision,
     setMessageStatus,
     removeApproval,
     beginOptimisticSend,
@@ -227,6 +230,8 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         </section>
 
         <Composer
+          changes={activeTask ? <ChangeSummary key={activeTask.id} taskId={activeTask.id} revision={`${streamStatus}:${conversation.length}:${toolCalls.length}`} /> : undefined}
+          queued={activeTask && activeTask.mode !== "research" ? <QueuedMessages key={activeTask.id} taskId={activeTask.id} revision={`${queueRevision}:${streamStatus}`} /> : undefined}
           status={activeTask?.mode === "research" ? <ResearchRuntimeCard task={activeTask} /> : undefined}
           modelLabel={composerModelLabel}
           isDraft={draft}

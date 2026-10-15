@@ -17,7 +17,7 @@ test("科研运行时仅补充目标，不提供重复停止或两种调度选�
   render(<Composer {...props} research onSubmit={onSubmit} onStop={onStop} />);
   expect(screen.queryByRole("button", { name: "停止生成" })).toBeNull();
   await userEvent.type(screen.getByRole("textbox"), "比较更低耗时的参数");
-  expect(screen.queryByRole("group", { name: "下一轮处理方式" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "消息处理方式" })).toBeNull();
   await userEvent.click(screen.getByRole("button", { name: "发送消息" }));
   expect(onSubmit).toHaveBeenCalledExactlyOnceWith("比较更低耗时的参数", "followUp");
   expect(onStop).not.toHaveBeenCalled();
@@ -29,5 +29,7 @@ test("开发会话仍可停止生成，有草稿时仍能选择处理方式", as
   await userEvent.click(screen.getByRole("button", { name: "停止生成" }));
   expect(onStop).toHaveBeenCalledOnce();
   await userEvent.type(screen.getByRole("textbox"), "补充需求");
-  expect(screen.getByRole("group", { name: "下一轮处理方式" })).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "消息处理方式" }));
+  await userEvent.click(await screen.findByText("立即引导"));
+  expect(screen.getByRole("button", { name: "转向" })).toBeTruthy();
 });

@@ -1,0 +1,17 @@
+/* 轻量变更摘要与紧凑文件清单，保持主题边框、圆角和数字对齐。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.dock { display: flex; justify-content: center; margin-bottom: 8px; }
+.trigger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; max-width: 100%; padding: 3px 12px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-secondary); font: inherit; font-size: 12px; cursor: pointer; }
+.trigger:hover, .trigger[aria-expanded="true"] { border-color: var(--yf-border-default); }
+.trigger:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
+.content { width: min(360px, calc(100vw - 64px)); }
+.files { max-height: 280px; margin: 0 0 6px; padding: 0; overflow: auto; list-style: none; }
+.file { display: flex; align-items: center; gap: 16px; min-height: 38px; font-size: 13px; }
+.path { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.counts { display: inline-flex; flex: none; gap: 4px; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.additions { color: var(--yf-semantic-success); }
+.deletions { color: var(--yf-semantic-error); }
+.note { color: var(--yf-text-tertiary); font-size: 11px; line-height: 1.6; }
+@media (max-width: 600px) { .trigger { min-height: 44px; } }

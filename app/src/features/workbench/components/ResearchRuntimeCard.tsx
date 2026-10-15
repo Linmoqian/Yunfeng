@@ -7,6 +7,7 @@ import { Button, Popover } from "antd";
 import { Ellipsis, Pause, Play } from "lucide-react";
 import { sendTaskCommand, type TaskState } from "../../../services/taskService";
 import { researchProgress } from "../researchPresentation";
+import { ProgressCapsule } from "./ProgressCapsule";
 import styles from "./ResearchRuntimeCard.module.css";
 const labels = { OBSERVING: "查看进展", PLANNING: "分析中", EXECUTING: "实验中", WAITING: "等待中", REFLECTING: "整理结果", PAUSED: "已暂停", COMPLETED: "已完成", FAILED: "需要处理" };
 export function ResearchRuntimeCard({ task }: { task: TaskState }) {
@@ -15,6 +16,7 @@ export function ResearchRuntimeCard({ task }: { task: TaskState }) {
   const state = task.autonomy;
   if (!state) return null;
   const paused = state.phase === "PAUSED" || state.phase === "FAILED";
+  const nodes = state.decision?.nodes.filter((node) => node.kind !== "group") ?? [];
   async function control() {
     setBusy(true); setError(null);
     try { await sendTaskCommand(task.id, { type: paused ? "retry" : "abort" }); }
@@ -28,6 +30,7 @@ export function ResearchRuntimeCard({ task }: { task: TaskState }) {
         <Button type="text" size="small" aria-label="运行详情" title="运行详情" icon={<Ellipsis size={16} />} />
       </Popover>
     </div>
+    {nodes.length > 0 && <div className={styles.progress}><ProgressCapsule label="任务节点" current={nodes.filter((node) => node.status === "succeeded").length} total={nodes.length} title="当前目标树中已验收的任务节点；任务树调整时总数会变化" /></div>}
     {(paused || state.approvalId) && <p aria-live="polite">{researchProgress(state)}</p>}
     {error && <p role="alert">{error}</p>}
   </aside>;
