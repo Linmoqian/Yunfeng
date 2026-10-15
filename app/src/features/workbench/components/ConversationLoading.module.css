@@ -1,0 +1,17 @@
+/* 与会话留白及胶囊一致的延迟淡入占位，尊重系统减少动态设置。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.loading { width: 100%; max-width: 680px; margin: 24px auto; padding: 0 20px; animation: appear 160ms 120ms both; }
+.loading[data-compact="true"] { margin: 0 0 12px; padding: 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-tertiary); font-size: 11px; }
+.pill svg { animation: spin 1.4s linear infinite; }
+.messages { display: grid; gap: 28px; padding-top: 28px; animation: breathe 1.5s ease-in-out infinite alternate; }
+.messages > div:first-child { justify-self: end; width: 50%; height: 42px; border-radius: var(--yf-radius-md); background: var(--yf-bg-secondary); }
+.messages > div:last-child { display: grid; gap: 10px; width: 80%; }
+.messages i { height: 10px; border-radius: 999px; background: var(--yf-bg-secondary); }
+.messages i:last-child { width: 60%; }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes breathe { to { opacity: .5; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .loading, .pill svg, .messages { animation: none; } }

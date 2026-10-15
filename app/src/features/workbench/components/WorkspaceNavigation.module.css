@@ -1,0 +1,37 @@
+/* 导航的分组胶囊、会话状态与加载骨架，复用现有主题变量。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.group { margin: 6px 0 10px; }
+.groupToggle { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; max-width: 100%; margin: 0 0 4px 4px; padding: 3px 8px 3px 5px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: transparent; color: var(--yf-text-secondary); font: inherit; font-size: 11px; cursor: pointer; }
+.count { min-width: 14px; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--yf-text-tertiary); }
+.chevron { flex: none; transition: transform 160ms ease-out; }
+.chevron[data-open="true"] { transform: rotate(90deg); }
+.dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--yf-text-tertiary); }
+.groupToggle[data-tone="running"] .dot { background: var(--yf-brand-primary); }
+.groupToggle[data-tone="completed"] .dot { background: var(--yf-semantic-success); }
+.groupToggle[data-tone="attention"] .dot, .groupToggle[data-tone="waiting_approval"] .dot { background: var(--yf-semantic-warning); }
+.reveal { display: grid; }
+.revealContent { min-height: 0; overflow: hidden; }
+.row { position: relative; margin-bottom: 2px; }
+.row[data-active="true"] { box-shadow: inset 0 0 0 1px var(--yf-border-divider); }
+.row[data-active="true"]::before { position: absolute; left: 0; top: 11px; bottom: 11px; width: 2px; border-radius: 2px; content: ""; background: var(--yf-brand-primary); }
+.row .statusIcon[data-tone="running"] { color: var(--yf-brand-primary); animation: spin 1.8s linear infinite; }
+.row .statusIcon[data-tone="completed"] { color: var(--yf-semantic-success); }
+.row .statusIcon[data-tone="attention"], .row .statusIcon[data-tone="waiting_approval"] { color: var(--yf-semantic-warning); }
+.pin { flex: none; color: var(--yf-text-tertiary); margin-right: -3px; }
+.loadState, .loadingPill { display: flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%; margin: 6px 4px; padding: 4px 8px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-secondary); font-size: 11px; }
+.loadState svg { flex: none; }
+.loadState span { min-width: 0; }
+.loadState button { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.spinner { animation: spin 1.2s linear infinite; }
+.skeleton { display: grid; gap: 12px; padding: 12px 10px 16px; animation: appear 160ms 120ms both; }
+.skeleton i { height: 24px; border-radius: var(--yf-radius-sm); background: var(--yf-bg-secondary); animation: breathe 1.5s ease-in-out infinite alternate; }
+.skeleton i:nth-child(2) { width: 84%; }
+.skeleton i:nth-child(3) { width: 65%; }
+.groupToggle:hover, .loadState button:hover { background: var(--yf-bg-secondary); }
+.groupToggle:focus-visible, .loadState button:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes breathe { to { opacity: .45; } }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } .skeleton, .skeleton i, .spinner, .row .statusIcon[data-tone="running"] { animation: none; } }

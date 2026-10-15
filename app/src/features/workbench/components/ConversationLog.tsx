@@ -8,6 +8,7 @@ import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState } from "react";
 
 import { MapleStatusMark } from "../MapleStatusMark";
+import { ConversationLoading } from "./ConversationLoading";
 import { ResearchApprovalPlan, ResearchMessage } from "./ResearchMessage";
 import {
   type ConversationItem,
@@ -205,8 +206,8 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
 
   return (
     <div ref={ref} className="conversation-log" role="log" aria-label="任务对话" aria-live="polite">
-      {loading ? <p className="conversation-placeholder">正在读取会话记录…</p> : null}
-      {!loading && visibleItems.length === 0 ? <p className="conversation-placeholder">这段会话还没有可展示的消息。</p> : null}
+      {loading ? <ConversationLoading compact={visibleItems.length > 0} /> : null}
+      {!loading && !streamError && visibleItems.length === 0 ? <p className="conversation-placeholder">这段会话还没有可展示的消息。</p> : null}
 
       {visibleItems.map((item) => (
         <article

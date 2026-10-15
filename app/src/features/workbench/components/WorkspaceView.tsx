@@ -1,5 +1,5 @@
 /* 三栏与会话标签组装；已打开会话保持挂载，切换不打断流或清空草稿。
- * Created on 2026-10-13
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import { sessionToLegacySummary, taskToSummary, type TaskSummary } from "../task
 import { useWorkspaceTabs, type WorkspaceTab } from "../hooks/useWorkspaceTabs";
 import { useTeamWorkspace } from "../hooks/useTeamWorkspace";
 import { WorkspaceShell } from "./WorkspaceShell";
+import { ConversationLoading } from "./ConversationLoading";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { WorkspaceTabs } from "./WorkspaceTabs";
 import { WorkspaceWorkbench } from "./WorkspaceWorkbench";
@@ -26,6 +27,7 @@ import { PaperWriting } from "./PaperWriting";
 const TaskFocusPanel = lazy(() => import("../TaskFocusPanel").then((module) => ({ default: module.TaskFocusPanel })));
 const TaskboardPage = lazy(() => import("../../../routes/taskboard/TaskboardPage").then((module) => ({ default: module.TaskboardPage })));
 interface WorkspaceViewProps {
+  navigationLoading?: boolean; navigationError?: string | null;
   tasks: TaskState[]; sessions: SessionSnapshot[]; summaries: TaskSummary[];
   currentTaskId: string | null; currentSessionId: string | null;
   initialMessage: { taskId: string; text: string } | null; search: string;
@@ -98,7 +100,9 @@ export function WorkspaceView(props: WorkspaceViewProps) {
       if (tab.id === "tool-writing") return <PaperWriting />;
       return <WorkspaceUtility id={tab.id} title={tab.title} />;
     }
-    if (tab.kind !== "draft" && !task && !session) return <p className={shell.notice}>正在读取会话…</p>;
+    if (tab.kind !== "draft" && !task && !session) return props.navigationLoading ? <ConversationLoading /> : <div className={shell.notice} role="status">
+      <span>该会话暂时无法读取</span><button type="button" onClick={props.onReconnect}>重试读取</button>
+    </div>;
     return <TaskFocusPanel draft={tab.kind === "draft"} task={tab.kind === "task" ? task : undefined} legacySession={tab.kind === "session" ? session : undefined}
       sessions={props.sessions} modelCatalog={props.modelCatalog} modelSelection={props.modelSelection}
       infoContainer={tabs.active === tab.id && !teamOpen ? infoContainer : null} showInfo={tabs.active === tab.id && !teamOpen}
@@ -109,7 +113,7 @@ export function WorkspaceView(props: WorkspaceViewProps) {
   return <PaperWritingContext.Provider value={paper}>
     <WorkspaceShell team={teamOpen}
       toolPanels={!teamOpen && tabs.active === "tool-writing" ? { leftTitle: "参考文献与章节", rightTitle: "图文素材", left: <PaperNavigation onBack={() => { tabs.setActive("home"); props.onClear(); }} />, right: <PaperMaterials /> } : undefined}
-      navigation={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceNavigation tasks={props.summaries} activeId={props.currentTaskId ?? props.currentSessionId ?? undefined}
+      navigation={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceNavigation loading={props.navigationLoading} error={props.navigationError} onRetry={props.onReconnect} tasks={props.summaries} activeId={props.currentTaskId ?? props.currentSessionId ?? undefined}
         search={props.search} onSearch={props.onSearch} onOpen={openTask} onNew={startNew} onUtility={openUtility} onTeam={() => setTeamOpen(true)} onSettings={props.onSettings} onRename={props.onRename} onArchive={props.onArchive} onReopen={props.onReopen} archived={props.archived} onArchivedChange={props.onArchivedChange} /></div>
         <div className={shell.dockStage} hidden={!teamOpen}><TeamContacts state={team} onBack={() => setTeamOpen(false)} /></div></>}
       workbench={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceWorkbench tasks={props.summaries} onOpen={openTask} onUtility={openUtility} infoRef={setInfoContainer} /></div>
@@ -119,7 +123,7 @@ export function WorkspaceView(props: WorkspaceViewProps) {
         {props.notice && <div className={shell.notice} data-error role="status"><span>{props.notice}</span><button type="button" className={shell.iconButton} aria-label="重新连接" onClick={props.onReconnect}>↻</button></div>}
       </>}
       <div className={shell.stage} hidden={teamOpen} style={teamOpen ? { display: "none" } : undefined}>
-        {tabs.items.map((tab) => <div key={tab.id} className={shell.sessionStage} hidden={tab.id !== tabs.active} role="tabpanel" aria-label={resolveTitle(tab)}><Suspense fallback={<p className={shell.notice} role="status">正在读取页面…</p>}>{renderSession(tab)}</Suspense></div>)}
+        {tabs.items.map((tab) => <div key={tab.id} className={shell.sessionStage} hidden={tab.id !== tabs.active} role="tabpanel" aria-label={resolveTitle(tab)}><Suspense fallback={<ConversationLoading />}>{renderSession(tab)}</Suspense></div>)}
         {tabs.active === "home" && <OverviewPane hasAny={props.tasks.length > 0} onNewTask={startNew} />}
       </div>
     </WorkspaceShell>

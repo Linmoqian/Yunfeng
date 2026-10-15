@@ -1,5 +1,5 @@
 /* LianAgent 的 6px 间隙、圆角停靠面板与标签结构，颜色来自 Yunfeng token。
- * Created on 2026-10-13
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 .shell { display: flex; flex: 1; min-height: 0; overflow: hidden; color: var(--yf-text-primary); font-size: 14px; }
@@ -42,8 +42,10 @@
 .records { flex: 1; min-height: 0; overflow: auto; padding-bottom: 12px; }
 .sectionLabel { display: flex; align-items: center; gap: 6px; min-height: 36px; color: var(--yf-text-secondary); font-size: 12px; }
 .sectionLabel strong { flex: 1; font-weight: 600; }
-.sectionLabel > span { min-width: 20px; text-align: center; font-size: 10px; }
+.sectionLabel > span { min-width: 20px; padding: 1px 5px; border: 1px solid var(--yf-border-divider); border-radius: 999px; text-align: center; font-size: 10px; font-variant-numeric: tabular-nums; }
 .iconButton { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--yf-radius-xs); color: var(--yf-text-secondary); background: transparent; cursor: pointer; }
+.projectChevron { transition: transform 160ms ease-out; }
+.projectChevron[data-open="true"] { transform: rotate(90deg); }
 .projectRow { display: flex; align-items: center; min-height: 36px; gap: 2px; }
 .projectRow .navButton { flex: 1; min-width: 0; padding-inline: 5px; }
 .projectName { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -80,6 +82,7 @@
 .panel[data-compact="true"] .navigation { padding: 0 8px; align-items: center; }
 .panel[data-compact="true"] .navButton { width: 40px; height: 40px; justify-content: center; padding: 0; }
 .panel[data-compact="true"] .navButton > span, .panel[data-compact="true"] .search input, .panel[data-compact="true"] .sectionLabel, .panel[data-compact="true"] .projectRows, .panel[data-compact="true"] .projectRow > .iconButton, .panel[data-compact="true"] .conversationRow > .iconButton, .panel[data-compact="true"] .empty { display: none; }
+.panel[data-compact="true"] [data-navigation-group], .panel[data-compact="true"] [data-navigation-status], .panel[data-compact="true"] [data-navigation-pin] { display: none; }
 .panel[data-compact="true"] .records { width: 40px; }
 .panel[data-compact="true"] .navFooter { flex-direction: column; }
 .panel[data-compact="true"] .search { width: 40px; height: 40px; justify-content: center; padding: 0; }
@@ -116,4 +119,4 @@
   .resize { display: none; }
   .center { min-width: 0; }
 }
-@media (prefers-reduced-motion: reduce) { .panel, .navButton, .iconButton { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .panel, .navButton, .iconButton, .projectChevron { transition: none; } }

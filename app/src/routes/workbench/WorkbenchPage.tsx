@@ -1,3 +1,8 @@
+/* 工作区快照、连接状态与会话选择组装。
+ * 沿用现有路由编排，本次仅补充读取状态，避免变更任务生命周期。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -55,6 +60,8 @@ export function WorkbenchPage() {
   const search = useAppSelector((state) => state.workbench.search);
   const projectFilter = useAppSelector((state) => state.workbench.projectFilter);
   const archivedFilter = useAppSelector((state) => state.workbench.archivedFilter);
+  const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draftTask, setDraftTask] = useState(false);
   const [initialMessage, setInitialMessage] = useState<{ taskId: string; text: string } | null>(null);
@@ -111,11 +118,13 @@ export function WorkbenchPage() {
   const modelCwd = currentTask?.cwd || currentSession?.cwd || tasks.find((task) => task.cwd)?.cwd;
 
   const refreshSnapshot = useCallback(async () => {
+    setSnapshotLoading(true);
     try {
       const [taskResult, legacySessions] = await Promise.all([
         loadTasks({ limit: 500 }),
         loadLegacySessions(),
       ]);
+      setSnapshotError(null);
       dispatch(workbenchActions.snapshot({ tasks: taskResult.tasks, sessions: legacySessions }));
       if (!initialTaskResolved.current) {
         const initialSelection = getInitialSelection();
@@ -127,10 +136,13 @@ export function WorkbenchPage() {
       }
       dispatch(workbenchActions.connection({ state: "connected", error: null }));
     } catch (error) {
+      setSnapshotError(error instanceof Error ? error.message : "任务状态暂时无法读取");
       dispatch(workbenchActions.connection({
         state: "offline",
         error: error instanceof Error ? error.message : "任务状态暂时无法读取",
       }));
+    } finally {
+      setSnapshotLoading(false);
     }
   }, [dispatch]);
 
@@ -243,6 +255,7 @@ export function WorkbenchPage() {
 
   return (
     <WorkspaceView
+      navigationLoading={snapshotLoading} navigationError={snapshotError || (connectionState === "offline" ? loadError || "连接已断开" : null)}
       tasks={tasks} sessions={sessions} summaries={filteredSummaries}
       currentTaskId={currentTaskId} currentSessionId={currentSessionId}
       initialMessage={initialMessage} search={search}
