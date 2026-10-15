@@ -1,5 +1,5 @@
 /* 事件驱动外层 Runtime：等待期间不占用模型循环，恢复不重放副作用。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import { randomUUID } from "node:crypto";
@@ -38,12 +38,18 @@ export class ResearchRuntime {
     await this.ports.save((s) => { s.trigger = { signals, receivedAt: new Date().toISOString() }; });
     const completedResult = state.result && state.result.status !== "running";
     if (state.result && state.result.status !== "running") {
+      const result = state.result;
+      const executed = Boolean(state.plan?.steps.length);
       await this.phase("REFLECTING", "核对结果并记录经验");
       const learning = await this.core.reflect(state.result);
       if (this.stopped) return;
       const complete = state.plan?.decision === "complete" && (state.plan.mission_complete || !state.decision) && state.result.evaluation?.passed;
       await this.ports.save((s) => { feedback(s, s.result!); s.learning = learning; s.lastResult = s.result; delete s.result; delete s.jobId; delete s.authorizedPlan; });
-      await this.ports.message(`反思：${learning.summary}\n\n下一问题：${learning.next_question}`);
+      // 反思与下一问题保存在检查点和记忆中；对话只播报实际实验结果和最终验收。
+      if (complete) await this.ports.message("研究完成：目标验收条件已通过。");
+      else if (executed || result.status !== "succeeded") {
+        await this.ports.message(`${result.status === "succeeded" ? "实验结论" : "需要处理"}：${learning.summary}`);
+      }
       if (complete) { await this.phase("COMPLETED", "目标验收条件已通过"); return; }
     } else if (state.jobId || state.approvalId) return;
     state = this.ports.read().autonomy!;

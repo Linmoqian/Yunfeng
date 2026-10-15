@@ -1,5 +1,5 @@
 /* 自主闭环的核心验收：真实作业、事件等待、权限、中断恢复和取消。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import assert from "node:assert/strict";
@@ -72,7 +72,10 @@ test("真实实验完成事件驱动反思、候选记忆和下一轮实测验�
     assert.ok(ctx.service.conversation(task.id).context.messages.length >= 5);
     const messages = ctx.service.conversation(task.id).context.messages;
     assert.ok(messages.some((message) => message!.role === "tool" && message!.content.startsWith("实验结果：")));
-    assert.ok(messages.filter((message) => message!.role === "assistant").every((message) => message!.content.startsWith("反思：")));
+    assert.deepEqual(messages.filter((message) => message!.role === "assistant").map((message) => message!.content), [
+      `实验结论：${learning.summary}`, "研究完成：目标验收条件已通过。",
+    ]);
+    assert.equal(state.autonomy!.learning!.next_question, learning.next_question);
     assert.ok(ctx.context.store.readEvents(task.id, 0).some((event) => event.type === "message_completed"
       && (event.data as { message: { role: string; content: string } }).message.role === "tool"
       && (event.data as { message: { content: string } }).message.content.startsWith("实验结果：")));
@@ -280,6 +283,8 @@ test("连续失败耗尽节点尝试后暂停，模型重新提案不能重置�
     assert.equal(task.autonomy!.decision!.nodes[0]!.status, "blocked");
     assert.equal(task.autonomy!.decision!.budget.spent, 0.2);
     assert.equal(task.autonomy!.phase, "PAUSED");
+    assert.ok(ctx.service.conversation(task.id).context.messages.some((message) => message!.role === "assistant" && message!.content.startsWith("需要处理：")));
+    assert.ok(!ctx.service.conversation(task.id).context.messages.some((message) => message!.content.startsWith("研究完成：")));
   } finally { await ctx.close(); }
 });
 

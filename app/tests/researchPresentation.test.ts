@@ -1,5 +1,5 @@
 /* 科研消息过滤与需要人工处理的状态保留。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import assert from "node:assert/strict";
@@ -19,6 +19,21 @@ test("科研历史与实时过程消息均过滤，保留用户输入和结论�
   ];
   assert.deepEqual(researchConversation(items, "research").map((item) => item.id), ["user", "answer"]);
   assert.equal(researchConversation(items, "development"), items);
+});
+
+test("历史反思移除自动追问并合并重复，用户新指令后的结论仍保留", () => {
+  const result = researchConversation([
+    { id: "1", role: "assistant", text: "反思：准确率 0.934，独立验证尚未完成。\n\n下一问题：是否继续？", thinking: "内部推理" },
+    { id: "2", role: "tool", text: "运行详情" },
+    { id: "3", role: "assistant", text: "实验结论：准确率 0.934，独立验证尚未完成。" },
+    { id: "4", role: "assistant", text: "反思：目标完成：重复实验步骤\n\n下一问题：扩大目标？" },
+    { id: "5", role: "user", text: "下一问题：保持原样" },
+    { id: "6", role: "assistant", text: "需要处理：请确认独立验证数据。" },
+  ], "research");
+  assert.deepEqual(result.map(({ id }) => id), ["1", "5", "6"]);
+  assert.equal(result[0].text, "实验结论：准确率 0.934，独立验证尚未完成。");
+  assert.equal(result[0].thinking, undefined);
+  assert.equal(result[1].text, "下一问题：保持原样");
 });
 
 test("正常状态隐藏内部依据，错误与人工问题不被过滤", () => {
