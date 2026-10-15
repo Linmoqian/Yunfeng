@@ -1,3 +1,7 @@
+/* 应用基础样式：默认避免误选界面文字，输入与正文按需允许选取。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
 @import "./tokens.css";
 
 :root {
@@ -26,6 +30,24 @@ body {
   min-height: 100vh;
   margin: 0;
   background: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+[contenteditable="plaintext-only"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+button,
+[role="button"],
+[role="tab"],
+[role="radio"] {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* 应用骨架：透明窗口上由 app-root 描绘 mac 风格圆角窗口；标题栏常驻顶部，内容视口内部滚动。 */

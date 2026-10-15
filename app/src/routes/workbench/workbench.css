@@ -1,3 +1,7 @@
+/* 工作台布局与会话正文样式，正文保留文本选取能力。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
 .app-shell {
   min-height: var(--yf-viewport-height);
   background: var(--yf-bg-canvas);
@@ -599,6 +603,11 @@
   line-height: 1.7;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.conversation-message__content {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .conversation-message__content > :first-child {

@@ -1,5 +1,5 @@
 /* 论文写作沿用 Yunfeng 浅白、淡紫与圆角 token。
- * Created on 2026-10-14
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 .document { display: flex; flex-direction: column; min-width: 0; gap: 16px; overflow: auto; padding: 20px; height: 100%; box-sizing: border-box; color: var(--yf-text-primary); container-type: inline-size; }
@@ -24,7 +24,7 @@
 .outline { padding: 0; list-style-position: inside; }
 .outline li { padding-block: 10px; border-bottom: 1px solid var(--yf-border-divider); font-size: 13px; }
 .outline li::marker { color: var(--yf-brand-primary); }
-.preview { line-height: 1.8; font-size: 14px; }
+.preview { line-height: 1.8; font-size: 14px; -webkit-user-select: text; user-select: text; }
 .preview h1 { font-size: 26px; }
 .preview h2 { font-size: 21px; }
 .preview h3 { font-size: 17px; }

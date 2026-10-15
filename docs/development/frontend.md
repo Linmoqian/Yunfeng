@@ -5,6 +5,7 @@
 - 优先遵循项目已有配置和代码风格，不擅自替换既有规范。
 - JavaScript 和 TypeScript 代码遵循 Airbnb JavaScript Style Guide，并使用项目已有的 ESLint、Prettier 配置。
 - 保持组件边界清晰、状态流向可追踪；不为一次性需求或未来扩展提前设计复杂抽象。
+- 应用界面文字默认不可选取，避免拖动导航、模式按钮和标题时误选；输入框、可编辑区域、对话正文与文稿预览显式允许选取，兼容 WebKit 的 `-webkit-user-select`。
 
 ## 技术选型
 
