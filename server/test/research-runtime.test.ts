@@ -70,6 +70,16 @@ test("真实实验完成事件驱动反思、候选记忆和下一轮实测验�
     assert.equal(ctx.memory.list({ projectKey: ctx.cwd })[0]?.confidence, "candidate");
     assert.equal(JSON.parse(await readFile(join(ctx.cwd, condition.path), "utf8")).accuracy, 0.934);
     assert.ok(ctx.service.conversation(task.id).context.messages.length >= 5);
+    const messages = ctx.service.conversation(task.id).context.messages;
+    assert.ok(messages.some((message) => message!.role === "tool" && message!.content.startsWith("实验结果：")));
+    assert.ok(messages.filter((message) => message!.role === "assistant").every((message) => message!.content.startsWith("反思：")));
+    assert.ok(ctx.context.store.readEvents(task.id, 0).some((event) => event.type === "message_completed"
+      && (event.data as { message: { role: string; content: string } }).message.role === "tool"
+      && (event.data as { message: { content: string } }).message.content.startsWith("实验结果：")));
+    await ctx.context.hub.emit(task.id, "message_completed", { message: { id: "old-plan", role: "assistant", content: "计划：旧任务的内部 Hook 记录" } });
+    assert.equal(ctx.service.conversation(task.id).context.messages.at(-1)!.role, "tool");
+    const original = ctx.context.store.readEvents(task.id, 0).at(-1)!;
+    assert.equal((original.data as { message: { role: string } }).message.role, "assistant");
   } finally { await ctx.close(); }
 });
 

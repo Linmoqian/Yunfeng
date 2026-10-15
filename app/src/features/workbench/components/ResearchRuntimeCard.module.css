@@ -7,4 +7,6 @@
 .line strong { color: var(--yf-text-primary); }
 .line span { margin-left: auto; color: var(--yf-text-tertiary); font-size: 12px; }
 .card p { margin: 8px 0 4px; color: var(--yf-text-secondary); font-size: 13px; overflow-wrap: anywhere; }
-.card small { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--yf-text-tertiary); font-size: 11px; }
+.details { max-width: min(420px, 75vw); overflow-wrap: anywhere; }
+.details p { margin: 0 0 8px; }
+.details small { color: var(--yf-text-tertiary); font-size: 11px; }

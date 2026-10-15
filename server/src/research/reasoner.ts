@@ -40,6 +40,8 @@ success_condition 是 {kind:"file_exists",path} 或 {kind:"metric",path,key,oper
 observe_paths最多8个小型文本文件；等待事件监听最多3个路径，验收路径优先，其次按observe_paths顺序。需要尚未产生的事实时选择wait；不要伪造指标或设备状态。
 reflect 输出 {summary,knowledge_update:[{key,value}],next_question}，最多8条更新。
 summary、next_question、知识 key 和 value 均须为字符串，数值结论也写成文字。
+summary 面向工程师，简洁说明实际结果、与目标的差距和必要局限；next_question 提出一个可理解的后续问题。
+summary 与 next_question 不复述 Hook、Runtime 调度、内部阶段、文件配置路径、命令参数或原始 JSON；这些细节只进入 knowledge_update。
 反思必须依据执行结果和实测验收，原因不确定时标为假设；提出下一问题，不擅自修改原目标。`;
 
 export function piReasoner(cwd: string, model?: TaskModelRef): Reasoner {

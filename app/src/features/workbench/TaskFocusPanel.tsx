@@ -19,6 +19,7 @@ import {
 import { Composer } from "./components/Composer";
 import { ConversationWelcome } from "./components/ConversationWelcome";
 import { ResearchRuntimeCard } from "./components/ResearchRuntimeCard";
+import { researchConversation } from "./researchPresentation";
 import { SESSION_ENTER } from "./workspaceMotion";
 import { ConversationInfoCard } from "./components/ConversationInfoCard";
 import { ConversationLog } from "./components/ConversationLog";
@@ -206,7 +207,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         <section className="conversation-section" aria-label="对话">
           {draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} /> : <ConversationLog
             ref={conversationLogRef}
-            items={conversation}
+            items={researchConversation(conversation, activeTask?.mode)}
             toolCalls={toolCalls}
             loading={conversationLoading}
             streamStatus={streamStatus}

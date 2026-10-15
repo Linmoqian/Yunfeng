@@ -16,6 +16,7 @@ import { createDecision } from "./decision/engine.js";
 import { HookLayer } from "./hooks/layer.js";
 import { FileHooks } from "./hooks/files.js";
 import { researchEvent } from "./hooks/types.js";
+import { researchMessageRole } from "./messages.js";
 import type { Plan } from "./types.js";
 import type { TaskCommand, TaskModelRef, TaskState } from "../task/types.js";
 
@@ -180,10 +181,10 @@ export class ResearchService {
   }
   conversation(id: string) {
     const messages = this.context.store.readEvents(id, 0).filter((e) => e.type === "message_completed").map((e) => (e.data as { message?: { id: string; role: string; content: string } }).message).filter(Boolean);
-    return { context: { messages, entryIds: messages.map((m) => m!.id) } };
+    return { context: { messages: messages.map((m) => ({ ...m!, role: researchMessageRole(m!.role, m!.content) })), entryIds: messages.map((m) => m!.id) } };
   }
   private async message(id: string, content: string, role = "assistant"): Promise<void> {
-    await this.context.hub.emit(id, "message_completed", { message: { id: randomUUID(), role, content } });
+    await this.context.hub.emit(id, "message_completed", { message: { id: randomUUID(), role: researchMessageRole(role, content), content } });
   }
   async close(): Promise<void> {
     this.closed = true;

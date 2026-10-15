@@ -72,6 +72,8 @@
 
 科研 conversation 返回 `{context:{messages,entryIds}}`，内容来自已有任务事件；SSE 的 `message_completed` 带 `{message:{id,role,content}}`，`task_updated` 带检查点摘要。断线补发继续沿用事件 seq；客户端按消息 ID 去重。capabilities 仅列出 observe、plan、execute、reflect。
 
+计划、决策评分与作业原始输出属于 `role=tool` 的过程记录，对话默认过滤；`role=assistant` 展示反思结论，用户消息保留。历史快照将旧助手角色的固定过程前缀映射为 tool，不改写原事件；客户端也过滤旧 SSE 补发的对应前缀。运行卡显示简短阶段进展，内部依据和目录在详情中查看；失败、人工问题与具体计划授权保持可见。
+
 `trigger.signals` 每项包含 hook、reason、event。event 有 id、occurredAt，以及 kind：lifecycle（action=started/resumed/recovered）、files_changed（最多八个项目内 paths）、job_completed（jobId、status）、approval_granted（requestId）。这些事件来自受信任的本地适配器；没有新增 HTTP 事件注入接口。Hook 筛选通知，Context Builder 重读真实状态，Decision Layer 判断是否值得行动。具体模块见 [Hook 说明](../../server/src/research/hooks/README.md)。
 
 ## 错误码
@@ -168,3 +170,4 @@ Pi plan 示例（验收当前选中的节点）：
 | 2026-10-15 | 0.1.0 | 兼容 | 本地 Hook 层、事件上下文、去重与背压 | 新增可选 trigger；既有 API 不变，旧检查点恢复时重新观察 |
 | 2026-10-15 | 0.1.0 | 修复 | 科研任务项目目录识别与模型失败诊断 | 无字段变更；错误原因仅公开固定诊断与状态码 |
 | 2026-10-15 | 0.1.0 | 修复 | 项目环境配置、模型结构纠正与滚动节点身份 | 无持久化字段变更；显式任务模型继续优先 |
+| 2026-10-15 | 0.1.0 | 修复 | 科研过程消息按工具记录过滤，反思面向用户 | 沿用已有消息角色；历史事件不改写，兼容旧快照与补发 |
