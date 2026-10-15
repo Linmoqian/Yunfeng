@@ -10,6 +10,33 @@ import { ConversationLog } from "../src/features/workbench/components/Conversati
 
 afterEach(cleanup);
 
+test("结论胶囊只提取实测幅度与明确验收，全文折叠且限制始终可见", async () => {
+  const text = "写入 config.json 并运行实验。实测结果：压缩至 20910 字节，相比基线减小约 14.4%，超过至少 1% 的目标；roundtrip=true。唯一验收条件 report.json:completed==1 实测通过（actual=1），节点目标达成。独立数据尚未验证，需要人工复核。";
+  render(<ResearchMessage text={`实验结论：${text}`} />);
+  expect(screen.getByText("减小约 14.4%")).toBeTruthy();
+  expect(screen.getByText("验收通过")).toBeTruthy();
+  expect(screen.getByText("解压一致")).toBeTruthy();
+  expect(screen.getByText(/独立数据尚未验证，需要人工复核/)).toBeTruthy();
+  expect(screen.queryByText(/写入 config.json/)).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "详细过程" }));
+  expect(screen.getByText(/压缩至 20910 字节/)).toBeTruthy();
+  expect(screen.getByText(/completed==1 实测通过（actual=1）/)).toBeTruthy();
+  cleanup();
+  render(<ResearchMessage text="实验结论：实测提升 2%，验收未通过，roundtrip=false。需要检查数据。" />);
+  expect(screen.getByText("验收未通过")).toBeTruthy();
+  expect(screen.queryByText("验收通过")).toBeNull();
+  expect(screen.getByText("往返校验失败")).toBeTruthy();
+  expect(screen.getByText(/需要检查数据/)).toBeTruthy();
+  cleanup();
+  render(<ResearchMessage text="实验结论：节点验收通过。压缩比约 35.45%，仅对当前语料有效。" />);
+  expect(screen.getByText("节点验收通过")).toBeTruthy();
+  expect(screen.getByText(/仅对当前语料有效/)).toBeTruthy();
+  cleanup();
+  render(<ResearchMessage text="实验结论：目标提升 10%，尚未验收通过。未提升 2%，要求 roundtrip=true。如果验收失败则复核。" />);
+  expect(screen.queryByLabelText("关键指标")).toBeNull();
+  expect(screen.getByText(/目标提升 10%，尚未验收通过/)).toBeTruthy();
+});
+
 test("结论保留实测结果，方式展开可查看原执行描述，风险不被折叠", async () => {
   render(<ResearchMessage text="实验结论：写入 config.json 并运行基线。实测结果：压缩至 20910 字节，独立数据尚未验证。" />);
   expect(screen.getByRole("region", { name: "结论" })).toBeTruthy();

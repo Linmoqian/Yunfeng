@@ -8,6 +8,10 @@
 .body { color: var(--yf-text-primary); font-size: 14px; line-height: 1.75; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
 .body > :first-child { margin-top: 0; }
 .body > :last-child { margin-bottom: 0; }
+.metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.metric { max-width: 100%; padding: 3px 9px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-primary); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; -webkit-user-select: none; user-select: none; }
+.metric[data-status="passed"] { border-color: color-mix(in srgb, var(--yf-brand-primary) 18%, var(--yf-border-divider)); color: var(--yf-brand-primary); }
+.metric[data-status="failed"] { color: var(--yf-semantic-error); font-weight: 600; }
 .method { margin-top: 12px; }
 .method :global(.ant-collapse-header) { width: fit-content; max-width: 100%; min-height: 28px; padding: 3px 9px !important; border: 1px solid var(--yf-border-divider); border-radius: 999px !important; background: var(--yf-bg-canvas); font-size: 12px; color: var(--yf-text-secondary) !important; }
 .method :global(.ant-collapse-content-box) { padding: 10px 0 0 !important; }

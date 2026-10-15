@@ -6,6 +6,7 @@ import { Collapse } from "antd";
 import { CircleCheck, ClipboardList, FlaskConical, Info, TriangleAlert } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { summarizeConclusion } from "../researchConclusion";
 import styles from "./ResearchMessage.module.css";
 
 const kinds = {
@@ -31,11 +32,16 @@ export function ResearchMessage({ text }: { text: string }) {
   const marker = kind === "实验结论" ? /实测结果：|脚本实测/.exec(body) : null;
   const prefix = marker ? body.slice(0, marker.index).trim() : "";
   const separateMethod = prefix && /写入|运行/.test(prefix) && !/风险|失败|限制|需|假设|未|待|错误|异常|不确定/.test(prefix);
+  const summary = kind === "实验结论" ? summarizeConclusion(body) : null;
+  const compact = Boolean(summary?.metrics.length);
   return <section className={styles.card} data-kind={kind} aria-label={label}>
     <div className={styles.heading}><Icon size={15} aria-hidden="true" /><span>{label}</span></div>
-    <div className={styles.body}><Markdown text={separateMethod ? body.slice(marker!.index) : body} /></div>
-    {separateMethod && <Collapse ghost size="small" className={styles.method} items={[{
-      key: "method", label: "方式", children: <div className={styles.body}><Markdown text={prefix} /></div>,
+    {compact ? <>
+      <div className={styles.metrics} aria-label="关键指标">{summary!.metrics.map((metric) => <span key={metric.text} className={styles.metric} data-status={metric.status}>{metric.text}</span>)}</div>
+      {summary!.notices.map((notice, index) => <div className={styles.body} key={index}><Markdown text={notice} /></div>)}
+    </> : <div className={styles.body}><Markdown text={separateMethod ? body.slice(marker!.index) : body} /></div>}
+    {(compact || separateMethod) && <Collapse ghost size="small" className={styles.method} items={[{
+      key: "method", label: compact ? "详细过程" : "方式", children: <div className={styles.body}><Markdown text={compact ? body : prefix} /></div>,
     }]} />}
   </section>;
 }
