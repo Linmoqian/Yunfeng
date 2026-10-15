@@ -14,6 +14,7 @@ pub struct Session {
     child: Mutex<Box<dyn Child + Send + Sync>>,
     output: Arc<Mutex<Output>>,
     reader: Mutex<Option<JoinHandle<()>>>,
+    agent: bool,
 }
 fn pty_size(size: Size) -> PtySize {
     PtySize {
@@ -26,15 +27,43 @@ fn pty_size(size: Size) -> PtySize {
 
 impl Session {
     pub fn start(size: Size) -> Result<Self> {
+        let mut command = CommandBuilder::new_default_prog();
+        if let Some(home) = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
+            command.cwd(home);
+        }
+        Self::spawn(size, command, false)
+    }
+    pub fn command(cwd: &str, script: &str) -> Result<Self> {
+        if script.is_empty() || script.len() > 16 * 1024 || script.contains('\0') {
+            return Err(error("INVALID_INPUT", "命令需为 1 至 16384 字节"));
+        }
+        let cwd = std::fs::canonicalize(cwd)
+            .ok()
+            .filter(|path| path.is_dir())
+            .ok_or_else(|| error("INVALID_INPUT", "工作目录不可用"))?;
+        if !cfg!(unix) {
+            return Err(error(
+                "UNSUPPORTED",
+                "Agent 内置终端当前仅支持 macOS 和 Linux",
+            ));
+        }
+        let mut command = CommandBuilder::new("/bin/bash");
+        command.args(["-lc", script]);
+        command.cwd(cwd);
+        Self::spawn(
+            Size {
+                cols: 100,
+                rows: 30,
+            },
+            command,
+            true,
+        )
+    }
+    fn spawn(size: Size, mut command: CommandBuilder, agent: bool) -> Result<Self> {
         let size = size.validate()?;
         let pair = native_pty_system()
             .openpty(pty_size(size))
             .map_err(|_| error("START_FAILED", "无法创建本机终端"))?;
-        let mut command = CommandBuilder::new_default_prog();
-        // 不继承 GUI 调试进程的工作目录；Shell 使用用户目录和交互式配置。
-        if let Some(home) = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
-            command.cwd(home);
-        }
         command.env("TERM", "xterm-256color");
         let mut reader = pair
             .master
@@ -88,13 +117,24 @@ impl Session {
             child: Mutex::new(child),
             output,
             reader: Mutex::new(Some(reader)),
+            agent,
         })
     }
     pub fn read(&self, cursor: u64) -> Result<Chunk> {
-        self.output
+        let mut chunk = self
+            .output
             .lock()
             .map_err(|_| error("STATE_ERROR", "终端输出不可用"))?
-            .read(cursor)
+            .read(cursor)?;
+        chunk.agent = self.agent;
+        chunk.exit_code = self
+            .child
+            .lock()
+            .map_err(|_| error("STATE_ERROR", "终端不可用"))?
+            .try_wait()
+            .map_err(|_| error("STATE_ERROR", "无法读取进程状态"))?
+            .map(|status| status.exit_code());
+        Ok(chunk)
     }
     pub fn write(&self, data: &str) -> Result<()> {
         if data.is_empty() || data.len() > 16 * 1024 {
@@ -123,11 +163,18 @@ impl Session {
             .child
             .lock()
             .map_err(|_| error("STATE_ERROR", "终端不可用"))?;
-        if child
+        let running = child
             .try_wait()
             .map_err(|_| error("STOP_FAILED", "无法读取终端进程状态"))?
-            .is_none()
-        {
+            .is_none();
+        let reading = self
+            .reader
+            .lock()
+            .map_err(|_| error("STATE_ERROR", "终端不可用"))?
+            .as_ref()
+            .is_some_and(|thread| !thread.is_finished());
+        // Shell 可能先于仍占用 PTY 的子进程退出；取消仍须终止该进程组。
+        if running || reading {
             #[cfg(unix)]
             {
                 let foreground = self
@@ -150,7 +197,7 @@ impl Session {
                     }
                 }
             }
-            if child.kill().is_err() && child.try_wait().ok().flatten().is_none() {
+            if running && child.kill().is_err() && child.try_wait().ok().flatten().is_none() {
                 return Err(error("STOP_FAILED", "无法停止终端进程"));
             }
             child

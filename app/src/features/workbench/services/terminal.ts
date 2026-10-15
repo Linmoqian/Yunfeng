@@ -5,7 +5,7 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 
 export interface TerminalSize { cols: number; rows: number }
-export interface TerminalChunk { data: number[]; cursor: number; truncated: boolean; closed: boolean; failed: boolean }
+export interface TerminalChunk { data: number[]; cursor: number; truncated: boolean; closed: boolean; failed: boolean; exitCode?: number | null; agent?: boolean }
 type Request = { action: "list" } | { action: "start"; size: TerminalSize }
   | { action: "read"; id: string; cursor: number } | { action: "write"; id: string; data: string }
   | { action: "resize"; id: string; size: TerminalSize } | { action: "stop" | "close"; id: string };

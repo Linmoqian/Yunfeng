@@ -66,6 +66,8 @@ pub struct Chunk {
     pub truncated: bool,
     pub closed: bool,
     pub failed: bool,
+    pub exit_code: Option<u32>,
+    pub agent: bool,
 }
 impl Output {
     pub fn append(&mut self, data: &[u8]) {
@@ -95,6 +97,8 @@ impl Output {
             truncated: cursor < start,
             closed: self.closed && next == self.end,
             failed: self.failed,
+            exit_code: None,
+            agent: false,
         })
     }
 }

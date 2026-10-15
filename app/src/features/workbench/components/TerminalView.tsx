@@ -16,7 +16,7 @@ export function TerminalView({ id, visible, stop, restart }: {
     <header className={styles.toolbar}><span role="status">{terminal.status}</span>
       <Button type="text" size="small" aria-label="清空终端显示" title="清屏" icon={<Eraser size={14} />} onClick={terminal.clear} />
       <Button type="text" size="small" aria-label="重启终端" title="重启终端" icon={<RotateCcw size={14} />} onClick={restart} />
-      <Button type="text" size="small" aria-label="停止终端" title="停止终端" disabled={terminal.status === "已停止"} icon={<Square size={13} />} onClick={stop} />
+      <Button type="text" size="small" aria-label="停止终端" title="停止终端" disabled={terminal.status === "已停止" || terminal.status.includes("已结束")} icon={<Square size={13} />} onClick={stop} />
     </header>
     <div className={styles.viewport} ref={terminal.viewport} onClick={terminal.focus} />
     {terminal.error && <p className={styles.error} role="alert">{terminal.error}</p>}

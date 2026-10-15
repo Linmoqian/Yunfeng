@@ -33,6 +33,7 @@ if (sdk.CONFIG_DIR_NAME !== ".lin") {
 export const {
   CONFIG_DIR_NAME,
   getAgentDir,
+  createBashToolDefinition,
   createAgentSessionServices,
   createAgentSessionFromServices,
   SessionManager,

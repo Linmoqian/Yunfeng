@@ -625,7 +625,8 @@ pub(crate) fn spawn_server_service(
     app: tauri::AppHandle,
     inner: Arc<Mutex<Option<ServiceChild>>>,
 ) -> Result<ServiceStatus, String> {
-    let (command, args) = server_service()?;
+    let (mut command, args) = server_service()?;
+    app.state::<terminal::AgentBridge>().configure(&mut command);
     spawn_service(
         inner,
         app,
@@ -788,7 +789,9 @@ fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    app.manage(terminal::Runtime::default());
+    let terminal = terminal::Runtime::default();
+    app.manage(terminal::AgentBridge::start(terminal.clone())?);
+    app.manage(terminal);
     app.manage(component_sharing::Runtime::new(
         app.path()
             .app_data_dir()?

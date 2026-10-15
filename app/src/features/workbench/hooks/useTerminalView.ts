@@ -82,7 +82,9 @@ export function useTerminalView(id: string, visible: boolean) {
         cursor = chunk.cursor;
         terminal.options.disableStdin = chunk.closed;
         if (chunk.failed) setError("终端输出读取失败，请重新启动");
-        setStatus(chunk.closed ? "已停止" : "已连接");
+        setStatus(chunk.agent
+          ? chunk.closed ? `Agent · 已结束${chunk.exitCode != null ? `（${chunk.exitCode}）` : ""}` : "Agent · 运行中"
+          : chunk.closed ? "已停止" : "已连接");
         if (!chunk.closed) timer = setTimeout(() => { void read(); }, chunk.data.length ? 10 : 100);
       } catch (reason) { if (!disposed) { fail(reason); setStatus("连接中断"); } }
     };
