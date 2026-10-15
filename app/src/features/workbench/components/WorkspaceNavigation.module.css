@@ -24,14 +24,9 @@
 .loadState svg { flex: none; }
 .loadState span { min-width: 0; }
 .loadState button { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
-.spinner { animation: spin 1.2s linear infinite; }
-.skeleton { display: grid; gap: 12px; padding: 12px 10px 16px; animation: appear 160ms 120ms both; }
-.skeleton i { height: 24px; border-radius: var(--yf-radius-sm); background: var(--yf-bg-secondary); animation: breathe 1.5s ease-in-out infinite alternate; }
-.skeleton i:nth-child(2) { width: 84%; }
-.skeleton i:nth-child(3) { width: 65%; }
+.loadingPlaceholder { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0 14px; color: var(--yf-text-tertiary); font-size: 11px; animation: appear 160ms 120ms both; }
 .groupToggle:hover, .loadState button:hover { background: var(--yf-bg-secondary); }
 .groupToggle:focus-visible, .loadState button:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes breathe { to { opacity: .45; } }
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } .skeleton, .skeleton i, .spinner, .row .statusIcon[data-tone="running"] { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } .loadingPlaceholder, .row .statusIcon[data-tone="running"] { animation: none; } }
