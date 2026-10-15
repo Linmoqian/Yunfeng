@@ -1,4 +1,4 @@
-/* 会话欢迎页与项目输入，沿用 Yunfeng 主题变量。
+/* 会话欢迎页与模式选择，沿用 Yunfeng 主题变量。
  * Created on 2026-10-15
  * @author: https://github.com/Linmoqian
  */
@@ -8,6 +8,5 @@
 .welcome p { margin: 0; color: var(--yf-text-secondary); font-size: 14px; }
 .welcome > span { color: var(--yf-text-tertiary); font-size: 12px; }
 .modeSelector { margin: 4px 0; max-width: 100%; }
-.project { max-width: 420px; }
 .modeLabel { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 76px; min-height: 44px; }
 @media (max-height: 540px) { .welcome { gap: 8px; padding: 12px; } .welcome img { width: 64px; height: 64px; } }

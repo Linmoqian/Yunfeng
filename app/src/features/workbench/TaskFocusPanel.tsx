@@ -44,7 +44,6 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
   const reduced = useReducedMotion();
   const [sending, setSending] = useState(false);
   const [workMode, setWorkMode] = useState<"development" | "research">("development");
-  const [researchProject, setResearchProject] = useState("");
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
   const [showThinking, setShowThinking] = useState(() => window.localStorage.getItem("yunfeng-show-thinking") === "true");
   const conversationLogRef = useRef<HTMLDivElement>(null);
@@ -103,7 +102,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
 
     try {
       if (draft) {
-        const { task: createdTask } = await createConversation(modelSelection, next, { mode: workMode, ...(workMode === "research" && researchProject.trim() ? { cwd: researchProject.trim() } : {}) });
+        const { task: createdTask } = await createConversation(modelSelection, next, { mode: workMode });
         setLocalTask(createdTask);
         setMessageStatus(optimisticId, "sent");
         onTaskUpdated(createdTask);
@@ -205,7 +204,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
       <div className="focus-panel__body">
         {activeTask?.mode === "research" && <ResearchRuntimeCard task={activeTask} />}
         <section className="conversation-section" aria-label="对话">
-          {draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} project={researchProject} onProjectChange={setResearchProject} /> : <ConversationLog
+          {draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} /> : <ConversationLog
             ref={conversationLogRef}
             items={conversation}
             toolCalls={toolCalls}
