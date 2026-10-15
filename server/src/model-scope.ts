@@ -80,7 +80,9 @@ export function selectInitialModelScope(
   options: InitialModelScopeOptions = {},
 ): InitialModelScopeResult {
   const requestedRef = options.requestedModel;
-  const defaultRef = options.defaultModel;
+  const projectDefault = process.env.YUNFENG_MODEL_PROVIDER && process.env.YUNFENG_MODEL_ID
+    ? { provider: process.env.YUNFENG_MODEL_PROVIDER, modelId: process.env.YUNFENG_MODEL_ID } : undefined;
+  const defaultRef = projectDefault ?? options.defaultModel;
   const requested = requestedRef
     ? scope.visible.find((model) => matchesModel(model, requestedRef))
     : undefined;

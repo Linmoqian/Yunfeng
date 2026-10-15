@@ -105,7 +105,8 @@ test("执行前阻断越界、链接和未授权命令，不将字符串指标�
     await writeFile(join(ctx.cwd, condition.path), '{"accuracy":"0.99"}');
     assert.equal((await evaluate(ctx.cwd, condition)).passed, false);
     assert.throws(() => parsePlan({ decision: "act", reason: "无验收", steps: plan.steps }), /验收/);
-    assert.throws(() => parsePlan({ ...plan, steps: [{ action: "write_file", path: "large.txt", content: "中".repeat(30000) }] }), /过长/);
+    assert.throws(() => parsePlan({ ...plan, steps: [{ action: "write_file", path: "large.txt", content: "中".repeat(30000) }] }), /64 KiB/);
+    assert.throws(() => parsePlan({ ...plan, steps: [{ action: "write_file", path: "config.json", content: { value: 1 } }] }), /文本字符串/);
   } finally { await ctx.close(); }
 });
 
@@ -276,6 +277,7 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
   const root = await mkdtemp(join(tmpdir(), "yf-pi-research-"));
   const agentDir = join(root, ".lin/agent"), cwd = join(root, "project");
   const requests: Record<string, unknown>[] = [];
+  let planRequests = 0;
   const endpoint = createServer(async (req, res) => {
     let body = ""; for await (const chunk of req) body += chunk;
     const data = JSON.parse(body); requests.push(data);
@@ -286,7 +288,8 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
     }
     const last = data.messages.at(-1).content;
     const context = JSON.parse(typeof last === "string" ? last : last.map((part: { text?: string }) => part.text ?? "").join(""));
-    const content = JSON.stringify(context.phase === "decide" ? { decision: "wait", reason: "等待候选事实", candidates: [] } : context.phase === "plan" ? { decision: "wait", reason: "等待真实项目事件", steps: [] } : learning);
+    const invalid = { decision: "act", reason: "配置", steps: [{ action: "write_file", path: "config.json", content: { value: 1 } }], success_condition: { kind: "file_exists", path: "config.json" } };
+    const content = JSON.stringify(context.phase === "decide" ? { decision: "wait", reason: "等待候选事实", candidates: [] } : context.phase === "plan" ? (++planRequests === 1 ? invalid : { decision: "wait", reason: "等待真实项目事件", steps: [] }) : learning);
     const frame = (delta: object, finish_reason: string | null) => `data: ${JSON.stringify({ id: "stub", object: "chat.completion.chunk", created: 0, model: "research-local", choices: [{ index: 0, delta, finish_reason }] })}\n\n`;
     res.writeHead(200, { "Content-Type": "text/event-stream" });
     res.end(frame({ role: "assistant", content }, null) + frame({}, "stop") + "data: [DONE]\n\n");
@@ -312,9 +315,11 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
       await assert.rejects(reason('decide', { goal: 'REJECT_AUTH' }, AbortSignal.timeout(15000)), (error) => error.message.includes('HTTP 401') && error.message.includes('认证失败') && !error.message.includes('private-credential'));
       console.log('pi-research-isolation-ok');
     `;
-    const child = await promisify(execFile)(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], { cwd: new URL("../", import.meta.url), env: { ...process.env, YUNFENG_AGENT_DIR: agentDir, YUNFENG_DATA_DIR: join(root, "data") }, timeout: 35000 });
+    const envFile = join(root, "empty.env"); await writeFile(envFile, "");
+    const child = await promisify(execFile)(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], { cwd: new URL("../", import.meta.url), env: { ...process.env, YUNFENG_ENV_FILE: envFile, YUNFENG_AGENT_DIR: agentDir, YUNFENG_DATA_DIR: join(root, "data") }, timeout: 35000 });
     assert.match(child.stdout, /pi-research-isolation-ok/);
-    assert.equal(requests.length, 4);
+    assert.equal(requests.length, 5);
+    assert.equal(planRequests, 2);
     for (const request of requests) {
       assert.ok(!request.tools || (request.tools as unknown[]).length === 0);
       assert.ok(!JSON.stringify(request).includes("UNTRUSTED_PROJECT_CONTEXT_MARKER"));

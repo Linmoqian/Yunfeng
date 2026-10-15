@@ -17,9 +17,10 @@ function withHome(run: (home: string) => void): void {
 function runIsolated(home: string, script: string, overrides: Record<string, string> = {}): string {
   const env = { ...process.env };
   for (const key of ["YUNFENG_AGENT_DIR", "YUNFENG_RUNTIME_HOME", "YUNFENG_DATA_DIR", "LIN_CODING_AGENT_DIR", "LIN_CODING_AGENT_SESSION_DIR", "PI_PACKAGE_DIR"]) delete env[key];
+  writeFileSync(join(home, ".env"), "");
   return execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
     cwd: new URL("../", import.meta.url),
-    env: { ...env, HOME: home, USERPROFILE: home, ...overrides },
+    env: { ...env, HOME: home, USERPROFILE: home, YUNFENG_ENV_FILE: join(home, ".env"), ...overrides },
     encoding: "utf8",
     timeout: 30_000,
   });
@@ -96,5 +97,24 @@ test("SDK 提前按 Pi 命名空间加载时明确拒绝启动", () => {
       console.log('early-import-rejected');
     `);
     assert.match(output, /early-import-rejected/);
+  });
+});
+
+test("项目环境不覆盖宿主变量，默认模型可用且显式任务模型优先", () => {
+  withHome((home) => {
+    const envFile = join(home, "model.env");
+    writeFileSync(envFile, "ZAI_API_KEY=fixture-key-only\nYUNFENG_MODEL_PROVIDER=project\nYUNFENG_MODEL_ID=project-model\n");
+    const output = runIsolated(home, `
+      import assert from 'node:assert/strict';
+      await import('./src/environment.ts');
+      const { selectInitialModelScope } = await import('./src/model-scope.ts');
+      assert.equal(process.env.ZAI_API_KEY, 'host-key-only');
+      const project = { provider: 'project', id: 'project-model' }, explicit = { provider: 'task', id: 'task-model' };
+      const scope = { visible: [project, explicit], scopedModels: [], thinkingLevelPins: {}, warnings: [] };
+      assert.equal(selectInitialModelScope(scope).model, project);
+      assert.equal(selectInitialModelScope(scope, { requestedModel: { provider: 'task', modelId: 'task-model' } }).model, explicit);
+      console.log('project-env-ok');
+    `, { YUNFENG_ENV_FILE: envFile, ZAI_API_KEY: "host-key-only" });
+    assert.match(output, /project-env-ok/);
   });
 });

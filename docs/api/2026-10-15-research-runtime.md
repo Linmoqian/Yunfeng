@@ -25,14 +25,16 @@
 | mode | body | string | 否 | development | development / research | 科研模式进入自主 Runtime |
 | cwd | body | string | 否 | Server 当前目录 | 必须为存在的目录 | 以真实路径作为项目与记忆范围 |
 | message | body | string | 科研时是 | — | 非空，最多 10000 字符 | 原始目标；不会因反思自动替换 |
-| model | body | object | 否 | Lin 设置选择的模型 | provider、modelId 字符串 | 当前节点的 Pi 规划/反思模型 |
-| decisionModel | body | object | 否 | 同 model；未指定时使用 Lin 设置 | provider、modelId 非空，分别 ≤200 字符 | 独立决策模型，用于目标树局部提案；可配置小模型 |
+| model | body | object | 否 | 项目环境或 Lin 默认模型 | provider、modelId 字符串 | 当前节点的 Pi 规划/反思模型 |
+| decisionModel | body | object | 否 | 同 model；未指定时使用默认模型 | provider、modelId 非空，分别 ≤200 字符 | 独立决策模型，用于目标树局部提案；可配置小模型 |
 | decisionBudget | body | number | 否 | 10 | 有限数值，0 < 值 ≤1000 | 相对估计成本总预算；不表示金额或 GPU 时间 |
 | maxCycles | body | integer | 否 | 20 | 1–1000 轮 | 本次规划预算 |
 | permissions.commands | body | object[] | 否 | [] | 最多 20 项；program ≤500 字符；args 最多 32 项，每项 ≤2000 字符，无 NUL | 完整程序和参数精确匹配的预授权命令 |
 | permissions.writeRoots | body | string[] | 否 | [".lin/experiments"] | 最多 8 个项目内相对目录，每项 ≤500 字符 | 自动写入范围，不覆盖目录自身 |
 
 科研任务 commands 支持 `abort` 暂停、`retry`/`reopen` 继续、`prompt`/`steer`/`followUp` 补充目标、`setModel` 切换并暂停、`complete`/`archive` 人工关闭，以及空的 `getQueue`/`clearQueue`。补充后的总目标不得超过 10000 字符。人工关闭不表示指标实测通过；以 `autonomy.phase === COMPLETED` 判断自动验收。
+
+任务显式模型优先；未指定时，仓库根 `.env` 的 `YUNFENG_MODEL_PROVIDER` 与 `YUNFENG_MODEL_ID` 优先于 Lin 默认设置。宿主环境变量优先于文件，凭据仅服务端加载，修改后重启后端。`YUNFENG_ENV_FILE` 可指定其他环境文件；不读取 Pi 配置。
 
 批准/拒绝使用既有 `POST /api/tasks/:id/interventions/:requestId/resolve`，body 为 `{"decision":"approve"}` 或 `{"decision":"reject"}`。确认卡展示计划全部步骤、写入内容与验收条件；批准仅适用于该次完整计划，执行或暂停后失效。
 
@@ -61,6 +63,8 @@
 `observation` 完整事实保存在服务端检查点，不通过任务摘要返回。作业 status 为 running / succeeded / failed / cancelled / interrupted。验收引用项目普通文件，或 JSON 有限数值字段与 `>`、`>=`、`<`、`<=`、`==` 的比较；数值字符串不算达标。
 
 `decision.mission` 包含 id=mission、objective 和首次确定后锁定的 condition。`nodes` 最多 100 项，每项有 id、parent、objective、kind（group/explore/execute）、priority、confidence、cost、expected_gain、status、attempts，以及执行后的 fingerprint、jobId 和精简 result。节点身份和状态由服务端维护，父节点必须是 mission 或分组，最多四层。status 为 pending/running/succeeded/failed/blocked；分组仅用于目标层级，不单独执行或宣称实测通过。
+
+模型滚动提案引用已有节点 ID 时，只更新尚可尝试节点的评分估计；原目标、父节点、类型、尝试次数和结果不重置。plan 的 write_file.content 必须是字符串，JSON 文件内容须先序列化。JSON 或阶段结构错误最多请求模型纠正一次，仍受同一阶段时限约束；认证或服务错误不触发结构纠正。
 
 收益、成功概率和成本均为 0–1 的模型估计；priority=`expected_gain*0.5+confidence*0.3-cost*0.2`。horizon 为评分最高的最多五个可执行节点 ID；selectedId 是本轮选择。规则仅选择正评分、预算允许、尚未成功且未耗尽两次尝试的节点。预算 spent 在副作用前预留，成功、失败或中断均不退还。反思文本不能改变实测结果。
 
@@ -163,3 +167,4 @@ Pi plan 示例（验收当前选中的节点）：
 | 2026-10-15 | 0.1.0 | 兼容 | 目标树、决策模型、规则评分与预算 | 可选新增字段；旧任务下轮规划时建立树，未知作业恢复规则不变 |
 | 2026-10-15 | 0.1.0 | 兼容 | 本地 Hook 层、事件上下文、去重与背压 | 新增可选 trigger；既有 API 不变，旧检查点恢复时重新观察 |
 | 2026-10-15 | 0.1.0 | 修复 | 科研任务项目目录识别与模型失败诊断 | 无字段变更；错误原因仅公开固定诊断与状态码 |
+| 2026-10-15 | 0.1.0 | 修复 | 项目环境配置、模型结构纠正与滚动节点身份 | 无持久化字段变更；显式任务模型继续优先 |

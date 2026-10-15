@@ -41,6 +41,8 @@ pnpm tauri dev
 
 首次使用在 `~/.lin/agent/` 独立配置模型和认证。默认不读取 `~/.pi` 或项目 `.pi`，旧任务与凭据不自动迁移。全局与项目资源规则见 [Server README](server/README.md)。
 
+本机开发可使用仓库根 `.env` 配置服务端模型与密钥，字段见 [.env.example](.env.example)；实际 `.env` 已忽略，修改后重启服务生效。
+
 分模块启动：
 
 ```bash

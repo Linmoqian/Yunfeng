@@ -38,7 +38,9 @@ export function decide(previous: DecisionState, proposal: DecisionProposal): Dec
   for (const candidate of proposal.candidates) {
     const parent = aliases.get(candidate.parent);
     if (!parent || depth(state, parent) >= 4) throw new Error("候选父节点无效或目标树过深");
-    const existing = state.nodes.find((n) => identity(n.objective) === identity(candidate.objective));
+    // 已有 ID 是稳定身份；滚动提案可重述说明，但不能借此新建节点或重置结果。
+    const existing = state.nodes.find((n) => n.id === candidate.key)
+      ?? state.nodes.find((n) => identity(n.objective) === identity(candidate.objective));
     if (existing && (existing.parent !== parent || existing.kind !== candidate.kind)) throw new Error("重复目标不能换父节点或类型来重置任务");
     const node: TaskNode = existing ?? { id: digest([state.mission.objective, identity(candidate.objective)]).slice(0, 24), parent, objective: candidate.objective, kind: candidate.kind, priority: 0, confidence: 0, cost: 0, expected_gain: 0, status: "pending", attempts: 0 };
     if (aliases.has(candidate.key) && aliases.get(candidate.key) !== node.id) throw new Error("候选 key 不能覆盖目标或已有节点身份");

@@ -49,6 +49,11 @@ test("执行预算先预留，身份与尝试持久化，重复事实与条件�
   assert.throws(() => decide(tree, { ...proposal([]), mission_condition: { ...condition, value: 0.8 } }), /锁定/);
   feedback(checkpoint, { job_id: "job-1", status: "failed" });
   assert.equal(tree.nodes[0]!.status, "failed");
+  const revised = decide(tree, proposal([{ ...candidate(tree.nodes[0]!.id), objective: "模型重述目标" }]));
+  assert.equal(revised.nodes.length, 1);
+  assert.equal(revised.nodes[0]!.objective, "实验");
+  assert.equal(revised.nodes[0]!.attempts, 1);
+  assert.equal(revised.nodes[0]!.result!.job_id, "job-1");
 });
 
 test("模型不能无限扩展、重置身份或生成循环父节点", () => {

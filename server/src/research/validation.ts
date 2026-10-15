@@ -14,7 +14,8 @@ export function text(value: unknown, max = 4000): string {
 export function step(value: unknown): Step {
   const item = record(value);
   if (item.action === "write_file") {
-    if (typeof item.content !== "string" || Buffer.byteLength(item.content, "utf8") > 65536) throw new Error("文件内容无效或过长");
+    if (typeof item.content !== "string") throw new Error("write_file.content 必须是文本字符串，JSON 对象须先序列化");
+    if (Buffer.byteLength(item.content, "utf8") > 65536) throw new Error("文件内容超过 64 KiB 限制");
     return { action: "write_file", path: text(item.path, 500), content: item.content };
   }
   if (item.action === "run_command" && Array.isArray(item.args) && item.args.length <= 32 && item.args.every((arg) => typeof arg === "string" && arg.length <= 2000 && !arg.includes("\0"))) {

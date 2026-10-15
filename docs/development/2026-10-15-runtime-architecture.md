@@ -13,6 +13,7 @@
 | 内容 | 事实来源 | 默认位置 |
 | --- | --- | --- |
 | 模型、认证、全局设置和资源 | Lin 命名空间中的 Pi SDK | `~/.lin/agent/` |
+| 本机项目模型环境配置 | Node 服务端在 SDK 初始化前加载，宿主变量优先 | 仓库根 `.env`；可用 `YUNFENG_ENV_FILE` 显式指定 |
 | 开发 Agent 会话 | Pi JSONL 会话管理 | `~/.lin/agent/sessions/` |
 | 科研检查点与运行记录 | Server TaskStore；Pi 临时会话仅作决策 | `~/.lin/tasks/` |
 | 任务状态、事件和审批 | Server TaskStore | `~/.lin/tasks/` |

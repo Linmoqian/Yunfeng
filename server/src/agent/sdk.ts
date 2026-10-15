@@ -2,6 +2,7 @@
  * Created on 2026-10-15
  * @author: https://github.com/Linmoqian
  */
+import "../environment.js";
 import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
