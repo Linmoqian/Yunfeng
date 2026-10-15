@@ -8,8 +8,31 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isExistingFilePathAllowed, isFilePathAllowed, isWindowsAbsolutePath } from "../src/file-access.js";
+import { getAllowedFileRoots, isExistingFilePathAllowed, isFilePathAllowed, isWindowsAbsolutePath } from "../src/file-access.js";
 import { sessionPathKey } from "../src/session-path.js";
+import { createTaskContextForDataDir } from "../src/task/task-context.js";
+
+test("科研任务目录不依赖 Pi 会话，创建和归档立即更新权限且链接不能越界", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "yf-research-access-"));
+  const context = createTaskContextForDataDir(path.join(root, "data"));
+  const previous = globalThis.__yfContext, cache = globalThis.__piAllowedRootsCache;
+  globalThis.__yfContext = context;
+  globalThis.__piAllowedRootsCache = { roots: new Set(), expiresAt: Date.now() + 5000 };
+  try {
+    assert.equal(isFilePathAllowed(root, await getAllowedFileRoots()), false);
+    const task = context.store.create({ sessionId: "research-access", cwd: root, title: "科研", source: "task" });
+    context.store.update(task.id, (s) => { s.mode = "research"; });
+    const roots = await getAllowedFileRoots();
+    assert.equal(isExistingFilePathAllowed(root, roots), true);
+    const outside = path.dirname(root);
+    if (createSymlink(outside, path.join(root, "outside"))) assert.equal(isExistingFilePathAllowed(path.join(root, "outside"), roots), false);
+    context.store.update(task.id, (s) => { s.status = "archived"; });
+    assert.equal(isFilePathAllowed(root, await getAllowedFileRoots()), false);
+  } finally {
+    globalThis.__yfContext = previous; globalThis.__piAllowedRootsCache = cache;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("Windows 路径规范化后仍限制在允许根内", () => {
   assert.equal(sessionPathKey("C:\\Project\\Foo"), "c:/project/foo");

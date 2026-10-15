@@ -279,6 +279,11 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
   const endpoint = createServer(async (req, res) => {
     let body = ""; for await (const chunk of req) body += chunk;
     const data = JSON.parse(body); requests.push(data);
+    if (data.messages.some((m: { content: unknown }) => JSON.stringify(m.content).includes("REJECT_AUTH"))) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: { message: "private-credential-and-endpoint-must-not-leak" } }));
+      return;
+    }
     const last = data.messages.at(-1).content;
     const context = JSON.parse(typeof last === "string" ? last : last.map((part: { text?: string }) => part.text ?? "").join(""));
     const content = JSON.stringify(context.phase === "decide" ? { decision: "wait", reason: "等待候选事实", candidates: [] } : context.phase === "plan" ? { decision: "wait", reason: "等待真实项目事件", steps: [] } : learning);
@@ -304,11 +309,12 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
       assert.equal((await reason('decide', { goal: '局部决策' }, AbortSignal.timeout(15000))).decision, 'wait');
       assert.equal((await reason('plan', { goal: '本地验收' }, AbortSignal.timeout(15000))).decision, 'wait');
       assert.ok((await reason('reflect', { result: { status: 'succeeded' } }, AbortSignal.timeout(15000))).summary);
+      await assert.rejects(reason('decide', { goal: 'REJECT_AUTH' }, AbortSignal.timeout(15000)), (error) => error.message.includes('HTTP 401') && error.message.includes('认证失败') && !error.message.includes('private-credential'));
       console.log('pi-research-isolation-ok');
     `;
     const child = await promisify(execFile)(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], { cwd: new URL("../", import.meta.url), env: { ...process.env, YUNFENG_AGENT_DIR: agentDir, YUNFENG_DATA_DIR: join(root, "data") }, timeout: 35000 });
     assert.match(child.stdout, /pi-research-isolation-ok/);
-    assert.equal(requests.length, 3);
+    assert.equal(requests.length, 4);
     for (const request of requests) {
       assert.ok(!request.tools || (request.tools as unknown[]).length === 0);
       assert.ok(!JSON.stringify(request).includes("UNTRUSTED_PROJECT_CONTEXT_MARKER"));

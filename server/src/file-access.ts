@@ -1,11 +1,14 @@
-// 文件访问授权：允许的根目录集合（会话 cwd + ~/pi-cwd-*）。
+// 文件访问授权：允许的根目录集合（会话、科研任务 cwd 与 ~/pi-cwd-*）。
 // 移植自 pi-web lib/file-access.ts（简化，不含项目根 worktree 解析）。
+// Created on 2026-10-15
+// @author: https://github.com/Linmoqian
 
 import { readdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { listAllSessions } from "./session-reader.js";
 import { normalizeSlashes } from "./session-path.js";
+import { getTaskContext } from "./task/task-context.js";
 
 declare global {
   var __piAllowedRootsCache: { roots: Set<string>; expiresAt: number } | undefined;
@@ -28,7 +31,11 @@ export function allowFileRoot(dir: string): void {
 export async function getAllowedFileRoots(): Promise<Set<string>> {
   const now = Date.now();
   const cached = globalThis.__piAllowedRootsCache;
-  if (cached && cached.expiresAt > now) return cached.roots;
+  // 科研任务没有普通 Pi 会话；直接读取 TaskStore，创建或归档后立即生效。
+  const researchRoots = getTaskContext().store.findAll()
+    .filter((task) => task.mode === "research" && task.status !== "archived")
+    .map((task) => normalizeSlashes(task.cwd));
+  if (cached && cached.expiresAt > now) return new Set([...cached.roots, ...researchRoots]);
 
   const sessions = await listAllSessions();
   const roots = new Set<string>();
@@ -47,7 +54,7 @@ export async function getAllowedFileRoots(): Promise<Set<string>> {
   }
 
   globalThis.__piAllowedRootsCache = { roots, expiresAt: now + ALLOWED_ROOTS_TTL_MS };
-  return roots;
+  return new Set([...roots, ...researchRoots]);
 }
 
 export function isFilePathAllowed(target: string, allowedRoots: Set<string>): boolean {
