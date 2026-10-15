@@ -1,10 +1,11 @@
 /* 自主任务摘要沿用 Yunfeng 色彩与圆角。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
-.card { margin: 12px 20px 0; min-width: 0; }
-.line { display: flex; align-items: center; gap: 8px; min-height: 32px; }
-.line strong { margin-right: auto; color: var(--yf-text-secondary); font-size: 13px; font-weight: 500; }
+.card { margin: 0 0 8px; min-width: 0; }
+.line { display: flex; align-items: center; justify-content: center; gap: 6px; width: fit-content; max-width: 100%; min-height: 30px; margin: 0 auto; padding: 2px 5px 2px 12px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); }
+.line strong { color: var(--yf-text-secondary); font-size: 12px; font-weight: 400; white-space: nowrap; }
+.line :global(.ant-btn) { border-radius: 999px; }
 .card p { margin: 8px 0 4px; color: var(--yf-text-secondary); font-size: 13px; overflow-wrap: anywhere; }
 .details { max-width: min(420px, 75vw); overflow-wrap: anywhere; }
 .details p { margin: 0 0 8px; }

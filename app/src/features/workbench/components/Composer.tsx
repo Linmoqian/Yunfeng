@@ -1,16 +1,19 @@
 /* 会话输入与发送，科研模式统一补充目标，运行控制由状态栏承载。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import { Button, Input } from "antd";
-import { CircleStop, Send } from "lucide-react";
-import { useId, useState } from "react";
+import { ArrowUp, Code2, FlaskConical, Square, Zap } from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
+import styles from "./Composer.module.css";
 
 type StreamStatus = "connecting" | "idle" | "streaming" | "error";
 
 interface ComposerProps {
   isDraft: boolean;
   research?: boolean;
+  status?: ReactNode;
+  modelLabel?: string;
   running: boolean;
   isLegacy: boolean;
   sending: boolean;
@@ -20,7 +23,7 @@ interface ComposerProps {
   onStop: () => Promise<void>;
 }
 
-export function Composer({ isDraft, research = false, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
+export function Composer({ isDraft, research = false, status, modelLabel, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const messageId = useId();
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -44,8 +47,10 @@ export function Composer({ isDraft, research = false, running, isLegacy, sending
   }
 
   return (
+    <div className={styles.dock}>
+    {status}
     <form
-      className="focus-panel__composer"
+      className={styles.composer}
       onSubmit={(event) => {
         event.preventDefault();
         void handleSubmit();
@@ -88,38 +93,37 @@ export function Composer({ isDraft, research = false, running, isLegacy, sending
           </Button>
         </div>
       ) : null}
-      <div className="focus-panel__composer-footer">
-        {feedback ? (
-          <span className="focus-panel__composer-feedback" role={feedback.includes("失败") ? "alert" : "status"}>
-            {feedback}
-          </span>
-        ) : null}
+      {feedback && <p className={styles.feedback} role="alert">{feedback}</p>}
+      <div className={styles.footer}>
+        <span className={styles.mode}>{research ? <FlaskConical size={14} /> : <Code2 size={14} />}{research ? "科研" : "开发"}</span>
+        <span className={styles.model} title={modelLabel}><Zap size={13} aria-hidden="true" /><span>{modelLabel || (research ? "项目默认模型" : "服务默认模型")}</span></span>
         {showStop ? (
           <Button
-            className="focus-panel__composer-submit"
+            className={styles.submit}
             type="primary"
             shape="circle"
             onClick={() => void onStop()}
             disabled={stopping}
             loading={stopping}
-            icon={<CircleStop size={17} />}
+            icon={<Square size={11} fill="currentColor" />}
             aria-label="停止生成"
             title="停止生成"
           />
         ) : (
           <Button
-            className="focus-panel__composer-submit"
+            className={styles.submit}
             type="primary"
             shape="circle"
             onClick={() => void handleSubmit()}
             disabled={disabled}
             loading={sending}
-            icon={<Send size={16} />}
+            icon={<ArrowUp size={17} />}
             aria-label={isLegacy ? "发送并接入任务" : !research && running ? (nextActionMode === "steer" ? "转向" : "发送到下一轮") : "发送消息"}
             title="发送消息"
           />
         )}
       </div>
     </form>
+    </div>
   );
 }

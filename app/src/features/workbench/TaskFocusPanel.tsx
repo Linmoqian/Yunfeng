@@ -1,5 +1,5 @@
 // 会话聚焦编排，科研展示由独立 Runtime 卡片承载。
-// Created on 2026-10-15
+// Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 import { App } from "antd";
 import { motion, useReducedMotion } from "motion/react";
@@ -74,6 +74,8 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
   });
 
   const currentTitle = activeTask?.title ?? (legacySession?.name?.trim() || legacySession?.firstMessage || "新对话");
+  const composerModel = activeTask?.model ?? (draft ? modelSelection : null);
+  const composerModelLabel = composerModel ? modelCatalog?.models.find((item) => item.id === composerModel.modelId && item.provider === composerModel.provider)?.name ?? composerModel.modelId : undefined;
   const running = activeTask?.status === "running" || activeTask?.status === "waiting_approval";
 
   // 新消息到达时，会话区自动滚到底部。
@@ -204,7 +206,6 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
       transition={SESSION_ENTER}
     >
       <div className="focus-panel__body">
-        {activeTask?.mode === "research" && <ResearchRuntimeCard task={activeTask} />}
         <section className="conversation-section" aria-label="对话">
           {draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} /> : <ConversationLog
             ref={conversationLogRef}
@@ -226,6 +227,8 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         </section>
 
         <Composer
+          status={activeTask?.mode === "research" ? <ResearchRuntimeCard task={activeTask} /> : undefined}
+          modelLabel={composerModelLabel}
           isDraft={draft}
           research={activeTask?.mode === "research" || (draft && workMode === "research")}
           running={running}
