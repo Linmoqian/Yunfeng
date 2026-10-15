@@ -2,10 +2,9 @@
  * Created on 2026-10-15
  * @author: https://github.com/Linmoqian
  */
-.card { margin: 12px 16px 0; padding: 12px 16px; border: 1px solid var(--yf-border-default); border-radius: var(--yf-radius-lg); background: var(--yf-bg-surface); }
-.line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.line strong { color: var(--yf-text-primary); }
-.line span { margin-left: auto; color: var(--yf-text-tertiary); font-size: 12px; }
+.card { margin: 12px 20px 0; min-width: 0; }
+.line { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.line strong { margin-right: auto; color: var(--yf-text-secondary); font-size: 13px; font-weight: 500; }
 .card p { margin: 8px 0 4px; color: var(--yf-text-secondary); font-size: 13px; overflow-wrap: anywhere; }
 .details { max-width: min(420px, 75vw); overflow-wrap: anywhere; }
 .details p { margin: 0 0 8px; }

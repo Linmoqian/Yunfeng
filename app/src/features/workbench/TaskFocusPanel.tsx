@@ -114,7 +114,8 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         setMessageStatus(optimisticId, "sent");
         onTaskCreated?.(imported, next);
       } else if (activeTask) {
-        const commandType = running ? mode : "prompt";
+        // 科研指令统一更新目标并重新观察；不提供与后端行为不一致的排队选项。
+        const commandType = activeTask.mode === "research" ? "prompt" : running ? mode : "prompt";
         await sendTaskCommand(activeTask.id, { type: commandType, message: next });
         setMessageStatus(optimisticId, "sent");
       }
@@ -131,7 +132,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     if (!activeTask || sending) return;
     setMessageStatus(itemId, "sending");
     try {
-      const commandType = running ? "steer" : "prompt";
+      const commandType = activeTask.mode === "research" ? "prompt" : running ? "steer" : "prompt";
       await sendTaskCommand(activeTask.id, { type: commandType, message: text });
       setMessageStatus(itemId, "sent");
     } catch (error) {
@@ -225,6 +226,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
 
         <Composer
           isDraft={draft}
+          research={activeTask?.mode === "research" || (draft && workMode === "research")}
           running={running}
           isLegacy={isLegacy}
           sending={sending}

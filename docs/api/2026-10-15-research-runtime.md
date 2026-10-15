@@ -34,6 +34,8 @@
 
 科研任务 commands 支持 `abort` 暂停、`retry`/`reopen` 继续、`prompt`/`steer`/`followUp` 补充目标、`setModel` 切换并暂停、`complete`/`archive` 人工关闭，以及空的 `getQueue`/`clearQueue`。补充后的总目标不得超过 10000 字符。人工关闭不表示指标实测通过；以 `autonomy.phase === COMPLETED` 判断自动验收。
 
+桌面科研输入框统一以 `prompt` 补充目标，服务端中止当前工作、更新目标后重新观察；暂停与继续集中在状态栏。轮次、运行依据和项目目录通过“运行详情”查看。
+
 任务显式模型优先；未指定时，仓库根 `.env` 的 `YUNFENG_MODEL_PROVIDER` 与 `YUNFENG_MODEL_ID` 优先于 Lin 默认设置。宿主环境变量优先于文件，凭据仅服务端加载，修改后重启后端。`YUNFENG_ENV_FILE` 可指定其他环境文件；不读取 Pi 配置。
 
 批准/拒绝使用既有 `POST /api/tasks/:id/interventions/:requestId/resolve`，body 为 `{"decision":"approve"}` 或 `{"decision":"reject"}`。确认卡展示计划全部步骤、写入内容与验收条件；批准仅适用于该次完整计划，执行或暂停后失效。

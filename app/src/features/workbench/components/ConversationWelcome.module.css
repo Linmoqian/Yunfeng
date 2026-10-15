@@ -6,7 +6,6 @@
 .welcome img { object-fit: contain; }
 .welcome h1 { margin: 0; font-family: var(--font-display); color: var(--yf-text-primary); font-size: clamp(24px, 3vw, 34px); font-weight: 600; }
 .welcome p { margin: 0; color: var(--yf-text-secondary); font-size: 14px; }
-.welcome > span { color: var(--yf-text-tertiary); font-size: 12px; }
 .modeSelector { margin: 4px 0; max-width: 100%; }
 .modeLabel { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 76px; min-height: 44px; }
 @media (max-height: 540px) { .welcome { gap: 8px; padding: 12px; } .welcome img { width: 64px; height: 64px; } }

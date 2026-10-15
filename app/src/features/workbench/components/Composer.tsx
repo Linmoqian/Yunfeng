@@ -1,3 +1,7 @@
+/* 会话输入与发送，科研模式统一补充目标，运行控制由状态栏承载。
+ * Created on 2026-10-15
+ * @author: https://github.com/Linmoqian
+ */
 import { Button, Input } from "antd";
 import { CircleStop, Send } from "lucide-react";
 import { useId, useState } from "react";
@@ -6,6 +10,7 @@ type StreamStatus = "connecting" | "idle" | "streaming" | "error";
 
 interface ComposerProps {
   isDraft: boolean;
+  research?: boolean;
   running: boolean;
   isLegacy: boolean;
   sending: boolean;
@@ -15,7 +20,7 @@ interface ComposerProps {
   onStop: () => Promise<void>;
 }
 
-export function Composer({ isDraft, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
+export function Composer({ isDraft, research = false, running, isLegacy, sending, streamStatus, stopping, onSubmit, onStop }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const messageId = useId();
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -23,7 +28,7 @@ export function Composer({ isDraft, running, isLegacy, sending, streamStatus, st
 
   const streaming = streamStatus === "streaming";
   const hasDraft = Boolean(draft.trim());
-  const showStop = (streaming || running) && !hasDraft;
+  const showStop = !research && (streaming || running) && !hasDraft;
   const disabled = sending || !draft.trim();
 
   async function handleSubmit() {
@@ -57,12 +62,12 @@ export function Composer({ isDraft, running, isLegacy, sending, streamStatus, st
             void handleSubmit();
           }
         }}
-        placeholder={running ? "Agent 正在运行，消息将排入下一轮" : isDraft ? "输入后建立新对话" : "给 Yunfeng 发送消息"}
+        placeholder={research ? (isDraft ? "输入研究目标…" : "补充目标，重新规划…") : running ? "Agent 正在运行，消息将排入下一轮" : isDraft ? "输入后建立新对话" : "给 Yunfeng 发送消息"}
         autoSize={{ minRows: 1, maxRows: 6 }}
         disabled={sending}
         maxLength={10000}
       />
-      {running && hasDraft ? (
+      {!research && running && hasDraft ? (
         <div className="focus-panel__mode-switch" role="group" aria-label="下一轮处理方式">
           <span className="focus-panel__mode-label">运行中发送为</span>
           <Button
@@ -110,7 +115,7 @@ export function Composer({ isDraft, running, isLegacy, sending, streamStatus, st
             disabled={disabled}
             loading={sending}
             icon={<Send size={16} />}
-            aria-label={isLegacy ? "发送并接入任务" : running ? (nextActionMode === "steer" ? "转向" : "发送到下一轮") : "发送消息"}
+            aria-label={isLegacy ? "发送并接入任务" : !research && running ? (nextActionMode === "steer" ? "转向" : "发送到下一轮") : "发送消息"}
             title="发送消息"
           />
         )}

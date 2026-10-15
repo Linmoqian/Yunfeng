@@ -25,8 +25,7 @@ export function ConversationWelcome({ mode, onModeChange }: Props) {
       ]}
     />
     <p aria-live="polite">{mode === "development"
-      ? "编写代码、排查问题，或构建一个应用。"
-      : "设定研究目标，自主观察、实验并积累经验。"}</p>
-    <span>{mode === "research" ? "在下方输入研究目标，开始自主工作。" : "在下方输入第一条消息，开始与云枫对话。"}</span>
+      ? "编写代码、排查问题，或构建应用。"
+      : "输入研究目标，云枫将自主推进。"}</p>
   </section>;
 }

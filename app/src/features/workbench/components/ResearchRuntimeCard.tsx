@@ -4,11 +4,11 @@
  */
 import { useState } from "react";
 import { Button, Popover } from "antd";
-import { Pause, Play } from "lucide-react";
+import { Ellipsis, Pause, Play } from "lucide-react";
 import { sendTaskCommand, type TaskState } from "../../../services/taskService";
 import { researchProgress } from "../researchPresentation";
 import styles from "./ResearchRuntimeCard.module.css";
-const labels = { OBSERVING: "观察", PLANNING: "计划", EXECUTING: "执行", WAITING: "等待事件", REFLECTING: "反思", PAUSED: "已暂停", COMPLETED: "已验收", FAILED: "需要处理" };
+const labels = { OBSERVING: "查看进展", PLANNING: "分析中", EXECUTING: "实验中", WAITING: "等待中", REFLECTING: "整理结果", PAUSED: "已暂停", COMPLETED: "已完成", FAILED: "需要处理" };
 export function ResearchRuntimeCard({ task }: { task: TaskState }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,13 +22,13 @@ export function ResearchRuntimeCard({ task }: { task: TaskState }) {
     finally { setBusy(false); }
   }
   return <aside className={styles.card} aria-label="科研自主任务">
-    <div className={styles.line}><strong>科研 · {labels[state.phase]}</strong><span>第 {state.cycle} / {state.maxCycles} 轮</span>
+    <div className={styles.line}><strong aria-live="polite">科研 · {labels[state.phase]}</strong>
       {state.phase !== "COMPLETED" && <Button size="small" loading={busy} onClick={() => void control()} icon={paused ? <Play size={14} /> : <Pause size={14} />}>{paused ? "继续" : "暂停"}</Button>}
-      <Popover trigger="click" title="运行详情" content={<div className={styles.details}><p>{state.reason}</p><small>{task.cwd}</small></div>}>
-        <Button type="text" size="small">详情</Button>
+      <Popover trigger="click" title="运行详情" content={<div className={styles.details}><p>第 {state.cycle} / {state.maxCycles} 轮</p><p>{state.reason}</p><small>{task.cwd}</small></div>}>
+        <Button type="text" size="small" aria-label="运行详情" title="运行详情" icon={<Ellipsis size={16} />} />
       </Popover>
     </div>
-    <p aria-live="polite">{researchProgress(state)}</p>
+    {(paused || state.approvalId) && <p aria-live="polite">{researchProgress(state)}</p>}
     {error && <p role="alert">{error}</p>}
   </aside>;
 }
