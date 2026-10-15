@@ -1,11 +1,13 @@
 /* 会话欢迎页与模式选择，沿用 Yunfeng 主题变量。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 .welcome { display: flex; flex: 1; min-height: 0; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px; text-align: center; }
 .welcome img { object-fit: contain; }
 .welcome h1 { margin: 0; font-family: var(--font-display); color: var(--yf-text-primary); font-size: clamp(24px, 3vw, 34px); font-weight: 600; }
 .welcome p { margin: 0; color: var(--yf-text-secondary); font-size: 14px; }
-.modeSelector { margin: 4px 0; max-width: 100%; }
+.modeSelector:global(.ant-segmented) { margin: 4px 0; max-width: 100%; padding: 4px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-surface); }
+.modeSelector :global(.ant-segmented-item), .modeSelector :global(.ant-segmented-thumb) { border-radius: 999px; }
+.modeSelector :global(.ant-segmented-item-selected) { color: var(--yf-brand-primary); background: var(--yf-bg-canvas); box-shadow: 0 1px 4px rgb(0 0 0 / 5%); }
 .modeLabel { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 76px; min-height: 44px; }
 @media (max-height: 540px) { .welcome { gap: 8px; padding: 12px; } .welcome img { width: 64px; height: 64px; } }
