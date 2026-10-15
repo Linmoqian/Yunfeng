@@ -1,6 +1,7 @@
 //! Tauri 组件状态与独立窗口边界；子窗口只访问所属组件。
-//! Created on 2026-10-14
+//! Created on 2026-10-16
 //! @author: https://github.com/Linmoqian
+pub(crate) mod agent;
 mod assets;
 mod document_export;
 pub mod export;
@@ -74,12 +75,19 @@ pub async fn component_patch(
     .await
     .map_err(|_| error("STATE_ERROR", "组件保存任务失败"))??;
     // 状态提交成功后事件仅作为通知；接收方按版本去重并定期读取补偿丢失。
-    for label in ["main".to_owned(), format!("component-{component}")] {
-        if let Some(target) = window.app_handle().get_webview_window(&label) {
+    publish(window.app_handle(), &snapshot);
+    Ok(snapshot)
+}
+
+fn publish(app: &tauri::AppHandle, snapshot: &Snapshot) {
+    for label in [
+        "main".to_owned(),
+        format!("component-{}", snapshot.component),
+    ] {
+        if let Some(target) = app.get_webview_window(&label) {
             let _ = target.emit("component-state-changed", &snapshot);
         }
     }
-    Ok(snapshot)
 }
 
 #[tauri::command]
@@ -91,9 +99,12 @@ pub async fn component_window(
     if window.label() != "main" {
         return Err(error("FORBIDDEN", "仅主窗口可管理组件窗口"));
     }
-    let name = title(&component)?;
+    set_window(window.app_handle(), &component, open)
+}
+
+fn set_window(app: &tauri::AppHandle, component: &str, open: bool) -> Result<(), Error> {
+    let name = title(component)?;
     let label = format!("component-{component}");
-    let app = window.app_handle();
     if let Some(existing) = app.get_webview_window(&label) {
         if !open {
             return existing

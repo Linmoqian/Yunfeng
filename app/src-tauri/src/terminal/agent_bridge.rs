@@ -1,4 +1,4 @@
-//! 桌面私有 Agent 通道；复用同一 PTY 注册表，不对 Web 暴露命令接口。
+//! 桌面私有 Agent 通道；复用 PTY 和组件状态，不对 Web 暴露命令接口。
 //! Created on 2026-10-16
 //! @author: https://github.com/Linmoqian
 use super::model::{error, Request, Result, MAX_SESSIONS};
@@ -24,18 +24,40 @@ struct Envelope {
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
-    Start { cwd: String, command: String },
-    Read { id: String, cursor: u64 },
-    Stop { id: String },
-    Release { id: String },
+    Component {
+        request: crate::component_sharing::agent::Request,
+    },
+    Start {
+        cwd: String,
+        command: String,
+    },
+    Read {
+        id: String,
+        cursor: u64,
+    },
+    Stop {
+        id: String,
+    },
+    Release {
+        id: String,
+    },
 }
 struct Handler {
     runtime: Runtime,
+    app: Option<tauri::AppHandle>,
     owned: HashSet<String>,
     released: VecDeque<String>,
 }
 impl Handler {
     fn dispatch(&mut self, action: Action) -> Result<Value> {
+        if let Action::Component { request } = action {
+            let app = self
+                .app
+                .as_ref()
+                .ok_or_else(|| error("UNAVAILABLE", "组件接口未连接桌面"))?;
+            return crate::component_sharing::agent::execute(app, request)
+                .map_err(|e| error(e.code, e.message));
+        }
         if let Action::Start { cwd, command } = action {
             self.owned.retain(|id| self.runtime.get(id).is_ok());
             self.released.retain(|id| self.owned.contains(id));
@@ -61,6 +83,7 @@ impl Handler {
         let id = match &action {
             Action::Read { id, .. } | Action::Stop { id } | Action::Release { id } => id,
             Action::Start { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
+            Action::Component { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
         };
         if !self.owned.contains(id) {
             return Err(error("FORBIDDEN", "该终端不属于 Agent"));
@@ -85,7 +108,7 @@ impl Handler {
         stream.set_read_timeout(Some(Duration::from_secs(2)))?;
         stream.set_write_timeout(Some(Duration::from_secs(2)))?;
         let mut line = String::new();
-        BufReader::new((&mut *stream).take(128 * 1024)).read_line(&mut line)?;
+        BufReader::new((&mut *stream).take(8 * 1024 * 1024)).read_line(&mut line)?;
         let response = match serde_json::from_str::<Envelope>(&line) {
             Ok(envelope) if envelope.token == token => match self.dispatch(envelope.request) {
                 Ok(value) => json!({ "result": value }),
@@ -105,7 +128,7 @@ pub struct AgentBridge {
     thread: Option<JoinHandle<()>>,
 }
 impl AgentBridge {
-    pub fn start(runtime: Runtime) -> std::io::Result<Self> {
+    pub fn start(runtime: Runtime, app: Option<tauri::AppHandle>) -> std::io::Result<Self> {
         let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))?;
         let address = listener.local_addr()?;
         let token = uuid::Uuid::new_v4().to_string();
@@ -117,6 +140,7 @@ impl AgentBridge {
             .spawn(move || {
                 let mut handler = Handler {
                     runtime,
+                    app,
                     owned: HashSet::new(),
                     released: VecDeque::new(),
                 };
@@ -137,6 +161,8 @@ impl AgentBridge {
         })
     }
     pub fn configure(&self, command: &mut std::process::Command) {
+        command.env("YUNFENG_APP_PORT", self.address.port().to_string());
+        command.env("YUNFENG_APP_TOKEN", &self.token);
         command.env("YUNFENG_TERMINAL_PORT", self.address.port().to_string());
         command.env("YUNFENG_TERMINAL_TOKEN", &self.token);
     }

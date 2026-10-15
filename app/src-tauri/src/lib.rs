@@ -2,7 +2,7 @@
 // - 窗口 + 系统托盘（状态展示与分项快捷操作见 tray.rs）
 // - 一键启动编排：yunfeng-server + yunfeng-gateway + yunfeng-mobile-backend + RustDesk
 // - 支持 YUNFENG_RUNTIME_HOME 将整套后端切到可写 HOME，并派生 LIN_CODING_AGENT_DIR
-// Created on 2026-10-15
+// Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 
 mod collaboration;
@@ -790,7 +790,10 @@ fn rustdesk_status(state: State<'_, RustDeskState>) -> RustDeskStatus {
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let terminal = terminal::Runtime::default();
-    app.manage(terminal::AgentBridge::start(terminal.clone())?);
+    app.manage(terminal::AgentBridge::start(
+        terminal.clone(),
+        Some(app.handle().clone()),
+    )?);
     app.manage(terminal);
     app.manage(component_sharing::Runtime::new(
         app.path()

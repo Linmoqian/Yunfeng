@@ -34,6 +34,7 @@ export const {
   CONFIG_DIR_NAME,
   getAgentDir,
   createBashToolDefinition,
+  defineTool,
   createAgentSessionServices,
   createAgentSessionFromServices,
   SessionManager,

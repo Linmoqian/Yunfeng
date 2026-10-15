@@ -25,6 +25,7 @@ import { getInterventionHandlerOrReject } from "./task/intervention-bridge.js";
 import { getPluginRegistry } from "./plugin/instance.js";
 
 import { nativeTerminalTools } from "./agent/terminal-tool.js";
+import { nativeComponentTools } from "./agent/component-tool.js";
 
 const CODING_TOOL_NAMES = ["read", "bash", "edit", "write", "grep", "find", "ls"];
 
@@ -773,7 +774,7 @@ export async function startRpcSession(
     const { session: inner } = await createAgentSessionFromServices({
       services,
       sessionManager,
-      customTools: nativeTerminalTools(cwd),
+      customTools: [...nativeTerminalTools(cwd), ...nativeComponentTools()],
       ...(initial.model ? { model: initial.model } : {}),
       ...(initial.thinkingLevel ? { thinkingLevel: initial.thinkingLevel as ThinkingLevel } : {}),
       ...(initial.scopedModels.length > 0 ? { scopedModels: initial.scopedModels } : {}),

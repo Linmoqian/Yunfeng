@@ -6,7 +6,7 @@
 | --- | --- |
 | 接口标识 | `component_read`、`component_patch`、`component_window`；事件 `component-state-changed` |
 | 用途 | 主界面和独立窗口复用文稿、资源状态 |
-| 调用方 | 应用内模块与对应组件窗口 |
+| 调用方 | 应用内模块、对应组件窗口、桌面 Agent 与受信程序 |
 | 提供方 | Tauri Rust `component_sharing` |
 | 稳定性 | 实验性 |
 | 引入版本 | 0.1.0 |
@@ -87,7 +87,25 @@ URL、窗口标签和配置由 Rust 固定，不允许调用方提供远程页�
 - patch 在短锁内合并，锁不跨 await。不同字段互不覆盖，同字段按 Rust 接收顺序后写覆盖；整个 files 数组视作一个字段。当前不提供冲突合并编辑器。
 - 事件在提交后发送，可能重复、乱序或丢失。载荷是完整快照，接收方忽略旧 revision；SDK 订阅返回取消函数。页面先订阅后读取，并每 5 秒与聚焦时读取补偿。写成功不因事件发送失败回滚。
 - 页面单个在途写入，后续编辑合并，失败保留输入并要求手动重试。已发出的短 IPC 不支持取消；无自动写入重试。
-- SDK 用于应用内可信模块；不开放 HTTP、CLI、Python 或跨设备端口。新增组件需同步注册、校验、路由、权限与文档。
+- 前端 SDK 用于应用内可信模块；桌面 Agent 与程序使用下述 TypeScript SDK。新增组件需同步注册、校验、路由、权限与文档。
+
+### Agent 与程序入口
+
+开发会话注册单个 `app_component` 工具，参数为 `component`、`action` 和按需 `patch`。沿用当前会话的工具启用规则；空工具列表仍禁用全部工具。科研决策节点保持只读与计划职责，当前不注册此工具，后续渲染能力应从受控 execute 接入。
+
+| 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
+| --- | --- | --- | --- | --- | --- | --- |
+| component | 工具/SDK | string | 是 | — | writing/resources | 固定组件 ID |
+| action | 工具 | string | 是 | — | read/patch/open/close | SDK 用对应方法名 |
+| patch | 工具/SDK | object | patch 必填，open 可选 | — | 与现有组件 patch 相同 | read/close 拒绝此字段；open 可一步更新并打开 |
+
+SDK：`server/src/agent/component-client.ts`，`applicationComponents()` 仅使用桌面父进程注入的 `YUNFENG_APP_PORT` / `YUNFENG_APP_TOKEN`。它复用终端已有的随机 loopback 通道与令牌，不增设监听端口。受信程序须由宿主传入连接环境，不把令牌返回前端、写入配置、日志或模型消息。独立 server 不注册组件工具，SDK 在未配置连接时返回 undefined。
+
+每个连接一行 JSON，单次请求和响应各限 8 MiB，客户端总超时 5 秒，Rust 读写各限 2 秒。认证后只分发注册组件操作，不接收脚本、HTML 渲染入口、远程页面或任意命令。无 HTTP 组件路由。无效帧/令牌返回 FORBIDDEN；未连接桌面返回 UNAVAILABLE。其他错误沿用本文表格。SDK 失败抛出包含稳定错误码的 Error，隐藏通道及存储细节；请求发送后失败不得自动重放，先 read 核实状态。
+
+read/patch/open 返回完整 Rust 快照；close 返回 null。工具 read 的文本最多 32000 字符，超出明确标为截断；SDK 返回完整快照。工具 patch/open/close 只返回 component/action/revision 摘要，正文由组件显示。打开成功表示窗口创建或恢复完成，不表示 WebView 已完成绘制，需观察真实界面验收。
+
+patch 通知主窗口和所属独立窗口，继续使用现有版本去重与读取补偿。open 重复调用聚焦同一窗口；close 保留状态。带 patch 的 open 先保存再打开，打开失败时已提交状态仍保留。短操作不支持发送后取消，取消信号仅在工具开始前检查。私有通道顺序处理，状态锁释放后再通知和操作窗口。调用本身不创建任务或发起模型请求。
 
 ## 调用示例
 
@@ -109,14 +127,35 @@ await componentSharing.close("writing");
 响应：`{"component":"writing","revision":1,"state":{"name":"示例文稿","body":"共享正文"}}`。
 错误：`{"code":"INVALID_STATE","message":"字段、类型或大小不符合组件契约"}`。
 
+Agent 一次更新并展示：
+
+```json
+{"component":"resources","action":"open","patch":{"view":"结果"}}
+```
+
+受信 Node/TypeScript 程序（连接环境由桌面宿主提供）：
+
+```ts
+import { applicationComponents } from "./server/src/agent/component-client.js";
+const components = applicationComponents();
+if (!components) throw new Error("请从桌面宿主提供的环境调用");
+const before = await components.read("resources");
+await components.open("resources", { view: "结果" });
+await components.patch("resources", { view: before.state.view });
+await components.close("resources");
+```
+
 ## 兼容性与变更记录
 
 调用方容忍后续可选字段，组件 ID 与现有字段不改名；无废弃计划。
 
 | 日期 | 版本 | 变更类型 | 内容 | 迁移说明 |
 | --- | --- | --- | --- | --- |
+| 2026-10-16 | 0.1.0 | 兼容扩展 | 复用私有通道提供 app_component 与程序 SDK | 原 IPC 与前端 SDK 不变 |
 | 2026-10-14 | 0.1.0 | 新增 | 文稿与资源状态、独立窗口、SDK | 文稿从标签局部状态改为进程内状态 |
 | 2026-10-14 | 0.1.0 | 兼容 | 文稿保存到 SQLite，read/patch 改为异步 | IPC 名称与字段不变；资源清单不持久化 |
 | 2026-10-15 | 0.1.0 | 兼容扩展 | 四工具文稿、文献和摘录，输入合并 700 ms 保存 | 旧快照直接读取，name/body 保留 |
 
 验证：Rust 字段合并、原子拒绝、窗口授权测试；SDK 读写、打开关闭载荷及浏览器拒绝测试。macOS 原生文稿双向编辑、重复打开聚焦、关闭重开、资源分类同步通过。文件清单选入和其他桌面平台尚未原生验收。
+
+2026-10-16 验证：服务端构建、前端 TypeScript、Rust fmt/clippy 通过；组件与终端 TypeScript 核心测试 5 项、前端 SDK 3 项、Rust 38 项通过，2 项既有文稿导出测试按依赖要求跳过。macOS 真实 Agent 读取资源后 open 并切换到“结果”；受信 Node 程序通过同一 SDK 改为“图片”，原生界面同步更新，非法 patch 原子拒绝，重复打开保持同一窗口，最后 SDK 恢复分类并关闭窗口。原有启动瞬时 HTTP 502 仍需手动重新连接；其他桌面平台尚未原生验收。

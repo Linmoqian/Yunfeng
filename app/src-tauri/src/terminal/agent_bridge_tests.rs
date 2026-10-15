@@ -19,13 +19,23 @@ fn authenticated_command_shares_output_exit_and_recycles_only_released_sessions(
             size: super::super::model::Size { cols: 80, rows: 24 },
         })
         .unwrap();
-    let bridge = AgentBridge::start(runtime.clone()).unwrap();
+    let bridge = AgentBridge::start(runtime.clone(), None).unwrap();
     let cwd = std::env::temp_dir();
     let start =
         json!({ "action": "start", "cwd": cwd, "command": "printf 'YF_RUST_云枫\\n'; exit 7" });
     assert_eq!(
         call(&bridge, "wrong", start.clone())["error"]["code"],
         "FORBIDDEN"
+    );
+    let component =
+        json!({ "action": "component", "request": { "action": "read", "component": "writing" } });
+    assert_eq!(
+        call(&bridge, "wrong", component.clone())["error"]["code"],
+        "FORBIDDEN"
+    );
+    assert_eq!(
+        call(&bridge, &bridge.token, component)["error"]["code"],
+        "UNAVAILABLE"
     );
     assert_eq!(
         call(
@@ -80,7 +90,7 @@ fn authenticated_command_shares_output_exit_and_recycles_only_released_sessions(
 #[test]
 fn stop_running_command_and_release() {
     let runtime = Runtime::default();
-    let bridge = AgentBridge::start(runtime.clone()).unwrap();
+    let bridge = AgentBridge::start(runtime.clone(), None).unwrap();
     let started = call(
         &bridge,
         &bridge.token,

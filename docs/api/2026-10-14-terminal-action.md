@@ -82,7 +82,7 @@ Shell 使用系统默认程序，工作目录为用户目录（不可用时沿�
 
 ## Agent TypeScript 工具
 
-桌面启动 server 时，通过子进程环境注入 `YUNFENG_TERMINAL_PORT` 和 `YUNFENG_TERMINAL_TOKEN`。Rust 在 `127.0.0.1` 随机端口建立带随机令牌的私有 TCP 通道；不向前端、HTTP、日志或持久化配置返回令牌。每个连接仅处理一个换行 JSON 请求，读写各限两秒，请求上限128 KiB。通道由一个顺序处理线程承担，未引入网络框架、线程池或依赖。
+桌面启动 server 时，通过子进程环境注入 `YUNFENG_TERMINAL_PORT` 和 `YUNFENG_TERMINAL_TOKEN`。Rust 在 `127.0.0.1` 随机端口建立带随机令牌的私有 TCP 通道；不向前端、HTTP、日志或持久化配置返回令牌。每个连接仅处理一个换行 JSON 请求，读写各限两秒，请求上限8 MiB（与组件 SDK 共用通道；终端命令仍限16 KiB）。通道由一个顺序处理线程承担，未引入网络框架、线程池或依赖。
 
 TypeScript `server/src/agent/terminal-tool.ts` 使用当前安装 Pi SDK 的 `createBashToolDefinition` / `BashOperations`，替换 Agent 已有的 `bash` 执行后端，保持工具名、参数、流式输出、截断和失败语义。仅桌面注入连接且非 Windows 时启用；独立 server 沿用原 Pi 工具。连接已配置但不可用时显式失败，绝不回退到 Node Shell，也不重放命令。工具的空允许列表仍禁用全部工具。
 
