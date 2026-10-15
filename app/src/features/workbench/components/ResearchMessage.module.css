@@ -1,0 +1,19 @@
+/* 科研结果与计划的紧凑卡片，复用主题圆角、边框和品牌色。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.card { min-width: 0; padding: 14px 16px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-surface); }
+.heading { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; color: var(--yf-brand-primary); font-size: 12px; font-weight: 600; -webkit-user-select: none; user-select: none; }
+.card[data-kind="需要处理"] { border-color: var(--yf-border-default); }
+.body { color: var(--yf-text-primary); font-size: 14px; line-height: 1.75; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
+.body > :first-child { margin-top: 0; }
+.body > :last-child { margin-bottom: 0; }
+.method { margin-top: 10px; border-top: 1px solid var(--yf-border-divider); }
+.method :global(.ant-collapse-header) { padding: 10px 0 0 !important; font-size: 12px; color: var(--yf-text-secondary) !important; }
+.method :global(.ant-collapse-content-box) { padding: 10px 0 0 !important; }
+.steps { margin: 12px 0; padding-left: 20px; font-size: 13px; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
+.steps li + li { margin-top: 10px; }
+.steps pre { margin: 6px 0 0; padding: 8px 10px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); background: var(--yf-bg-canvas); white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 12px; }
+.acceptance { display: flex; flex-wrap: wrap; gap: 6px 10px; padding-top: 10px; border-top: 1px solid var(--yf-border-divider); font-size: 12px; overflow-wrap: anywhere; }
+.acceptance > span { color: var(--yf-text-secondary); }
+.acceptance code { -webkit-user-select: text; user-select: text; }

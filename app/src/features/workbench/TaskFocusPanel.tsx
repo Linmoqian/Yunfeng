@@ -208,6 +208,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         <section className="conversation-section" aria-label="对话">
           {draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} /> : <ConversationLog
             ref={conversationLogRef}
+            research={activeTask?.mode === "research"}
             items={researchConversation(conversation, activeTask?.mode)}
             toolCalls={toolCalls}
             loading={conversationLoading}

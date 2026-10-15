@@ -1,9 +1,14 @@
+/* 通用对话日志，科研正文与待确认计划通过独立呈现组件接入。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState } from "react";
 
 import { MapleStatusMark } from "../MapleStatusMark";
+import { ResearchApprovalPlan, ResearchMessage } from "./ResearchMessage";
 import {
   type ConversationItem,
   type ConversationRole,
@@ -35,6 +40,7 @@ interface ApprovalInfo {
 }
 
 interface ConversationLogProps {
+  research?: boolean;
   items: ConversationItem[];
   toolCalls: ToolCallInfo[];
   loading: boolean;
@@ -137,11 +143,13 @@ function RoleIcon({ role }: { role: ConversationRole }) {
 
 function ApprovalCard({
   approval,
+  research,
   busy,
   onApprove,
   onReject,
 }: {
   approval: ApprovalInfo;
+  research?: boolean;
   busy: boolean;
   onApprove: (value?: string) => void;
   onReject: () => void;
@@ -152,7 +160,7 @@ function ApprovalCard({
     <article className={`approval-card approval-card--${approval.kind}`}>
       <p className="approval-card__eyebrow">需要你审批 · {approval.kind === "confirm" ? "确认" : approval.kind === "select" ? "选择" : "输入"}</p>
       <h4 className="approval-card__title">{approval.title}</h4>
-      {approval.message ? <p className="approval-card__message">{approval.message}</p> : null}
+      {approval.message ? research && approval.title === "执行科研计划" ? <ResearchApprovalPlan message={approval.message} /> : <p className="approval-card__message">{approval.message}</p> : null}
       {approval.safeLabel ? <p className="approval-card__impact">操作：{approval.safeLabel}</p> : null}
       {approval.impact ? <p className="approval-card__impact">影响范围：{approval.impact}</p> : null}
       {approval.kind === "select" && approval.options && approval.options.length > 0 ? (
@@ -190,7 +198,7 @@ function ApprovalCard({
 }
 
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
-  { items, toolCalls, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
+  { items, research, toolCalls, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
   ref,
 ) {
   const visibleItems = items.filter((item) => item.role !== "tool");
@@ -216,7 +224,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
                 <ConversationMarkdown text={item.thinking} />
               </div>
             ) : null}
-            {item.text ? <ConversationMarkdown text={item.text} /> : null}
+            {item.text ? research && item.role === "assistant" ? <ResearchMessage text={item.text} /> : <ConversationMarkdown text={item.text} /> : null}
             {item.role === "user" && item.status ? (
               <span className={`conversation-message__delivery conversation-message__delivery--${item.status}`}>
                 <span className={`message-dot message-dot--${item.status}`} aria-hidden="true" />
@@ -255,6 +263,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
         <ApprovalCard
           key={approval.requestId}
           approval={approval}
+          research={research}
           busy={busyCommand === `approval-${approval.requestId}`}
           onApprove={(value) => onApproval(approval.requestId, "approve", value)}
           onReject={() => onApproval(approval.requestId, "reject")}
