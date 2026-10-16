@@ -2,6 +2,7 @@
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
+import { RelevanceAnalyzer } from "./relevance/analysis.js";
 import { moveRelations } from "./decision/relations.js";
 import { ResearchGraphComponent } from "./graph-component.js";
 import { randomUUID } from "node:crypto";
@@ -28,16 +29,18 @@ export function publicResearchTask(task: TaskState) {
   return { ...task, ...(task.autonomy ? { autonomy: { ...task.autonomy, observation: undefined } } : {}) };
 }
 export class ResearchService {
-  constructor(private readonly context = getTaskContext(), private readonly memory = getMemoryContext().service, private readonly reasoner = piReasoner) {}
+  constructor(private readonly context = getTaskContext(), private readonly memory = getMemoryContext().service, private readonly reasoner = piReasoner, private readonly relevance = new RelevanceAnalyzer()) {}
   private readonly jobs = new JobExecutor();
   private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; hooks: HookLayer; files: FileHooks }>();
   private closed = false;
+  private readonly relevanceRequests = new Set<string>();
+  private readonly relevanceAbort = new AbortController();
   private readonly graphs = new Map<string, ResearchGraphComponent>();
   graph(id: string): ResearchGraphComponent {
     const task = this.context.store.get(id);
     if (!task?.autonomy || task.mode !== "research") throw new Error("科研任务不存在");
     let graph = this.graphs.get(id);
-    if (!graph) { graph = new ResearchGraphComponent(() => this.context.store.get(id)!, Date.now, (node, parent, revision) => this.moveNode(id, node, parent, revision)); this.graphs.set(id, graph); }
+    if (!graph) { graph = new ResearchGraphComponent(() => this.context.store.get(id)!, Date.now, (node, parent, revision) => this.moveNode(id, node, parent, revision), (node, revision) => this.relateNode(id, node, revision)); this.graphs.set(id, graph); }
     return graph;
   }
 
@@ -50,6 +53,25 @@ export class ResearchService {
     if (JSON.stringify(decision) === JSON.stringify(task.autonomy.decision)) return;
     this.context.store.update(id, (state) => { state.autonomy!.decision = decision; });
     await this.context.hub.emit(id, "task_updated", publicResearchTask(task));
+  }
+
+  private async relateNode(id: string, node: string, revision: number): Promise<void> {
+    const task = this.context.store.get(id)!;
+    const check = () => {
+      if (this.closed || task.lastEventSeq !== revision) throw new Error("GRAPH_CONFLICT：请重新读取关系图版本");
+      if (this.instances.get(id)?.runtime.busy) throw new Error("GRAPH_BUSY：等待当前科研阶段完成后再分析");
+    };
+    check();
+    if (this.relevanceRequests.has(id) || this.relevanceRequests.size >= 4) throw new Error("GRAPH_BUSY：相关性分析正在进行，请稍后重试");
+    if (!task.autonomy?.decision) throw new Error("目标树尚未建立");
+    this.relevanceRequests.add(id);
+    try {
+      const decision = await this.relevance.analyze(task.autonomy.decision, node, this.reasoner(task.cwd, task.autonomy.decisionModel ?? task.model), this.relevanceAbort.signal);
+      check();
+      if (JSON.stringify(decision) === JSON.stringify(task.autonomy.decision)) return;
+      this.context.store.update(id, (state) => { state.autonomy!.decision = decision; });
+      await this.context.hub.emit(id, "task_updated", publicResearchTask(task));
+    } finally { this.relevanceRequests.delete(id); }
   }
 
   async create(cwd: string, goal: string, model: TaskModelRef | undefined, options: Record<string, unknown>): Promise<TaskState> {
@@ -97,9 +119,11 @@ export class ResearchService {
     const files = new FileHooks(() => task, (event) => { hooks.publish(event); }, (error) => {
       void this.pause(id, `项目 Hook 失效：${error.message}`).then(() => this.context.hub.emit(id, "task_updated", publicResearchTask(task))).catch((failure) => console.error("[research] Hook 停止失败", (failure as Error).message));
     });
-    const core = new ProjectCore(() => this.context.store.get(id)!, this.reasoner(task.cwd, task.model), this.memory, this.jobs, controller.signal, async (result) => {
+    const executeReason = this.reasoner(task.cwd, task.model);
+    const strategy = this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model);
+    const core = new ProjectCore(() => this.context.store.get(id)!, executeReason, this.memory, this.jobs, controller.signal, async (result) => {
       if (await runtime.receive(result)) hooks.publish(researchEvent({ kind: "job_completed", jobId: result.job_id, status: result.status }));
-    }, this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model), async (patch, signal) => {
+    }, strategy, async (patch, signal) => {
       const jobId = task.autonomy!.jobId!;
       const components = researchComponents(task.cwd, jobId, () => task.autonomy!.component, async (view) => {
         signal.throwIfAborted(); controller.signal.throwIfAborted();
@@ -117,7 +141,7 @@ export class ResearchService {
     }, async (target) => {
       const result = await this.graph(id).call({ action: "focus", component: "research-graph", target });
       return JSON.stringify(result);
-    }, () => this.graph(id).status());
+    }, () => this.graph(id).status(), (tree, node, signal) => this.relevance.analyze(tree, node, strategy, signal));
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {
@@ -232,6 +256,7 @@ export class ResearchService {
     await this.context.hub.emit(id, "message_completed", { message: { id: randomUUID(), role: researchMessageRole(role, content), content } });
   }
   async close(): Promise<void> {
+    this.relevanceAbort.abort();
     this.closed = true;
     this.graphs.clear();
     for (const id of [...this.instances.keys()]) await this.pause(id, "服务停止，手动继续后恢复");

@@ -18,10 +18,11 @@ export interface TaskNode {
   jobId?: string;
   result?: Result;
   reflection?: string;
+  relevance?: import("../relevance/types.js").NodeRelevance;
   report?: import("../components.js").ResearchSnapshot;
 }
 export interface DecisionState {
-  mission: { id: "mission"; objective: string; condition?: Condition };
+  mission: { id: "mission"; objective: string; condition?: Condition; relevance?: import("../relevance/types.js").NodeRelevance };
   nodes: TaskNode[];
   horizon: string[];
   selectedId?: string;

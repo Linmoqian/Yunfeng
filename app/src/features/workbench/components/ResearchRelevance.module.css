@@ -1,0 +1,15 @@
+/* 相关性入口沿用轻量胶囊，说明和依据仅在浮层中出现。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.trigger { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 5px 9px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-secondary); font: inherit; font-size: 11px; line-height: 1.5; cursor: pointer; transition: background 140ms ease; }
+.trigger:hover { background: color-mix(in srgb, var(--yf-brand-primary) 5%, transparent); }
+.trigger:focus-visible, .match:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
+.content { width: 260px; max-width: calc(100vw - 64px); font-size: 12px; }
+.caption { color: var(--yf-text-tertiary); font-size: 11px; margin-bottom: 6px; }
+.match { display: block; width: 100%; border: 0; border-radius: 8px; background: transparent; text-align: left; padding: 7px 4px; color: var(--yf-text-primary); font: inherit; cursor: pointer; }
+.match:hover { background: color-mix(in srgb, var(--yf-brand-primary) 5%, transparent); }
+.line { display: flex; align-items: center; gap: 8px; }
+.line > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line small { margin-left: auto; color: var(--yf-text-tertiary); font-variant-numeric: tabular-nums; }
+.reason { display: block; color: var(--yf-text-tertiary); line-height: 1.5; margin: 5px 0; overflow-wrap: anywhere; }

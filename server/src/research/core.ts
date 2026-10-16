@@ -37,7 +37,8 @@ export class ProjectCore implements AgentCore {
     private readonly jobs: JobExecutor, private readonly signal: AbortSignal, private readonly completed: (result: Result) => Promise<void>,
     private readonly strategy: Reasoner = reason,
     private readonly updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>,
-    private readonly focusComponent?: (target: string) => Promise<string>, private readonly graphStatus?: () => unknown) {}
+    private readonly focusComponent?: (target: string) => Promise<string>, private readonly graphStatus?: () => unknown,
+    private readonly relate?: (tree: DecisionState, node: string, signal: AbortSignal) => Promise<DecisionState>) {}
   async observe(): Promise<State> {
     const task = this.task();
     const state = await buildContext(task, this.memory.retrieve({ projectKey: task.cwd, limit: 8 }));
@@ -65,6 +66,7 @@ export class ProjectCore implements AgentCore {
     if (tree.mission.condition && (await evaluate(task.cwd, tree.mission.condition)).passed) return complete();
     if (proposal.decision === "wait") return { decision: "wait", reason: proposal.reason, steps: [], observe_paths: [...(tree.mission.condition ? [tree.mission.condition.path] : []), ...proposal.observe_paths].slice(0, 8) };
     if (proposal.decision !== "select" || !tree.selectedId || !tree.mission.condition) return { decision: "pause", reason: !tree.mission.condition ? `需要工程师明确长期目标的实测验收条件：${proposal.reason}` : proposal.decision === "complete" ? "决策模型声明完成，但长期目标实测验收未通过" : tree.reason, steps: [] };
+    if (this.relate) { tree = await this.relate(tree, tree.selectedId, this.signal); this.decision = tree; }
     const node = tree.nodes.find((n) => n.id === tree.selectedId)!;
     const plan = parsePlan(await this.reason("plan", { goal: node.objective, mission: tree.mission, node, state, previous: checkpoint.learning, permissions: checkpoint.permissions }, AbortSignal.any([this.signal, AbortSignal.timeout(120_000)])));
     return { ...plan, node_id: node.id };

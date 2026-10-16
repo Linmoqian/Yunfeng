@@ -2,7 +2,7 @@
  * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
-import { afterEach, expect, test, vi } from "vitest";
+import { afterAll, afterEach, expect, test, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ResearchGraph } from "../src/features/workbench/components/ResearchGraph";
@@ -14,6 +14,8 @@ vi.mock("@xyflow/react", () => ({
   NodeToolbar: ({ isVisible, children }: any) => isVisible ? children : null,
   Handle: () => null, Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" }, MarkerType: { ArrowClosed: "arrow" },
 }));
+vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+afterAll(() => vi.unstubAllGlobals());
 afterEach(cleanup);
 test("节点周围按需展开真实胶囊，重复点击收起，切换快照不串实验", async () => {
   const task = { id: "research", mode: "research", autonomy: { decision: { mission: { id: "mission", objective: "研究目标" },
@@ -44,4 +46,23 @@ test("节点周围按需展开真实胶囊，重复点击收起，切换快照�
   expect(close).toHaveBeenCalledOnce();
   view.rerender(<ResearchGraph task={{ ...task, autonomy: undefined }} onClose={close} />);
   expect(screen.getByText(/目标树尚未生成/)).toBeTruthy();
+});
+
+test("相关性按需打开，区分余弦值和语义建议，点击目标切换节点", async () => {
+  const task = { id: "research", lastEventSeq: 4, autonomy: { decision: { mission: { id: "mission", objective: "研究目标" },
+    nodes: [{ id: "exp", parent: "mission", objective: "训练实验", kind: "execute", status: "pending", relevance: { status: "ready", source: "hash", matches: [
+      { target: "mission", similarity: 0.76, relation: "abstraction", direction: "outgoing", confidence: 0.8, reason: "训练服务于整体研究目标" },
+    ] } }], horizon: [] } } } as unknown as TaskState;
+  render(<ResearchGraph task={task} onClose={vi.fn()} />);
+  await userEvent.click(screen.getByRole("button", { name: "训练实验 · 待执行" }));
+  expect(screen.queryByText("关系建议 · 非实测因果")).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "节点相关性" }));
+  expect(await screen.findByText("关系建议 · 非实测因果")).toBeTruthy();
+  expect(screen.getByText("0.76").title).toContain("不是正确率");
+  await userEvent.keyboard("{Escape}");
+  expect(screen.getByRole("button", { name: "节点相关性" }).getAttribute("aria-expanded")).toBe("false");
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "节点相关性" }));
+  await userEvent.click(screen.getByRole("button", { name: "节点相关性" }));
+  await userEvent.click(screen.getByRole("button", { name: /抽象 → 研究目标/ }));
+  await waitFor(() => expect(screen.getByLabelText("节点概览").textContent).toContain("研究目标"));
 });

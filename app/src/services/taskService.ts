@@ -12,12 +12,17 @@ export interface TaskModelRef {
 
 export type ResearchCondition = { kind: "file_exists"; path: string }
   | { kind: "metric"; path: string; key: string; operator: ">" | ">=" | "<" | "<=" | "=="; value: number };
+export interface NodeRelevance {
+  status: "ready" | "unconfigured" | "unavailable"; source: string; model?: string; space?: string;
+  matches: { target: string; similarity: number; relation: "progression" | "dependency" | "abstraction" | "related";
+    direction: "outgoing" | "incoming" | "undirected"; confidence: number; reason: string }[];
+}
 export interface ResearchDecisionState {
-  mission: { id: "mission"; objective: string; condition?: ResearchCondition };
+  mission: { id: "mission"; objective: string; condition?: ResearchCondition; relevance?: NodeRelevance };
   nodes: { id: string; parent: string; objective: string; kind: "group" | "explore" | "execute";
     priority: number; confidence: number; cost: number; expected_gain: number;
     status: "pending" | "running" | "succeeded" | "failed" | "blocked"; attempts: number; jobId?: string; result?: import("./researchComponent").ResearchResult;
-    reflection?: string; report?: import("./researchComponent").ResearchComponentSnapshot }[];
+    reflection?: string; relevance?: NodeRelevance; report?: import("./researchComponent").ResearchComponentSnapshot }[];
   horizon: string[];
   selectedId?: string;
   budget: { limit: number; spent: number };

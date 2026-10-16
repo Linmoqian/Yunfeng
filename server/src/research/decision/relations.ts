@@ -2,6 +2,7 @@
  * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
+import { invalidateRelevance } from "../relevance/source.js";
 import type { DecisionState } from "./types.js";
 import { record, text } from "../values.js";
 export interface RelationMove { node: string; parent: string }
@@ -44,5 +45,6 @@ export function moveRelations(previous: DecisionState, moves: RelationMove[]): D
     node.parent = move.parent;
   }
   validateRelations(state);
+  invalidateRelevance(state);
   return state;
 }

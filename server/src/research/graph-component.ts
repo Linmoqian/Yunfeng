@@ -15,7 +15,8 @@ export class ResearchGraphComponent {
   private focus: Focus = { epoch: randomUUID(), component: "research-graph", revision: 0, target: null };
   private focusedAt = 0;
   constructor(private readonly read: () => TaskState, private readonly now = Date.now,
-    private readonly move?: (node: string, parent: string, revision: number) => Promise<void>) {}
+    private readonly move?: (node: string, parent: string, revision: number) => Promise<void>,
+    private readonly relate?: (node: string, revision: number) => Promise<void>) {}
   status() {
     const known = !!this.report && this.now() - this.report.at < 2500;
     const visible = known && this.report!.visible;
@@ -49,6 +50,12 @@ export class ResearchGraphComponent {
   /** 使用同一组件 envelope；focus(current) 在服务端解析为当前节点。 */
   async call(value: unknown) {
     const request = record(value);
+    if (request.action === "relate") {
+      if (request.component !== "research-graph" || Object.keys(request).some((key) => !["action", "component", "node", "revision"].includes(key)) || !Number.isSafeInteger(request.revision) || Number(request.revision) < 0) throw new Error("相关性请求无效");
+      if (!this.relate) throw new Error("相关性模块未连接");
+      await this.relate(text(request.node, 100), Number(request.revision));
+      return this.snapshot();
+    }
     if (request.action === "move") {
       if (request.component !== "research-graph" || Object.keys(request).some((key) => !["action", "component", "node", "parent", "revision"].includes(key)) || !Number.isSafeInteger(request.revision) || Number(request.revision) < 0) throw new Error("关系调整请求无效");
       if (!this.move) throw new Error("关系调整未连接任务数据库");
@@ -59,7 +66,7 @@ export class ResearchGraphComponent {
     if (request.action === "read") return this.snapshot();
     if (request.action === "status") return this.status();
     if (request.action === "blur") { this.clear(); return this.focus; }
-    if (request.action !== "focus") throw new Error("关系图仅支持 read/status/focus/blur/move");
+    if (request.action !== "focus") throw new Error("关系图仅支持 read/status/focus/blur/move/relate");
     const tree = this.read().autonomy!.decision;
     const target = request.target === undefined || request.target === "current" || request.target === "component" ? tree?.selectedId : request.target;
     if (typeof target !== "string" || !target || (target !== "mission" && !tree?.nodes.some((node) => node.id === target))) throw new Error("关系图节点不存在");
@@ -71,6 +78,6 @@ export class ResearchGraphComponent {
   }
   client() {
     const client = componentClient<"research-graph">(async <T>({ request }: { request: ComponentRequest<"research-graph"> }) => await this.call(request) as T);
-    return { ...client, move: (node: string, parent: string, revision: number) => this.call({ action: "move", component: "research-graph", node, parent, revision }), focus: (component: "research-graph", target = "current") => client.focus(component, target) as Promise<Focus & { accepted: boolean; reason?: string }> };
+    return { ...client, relate: (node: string, revision: number) => this.call({ action: "relate", component: "research-graph", node, revision }), move: (node: string, parent: string, revision: number) => this.call({ action: "move", component: "research-graph", node, parent, revision }), focus: (component: "research-graph", target = "current") => client.focus(component, target) as Promise<Focus & { accepted: boolean; reason?: string }> };
   }
 }

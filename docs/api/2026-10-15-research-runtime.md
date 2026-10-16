@@ -255,3 +255,38 @@ UI 通过同一路径提交 `{action:"report",report:{sequence,visible,editing,r
 成功为 HTTP 200，返回最新组件快照并通过 `task_updated` SSE 发布关系；不会启动实验、恢复任务或自动移动画布。相同版本下重复指定相同父节点无额外副作用；版本过期须重新 read，不盲目重试。HTTP 404 为科研任务不存在；HTTP 400 的 `{error}` 包含非法字段、跨任务/未知节点、循环、非分组父节点、超过四层，以及 `GRAPH_CONFLICT`（版本变化）或 `GRAPH_BUSY`（规划/执行/反思中或作业/审批尚未结束）。仅在 WAITING/PAUSED/COMPLETED/FAILED 且无活动作业时允许外部调整。该操作同步事务保存，不创建后台作业；请求取消后需 read 确认是否已提交，禁止假定取消等于回滚。
 
 Server 内调用可使用 `graph.client().move(node,parent,revision)`。科研 Decision Layer 无需发送 HTTP：结构化提案新增可选 `relations:[{node,parent}]`，每轮最多十条、每节点一条，候选合并后整批校验、保存。未知字段拒绝。模型通过现有决策节点选择该操作；执行 Agent 的四个元接口保持原样。关系调整保留节点 ID、类型、尝试次数、结果、报告、反思及预算，不允许移动正在执行的节点或包含它的分组；节点新增继续通过 candidates，删除不开放。未提供 relations 的旧提案与原有 read/status/focus/blur/report 调用继续兼容。
+
+### 节点相关性 `relate`（可选）
+
+复用 `POST /api/tasks/:id/components/research-graph`、网关认证与所属任务权限。Agent/程序调用 `graph.client().relate(node, revision)`，前端点击节点“相关性”胶囊按需分析；没有额外窗口或并行状态源。
+
+```json
+{"action":"relate","component":"research-graph","node":"mission","revision":42}
+```
+
+| 字段 | 必填 | 契约 |
+| --- | --- | --- |
+| action/component | 是 | 固定为 `relate` / `research-graph`，拒绝未知字段 |
+| node | 是 | 当前任务真实节点 ID 或 `mission`，非空文本最多100字符 |
+| revision | 是 | `read` 返回的非负安全整数版本，过期拒绝 |
+
+HTTP 200 返回现有 `GraphSnapshot`。`state.mission.relevance` 或 `state.nodes[].relevance` 是可选新增字段，旧数据无需迁移。结构：
+
+```json
+{"status":"ready","source":"内容指纹","space":"向量空间指纹","model":"configured-embedding-model","matches":[{"target":"node-id","similarity":0.76,"relation":"abstraction","direction":"outgoing","confidence":0.8,"reason":"当前实验是目标中的一个具体实现"}]}
+```
+
+- `status`：`ready`（分析完成，可为空匹配）、`unconfigured`（未配置）、`unavailable`（配置错误、服务失败或输出无效）。非 ready 状态均不伪造向量；非 ready 时 matches 为空，model/space 省略。
+- `source` 是目标内容与层级的 SHA256；`space` 是端点与模型的指纹，不含凭据。结果与节点一起写入现有 SQLite 检查点，重启恢复；目标或层级变化后清除旧建议。未改变内容与向量空间时复用分析，指标状态变化不重复调用模型。
+- `matches` 最多3项，只包含本任务已召回的其他节点。`similarity` 是同一向量空间归一化后的余弦值，范围 [-1,1]，**不是关系正确率**。首版只召回 >=0.35 的前三项，该阈值尚未针对项目语料校准，可能遗漏真实逻辑关系。
+- `relation`：`progression`（先后递进）、`dependency`（逻辑前置依赖）、`abstraction`（具体到抽象）、`related`（主题相关）。`direction` 相对当前节点：`outgoing` 当前→target，`incoming` target→当前；`related` 固定 `undirected`。递进箭头从先到后，依赖箭头从前置到依赖方，抽象箭头从具体到抽象。
+- `confidence` 范围 [0,1]，是决策模型的推断估计；`reason` 非空文本最多160字符。词向量只筛选，关系类型和方向由当前决策模型结合目标语义分类。缺乏依据可返回 related 或省略。建议不是实测因果，不直接改父子关系；Decision Layer 可参考后通过原有 relations 提案调整，并继续接受循环、层级、预算校验。
+- 自动科研轮次在选定执行节点后分析该节点，每次最多一次分类请求（JSON 纠错最多一次）；下一轮决策能读取已保存建议。手动分析仅更新相关性，不唤醒实验、不执行命令、不消耗实验预算，但产生模型服务调用费用。
+- HTTP 400 `{error}`：未知字段、节点不存在、无目标树、`GRAPH_CONFLICT` 版本变化或 `GRAPH_BUSY` 科研阶段/同任务分析正在运行；HTTP 404 为任务不存在或非科研任务；认证沿用现有网关。分析前后均检查版本和运行状态，过期结果不落库。
+- 每任务最多一个手动分析、服务内最多四个并发手动分析，总超时35秒，Embedding 请求20秒；服务关闭中止请求，科研暂停中止自动分析。服务失败降级为 unavailable，不影响科研执行；同内容失败冷却60秒。节点文本每条最多取前4000字符，最多101条，向量维度1..8192且一致、有限非零，响应上限8MiB。原始向量仅在进程中缓存最多256条，不写入数据库、日志或前端。
+
+#### Embedding 配置
+
+项目 `.env` / 宿主环境的可选 `YUNFENG_EMBEDDING_URL`（完整端点）、`YUNFENG_EMBEDDING_MODEL` 必须同时指定，`YUNFENG_EMBEDDING_API_KEY` 按服务需要提供；配置后重启后端生效。URL 只接受 HTTPS 或本机回环 HTTP，拒绝内嵌凭据、查询参数、重定向。不会尝试将聊天模型当作 Embedding 模型，也不会自动读取 `.pi` 或复制聊天凭据。
+
+该接口兼容 [Create embeddings](https://developers.openai.com/api/reference/resources/embeddings/methods/create)：发送 `{model,input:string[],encoding_format:"float"}`，解析 `data:[{index,embedding:number[]}]`，若响应含 model 必须匹配。配置意味着将节点目标文本发送给选定服务，不发送文件内容、实验产物或密钥到分类上下文。上游正文和凭据不对外回显。

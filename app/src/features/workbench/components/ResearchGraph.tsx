@@ -10,16 +10,17 @@ import { MessageSquare, Scan, ZoomIn, ZoomOut } from "lucide-react";
 import { ReactFlow, Handle, Position, MarkerType, type Node, type NodeProps, type ReactFlowInstance } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TaskState } from "../../../services/taskService";
+import type { RelevanceControl } from "./ResearchRelevance";
 import { ResearchNodeCapsules } from "./ResearchNodeCapsules";
 import { researchNodeInfo, type NodeInfo } from "../researchNodeInfo";
 import { layoutResearchGraph, researchNodeText, researchNodeStatus, type ResearchGraphItem } from "../researchGraph";
 import styles from "./ResearchGraph.module.css";
 
-type GraphNode = Node<ResearchGraphItem & { agent?: boolean; expanded: boolean; info: NodeInfo; onInspect: (id: string) => void }, "research">;
+type GraphNode = Node<ResearchGraphItem & { agent?: boolean; expanded: boolean; info: NodeInfo; relevance: RelevanceControl; onInspect: (id: string) => void }, "research">;
 function ResearchNode({ data }: NodeProps<GraphNode>) {
   const text = researchNodeText(data);
   return <div className={styles.node} data-status={data.status} data-current={data.current} data-agent={data.agent} data-kind={data.kind} data-expanded={data.expanded}>
-    <ResearchNodeCapsules expanded={data.expanded} info={data.info} />
+    <ResearchNodeCapsules expanded={data.expanded} info={data.info} relevance={data.relevance} />
     <Handle id="in-left" type="target" position={Position.Left} /><Handle id="in-right" type="target" position={Position.Right} />
     <button type="button" className={`${styles.nodeButton} nodrag nopan`} onClick={() => data.onInspect(data.id)} aria-label={`${data.objective} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`}>
       <span className={styles.nodeLabel} title={text.title}>{text.title}</span>
@@ -46,7 +47,18 @@ export function ResearchGraph({ task, onClose }: { task: TaskState; onClose: () 
     setInspected(id);
     if (!await flow.current.setCenter(item.position.x + 110, item.position.y + 40, { zoom: flow.current.getZoom() })) throw new Error("画布尚未就绪");
   });
-  const nodes = useMemo(() => graph?.items.map((item): GraphNode => ({ id: item.id, type: "research", position: item.position, data: { ...item, onInspect: (id) => setInspected((previous) => previous === id ? null : id), expanded: inspected === item.id, info: researchNodeInfo(task, item.id), agent: control.agentTarget === item.id } })) ?? [], [graph, control.agentTarget, inspected, task]);
+  const names = useMemo(() => Object.fromEntries(graph?.items.map((item) => [item.id, researchNodeText(item).title]) ?? []), [graph]);
+  const nodes = useMemo(() => graph?.items.map((item): GraphNode => ({
+    id: item.id, type: "research", position: item.position,
+    data: { ...item, agent: control.agentTarget === item.id, expanded: inspected === item.id, info: researchNodeInfo(task, item.id),
+      onInspect: (id) => setInspected((previous) => previous === id ? null : id),
+      relevance: { task: task.id, node: item.id, revision: task.lastEventSeq, names, inspect: (id) => {
+        setInspected(id);
+        const target = graph.items.find((node) => node.id === id);
+        if (target && flow.current) void flow.current.setCenter(target.position.x + 110, target.position.y + 40, { zoom: flow.current.getZoom() });
+      } },
+    },
+  })) ?? [], [graph, control.agentTarget, inspected, task, names]);
   return <section ref={control.root} className={styles.graph} aria-label="科研分支关系图" onKeyDown={(event) => {
     if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
     if (inspected) setInspected(null); else onClose();

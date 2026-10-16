@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/
 import { NodeToolbar, Position, useViewport } from "@xyflow/react";
 import type { NodeInfo } from "../researchNodeInfo";
 import { SESSION_ENTER, SESSION_EXIT } from "../workspaceMotion";
+import { ResearchRelevance, type RelevanceControl } from "./ResearchRelevance";
 import { Capsule } from "./Capsule";
 import styles from "./ResearchGraph.module.css";
 
@@ -24,7 +25,7 @@ function CapsuleGroup({ below, children }: { below?: boolean; children: ReactNod
   </motion.div>;
 }
 
-export function ResearchNodeCapsules({ expanded, info }: { expanded: boolean; info: NodeInfo }) {
+export function ResearchNodeCapsules({ expanded, info, relevance }: { expanded: boolean; info: NodeInfo; relevance?: RelevanceControl }) {
   const { zoom } = useViewport();
   const scale = Math.min(1, zoom);
   // Toolbar 保留到退出动画结束；缩放与动画分别作用，避免覆盖其定位变换。
@@ -34,6 +35,7 @@ export function ResearchNodeCapsules({ expanded, info }: { expanded: boolean; in
         <AnimatePresence>{expanded && <CapsuleGroup key="overview">
           <Capsule animateOnMount={false} className={styles.pill} status={info.passed === undefined ? undefined : info.passed ? "passed" : "failed"}>{info.status}</Capsule>
           {info.progress && <Capsule animateOnMount={false} className={styles.pill} title={info.progress} value={info.progress}>{info.progress}</Capsule>}
+          {relevance && <ResearchRelevance value={info.relevance} control={relevance} />}
         </CapsuleGroup>}</AnimatePresence>
       </div>
     </NodeToolbar>
