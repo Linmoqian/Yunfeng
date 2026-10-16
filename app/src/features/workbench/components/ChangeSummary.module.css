@@ -10,6 +10,9 @@
 .files { max-height: 280px; margin: 0 0 6px; padding: 0; overflow: auto; list-style: none; }
 .file { display: flex; align-items: center; gap: 16px; min-height: 38px; font-size: 13px; }
 .path { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fileButton { padding: 6px 4px; border: 0; border-radius: 6px; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.fileButton:hover { background: var(--yf-bg-canvas); color: var(--yf-brand-primary); }
+.fileButton:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: -2px; }
 .counts { display: inline-flex; flex: none; gap: 4px; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .additions { color: var(--yf-semantic-success); }
 .deletions { color: var(--yf-semantic-error); }

@@ -1,0 +1,18 @@
+/* 差异面板使用主题色与等宽文本，固定阅读区避免加载跳动。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.title { display: inline-flex; align-items: center; gap: 8px; }
+.scope { padding: 2px 8px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-secondary); font-size: 11px; font-weight: 400; }
+.path { margin: 12px 0 4px; color: var(--yf-text-primary); font-size: 12px; overflow-wrap: anywhere; }
+.caption { margin: 6px 0 12px; color: var(--yf-text-tertiary); font-size: 11px; }
+.viewport { height: min(58vh, 600px); overflow: auto; border: 1px solid var(--yf-border-divider); border-radius: 12px; background: var(--yf-bg-canvas); }
+.viewport:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
+.message { margin: 0; padding: 24px; color: var(--yf-text-secondary); font-size: 13px; }
+.patch { width: max-content; min-width: 100%; margin: 0; padding: 10px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.8; tab-size: 2; user-select: text; -webkit-user-select: text; }
+.line { display: block; padding: 0 14px; }
+.added { color: var(--yf-semantic-success); background: color-mix(in srgb, var(--yf-semantic-success) 8%, transparent); }
+.removed { color: var(--yf-semantic-error); background: color-mix(in srgb, var(--yf-semantic-error) 8%, transparent); }
+.hunk { color: var(--yf-brand-primary); background: color-mix(in srgb, var(--yf-brand-primary) 6%, transparent); }
+.header { color: var(--yf-text-tertiary); }
+.context { color: var(--yf-text-secondary); }

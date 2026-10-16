@@ -2,15 +2,17 @@
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
-import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChangeSummary } from "../src/features/workbench/components/ChangeSummary";
-import { loadTaskGit } from "../src/services/taskService";
+import { loadTaskGit, loadTaskGitDiff } from "../src/services/taskService";
 
-vi.mock("../src/services/taskService", () => ({ loadTaskGit: vi.fn() }));
+vi.mock("../src/services/taskService", () => ({ loadTaskGit: vi.fn(), loadTaskGitDiff: vi.fn() }));
 vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
-afterEach(() => { cleanup(); vi.resetAllMocks(); });
+const computedStyle = window.getComputedStyle;
+beforeEach(() => { vi.spyOn(window, "getComputedStyle").mockImplementation((element) => computedStyle(element)); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.resetAllMocks(); });
 const oldFile = { filePath: "/project/preexisting.ts", status: "modified" };
 const file = { filePath: "/project/source.ts", status: "modified", additions: 2, deletions: 1 };
 const summary = { isGitRepository: true, repositoryRoot: "/project", files: [oldFile, file], taskFiles: [], baselineFiles: [oldFile], baseline: [oldFile.filePath], round: { id: "round-1", startedAt: "2026-10-16", root: "/project", files: [file] } };
@@ -42,4 +44,20 @@ test("总计包含折叠清单外的文件，二进制保留未知统计", async
   view.rerender(<ChangeSummary taskId="task-2" revision="done" />);
   expect(await screen.findByText("不支持统计")).toBeTruthy();
   expect(screen.queryByLabelText("增加 0 行")).toBeNull();
+});
+
+test("开发模式按需读取真实 diff，关闭后归还胶囊焦点", async () => {
+  vi.mocked(loadTaskGit).mockResolvedValue(summary);
+  vi.mocked(loadTaskGitDiff).mockResolvedValue({ supported: true, patch: "@@ -1 +1 @@\n-old\n+new" });
+  render(<ChangeSummary taskId="task-1" revision="idle" allowDiff />);
+  const trigger = await screen.findByRole("button", { name: /1 个文件已更改/ });
+  await userEvent.click(trigger);
+  expect(loadTaskGitDiff).not.toHaveBeenCalled();
+  await userEvent.click(await screen.findByRole("button", { name: "查看 source.ts 的 Git diff" }));
+  expect(await screen.findByText("+new")).toBeTruthy();
+  expect(screen.getByText("当前工作区")).toBeTruthy();
+  expect(loadTaskGitDiff).toHaveBeenCalledWith("task-1", file.filePath, expect.any(AbortSignal));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape", keyCode: 27 });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
 });

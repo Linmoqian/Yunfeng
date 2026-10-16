@@ -1,4 +1,7 @@
-// Git 状态与 diff（移植自 pi-web lib/git-changes.ts，依赖 git CLI）。
+/* Git 状态与只读 diff，使用 NUL 路径分隔与字面量路径避免误匹配。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
 
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -15,7 +18,7 @@ async function git(cwd: string, args: string[], maxBuffer = GIT_STATUS_MAX_BUFFE
   const { stdout } = await execFileAsync("git", ["-C", cwd, ...args], {
     timeout: GIT_TIMEOUT_MS,
     maxBuffer,
-    env: { ...process.env, LC_ALL: "C" },
+    env: { ...process.env, LC_ALL: "C", GIT_LITERAL_PATHSPECS: "1" },
   });
   return stdout;
 }
@@ -46,33 +49,19 @@ interface GitPorcelainEntry {
 
 function parseGitPorcelainV1(output: string): GitPorcelainEntry[] {
   const entries: GitPorcelainEntry[] = [];
-  // -z 模式下用 NUL 分隔；无 -z 时按行解析（status 两字符 + 空格 + 路径）。
+  // 状态列中的空格表示该侧未修改；-z 的路径无需去引号或反转义。
   const parts = output.split("\0");
-  let pending: GitPorcelainEntry | null = null;
-  for (const part of parts) {
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
     if (part.length === 0) continue;
-    // -z 模式：第一段 "XY path"，重命名时第二段为原路径。
-    if (pending && pending.originalPath === undefined && pending.path === "") {
-      pending.originalPath = part;
-      entries.push(pending);
-      pending = null;
-      continue;
-    }
-    const match = /^([^ ])([^ ]) (.*)$/.exec(part);
-    if (!match) {
-      if (pending) { entries.push(pending); pending = null; }
-      continue;
-    }
+    const match = /^(.)(.) ([\s\S]*)$/.exec(part);
+    if (!match) continue;
     const [, indexStatus, worktreeStatus, filePath] = match;
-    if (filePath.startsWith('"') && filePath.endsWith('"')) {
-      continue; // 引号转义路径（含特殊字符），简化处理跳过
-    }
     const entry: GitPorcelainEntry = { path: filePath, indexStatus, worktreeStatus };
     if (indexStatus === "R" || indexStatus === "C") {
-      pending = entry; // 下一段是原路径
-    } else {
-      entries.push(entry);
+      entry.originalPath = parts[++index];
     }
+    entries.push(entry);
   }
   return entries;
 }

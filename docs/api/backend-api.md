@@ -498,6 +498,8 @@ server-rpc 通过官方 RpcCommand 透传，额外支持：`cycle_model`、`get_
 
 **响应：** `<GitFileDiffResponse>`
 
+只读预览当前工作区相对 HEAD 的文本差异（包含已暂存与未暂存修改，新文件显示完整新增内容）。与 `/git` 中的持久化 `round` 单轮统计范围不同，不能用作历史单轮补丁。路径必须在任务仓库内；无可用文本差异、二进制或超出预览大小限制时返回 `supported: false`。开发模式可从本轮变更胶囊的文件名称打开预览，界面最多展示 4000 行。
+
 #### `POST /tasks/:id/git/commit` -- 本地安全提交
 
 **请求体：**
