@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { layoutResearchGraph } from "../src/features/workbench/researchGraph.ts";
+import { layoutResearchGraph, researchNodeText } from "../src/features/workbench/researchGraph.ts";
 import type { ResearchDecisionState } from "../src/services/taskService.ts";
 const node = (id: string, parent = "mission", kind: "group" | "execute" = "execute"): ResearchDecisionState["nodes"][number] => ({ id, parent, kind, objective: id, priority: 0.7, confidence: 0.8, cost: 0.1, expected_gain: 0.9, status: "pending", attempts: 0 });
 const decision = (nodes: ResearchDecisionState["nodes"]): ResearchDecisionState => ({ mission: { id: "mission", objective: "研究目标" }, nodes, horizon: [], budget: { limit: 10, spent: 1 }, reason: "" });
@@ -33,4 +33,9 @@ test("缺失父节点或循环关系不补造连线，节点仍可查看", () =>
   assert.equal(graph.disconnected, 3);
   assert.ok(graph.items.every((item) => !item.parent));
   assert.equal(new Set(graph.items.map((item) => item.position.y)).size, 4);
+});
+
+test("节点标题与概述取自目标原文，保留完整约束供悬停查看", () => {
+  assert.deepEqual(researchNodeText({ kind: "execute", objective: "压缩实验：比较 level=1 与 level=9，校验解压一致。只读真实指标。" }),
+    { title: "压缩实验", summary: "比较 level=1 与 level=9，校验解压一致。只读真实指标。" });
 });

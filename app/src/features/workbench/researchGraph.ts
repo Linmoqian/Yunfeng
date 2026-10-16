@@ -12,6 +12,14 @@ export type ResearchGraphItem = {
   position: { x: number; y: number };
 };
 
+/** 从目标原文拆出标题与概述，不生成未观测到的实验内容。 */
+export function researchNodeText(item: Pick<ResearchGraphItem, "objective" | "kind">) {
+  const text = item.objective.replace(/\s+/g, " ").trim();
+  const parts = text.match(/^(.{2,40}?)[：:，,。；;]\s*(.+)$/u);
+  return parts ? { title: parts[1], summary: parts[2] }
+    : { title: text, summary: { mission: "研究目标", group: "目标分组", explore: "探索任务", execute: "实验任务" }[item.kind] };
+}
+
 /** 仅 parent 构成关系；horizon 和 selectedId 用于标记，不推断任务依赖。 */
 export function layoutResearchGraph(decision: ResearchDecisionState): { items: ResearchGraphItem[]; disconnected: number } {
   // 固定预留上下胶囊的空间，展开时不移动节点；胶囊随画布缩小。

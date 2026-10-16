@@ -15,11 +15,8 @@
 .nodeButton { display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 100%; height: 100%; border: 0; border-radius: inherit; padding: 10px 14px; background: transparent; color: var(--yf-text-primary); text-align: left; cursor: pointer; font: inherit; }
 .nodeButton:hover { background: color-mix(in srgb, var(--yf-brand-primary) 4%, transparent); }
 .nodeButton:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 3px; }
-.nodeLabel { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; line-height: 1.45; }
-.nodeMeta { color: var(--yf-text-tertiary); font-size: 10px; }
-.node[data-current="true"] .nodeMeta { color: var(--yf-brand-primary); }
-.node[data-status="succeeded"] .nodeMeta { color: var(--yf-semantic-success); }
-.node[data-status="failed"] .nodeMeta, .node[data-status="blocked"] .nodeMeta { color: var(--yf-semantic-error); }
+.nodeLabel { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; line-height: 1.3; }
+.nodeMeta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; color: var(--yf-text-tertiary); font-size: 11px; line-height: 1.4; }
 .empty { display: grid; place-items: center; height: 100%; color: var(--yf-text-tertiary); font-size: 12px; padding: 20px; }
 .warning { position: absolute; top: 0; left: 16px; color: var(--yf-text-tertiary); font-size: 11px; }
 @media (pointer: coarse) { .toolbar :global(.ant-btn) { min-width: 44px; min-height: 44px; } }

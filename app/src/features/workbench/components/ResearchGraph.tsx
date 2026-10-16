@@ -12,17 +12,18 @@ import "@xyflow/react/dist/style.css";
 import type { TaskState } from "../../../services/taskService";
 import { ResearchNodeCapsules } from "./ResearchNodeCapsules";
 import { researchNodeInfo, type NodeInfo } from "../researchNodeInfo";
-import { layoutResearchGraph, researchNodeStatus, type ResearchGraphItem } from "../researchGraph";
+import { layoutResearchGraph, researchNodeText, researchNodeStatus, type ResearchGraphItem } from "../researchGraph";
 import styles from "./ResearchGraph.module.css";
 
 type GraphNode = Node<ResearchGraphItem & { agent?: boolean; expanded: boolean; info: NodeInfo; onInspect: (id: string) => void }, "research">;
 function ResearchNode({ data }: NodeProps<GraphNode>) {
+  const text = researchNodeText(data);
   return <div className={styles.node} data-status={data.status} data-current={data.current} data-agent={data.agent} data-kind={data.kind} data-expanded={data.expanded}>
     <ResearchNodeCapsules expanded={data.expanded} info={data.info} />
     <Handle id="in-left" type="target" position={Position.Left} /><Handle id="in-right" type="target" position={Position.Right} />
     <button type="button" className={`${styles.nodeButton} nodrag nopan`} onClick={() => data.onInspect(data.id)} aria-label={`${data.objective} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`}>
-      <span className={styles.nodeLabel}>{data.objective}</span>
-      <span className={styles.nodeMeta}>{data.kind === "mission" ? "研究目标" : data.kind === "group" ? "目标分组" : researchNodeStatus[data.status]}{data.current ? " · 当前节点" : ""}</span>
+      <span className={styles.nodeLabel} title={text.title}>{text.title}</span>
+      <span className={styles.nodeMeta} title={text.summary}>{text.summary}</span>
     </button>
     <Handle id="out-left" type="source" position={Position.Left} /><Handle id="out-right" type="source" position={Position.Right} />
   </div>;
