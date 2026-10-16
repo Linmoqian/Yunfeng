@@ -41,6 +41,7 @@ export interface DecisionProposal {
   decision: "select" | "wait" | "ask" | "stop" | "complete";
   reason: string;
   candidates: Candidate[];
+  relations?: import("./relations.js").RelationMove[];
   mission_condition?: Condition;
   observe_paths: string[];
 }

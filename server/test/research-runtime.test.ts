@@ -11,6 +11,7 @@ import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { TaskStore } from "../src/task/task-store.js";
 import { createTaskContextForDataDir } from "../src/task/task-context.js";
 import { createMemoryContextForDataDir } from "../src/plugins/memory/index.js";
 import { ResearchService } from "../src/research/service.js";
@@ -78,7 +79,7 @@ test("execute 读取真实报告发布科研组件，完成与暂停恢复保留
     assert.notEqual(task.autonomy!.lastResult!.job_id, snapshot.state.jobId);
     assert.ok(!ctx.service.conversation(task.id).context.messages.some((m) => m!.role === "assistant" && m!.content.startsWith("实验结论：")));
     assert.equal(task.autonomy!.learning!.summary, learning.summary);
-    const persisted = JSON.parse(await readFile(join(ctx.root, "data/tasks", task.id, "state.json"), "utf8"));
+    const persisted = new TaskStore({ dataDir: join(ctx.root, "data") }).get(task.id)!;
     assert.deepEqual(persisted.autonomy.component, snapshot);
     await ctx.service.pause(task.id, "测试暂停");
     const resumed = ctx.phase("COMPLETED");
@@ -335,7 +336,7 @@ test("子任务达标后滚动选择下一节点，长期指标达标才结束",
     assert.equal(task.autonomy!.lastResult!.evaluation!.actual, 0.934);
     assert.equal(task.autonomy!.plan!.mission_complete, true);
     assert.deepEqual(ctx.selectedModels, [executionModel, decisionModel]);
-    const persisted = JSON.parse(await readFile(join(ctx.root, "data/tasks", task.id, "state.json"), "utf8"));
+    const persisted = new TaskStore({ dataDir: join(ctx.root, "data") }).get(task.id)!;
     assert.equal(persisted.autonomy.decision.budget.spent, 0.1);
     assert.equal(persisted.autonomy.decision.nodes[0].attempts, 1);
     assert.deepEqual(persisted.autonomy.decision.horizon, []);

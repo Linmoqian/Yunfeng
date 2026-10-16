@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { componentClient, type ComponentRequest } from "../agent/component-client.js";
 import type { TaskState } from "../task/types.js";
-import { record } from "./values.js";
+import { record, text } from "./values.js";
 
 type Focus = { epoch: string; component: "research-graph"; revision: number; target: string | null };
 type Report = { sequence: number; visible: boolean; editing: boolean; renderedRevision: number | null; focusedRevision: number | null };
@@ -14,7 +14,8 @@ export class ResearchGraphComponent {
   private report?: Report & { at: number };
   private focus: Focus = { epoch: randomUUID(), component: "research-graph", revision: 0, target: null };
   private focusedAt = 0;
-  constructor(private readonly read: () => TaskState, private readonly now = Date.now) {}
+  constructor(private readonly read: () => TaskState, private readonly now = Date.now,
+    private readonly move?: (node: string, parent: string, revision: number) => Promise<void>) {}
   status() {
     const known = !!this.report && this.now() - this.report.at < 2500;
     const visible = known && this.report!.visible;
@@ -48,11 +49,17 @@ export class ResearchGraphComponent {
   /** 使用同一组件 envelope；focus(current) 在服务端解析为当前节点。 */
   async call(value: unknown) {
     const request = record(value);
+    if (request.action === "move") {
+      if (request.component !== "research-graph" || Object.keys(request).some((key) => !["action", "component", "node", "parent", "revision"].includes(key)) || !Number.isSafeInteger(request.revision) || Number(request.revision) < 0) throw new Error("关系调整请求无效");
+      if (!this.move) throw new Error("关系调整未连接任务数据库");
+      await this.move(text(request.node, 100), text(request.parent, 100), Number(request.revision));
+      return this.snapshot();
+    }
     if (request.component !== "research-graph" || Object.keys(request).some((key) => !["action", "component", "target"].includes(key))) throw new Error("关系图组件请求无效");
     if (request.action === "read") return this.snapshot();
     if (request.action === "status") return this.status();
     if (request.action === "blur") { this.clear(); return this.focus; }
-    if (request.action !== "focus") throw new Error("关系图仅支持 read/status/focus/blur");
+    if (request.action !== "focus") throw new Error("关系图仅支持 read/status/focus/blur/move");
     const tree = this.read().autonomy!.decision;
     const target = request.target === undefined || request.target === "current" || request.target === "component" ? tree?.selectedId : request.target;
     if (typeof target !== "string" || !target || (target !== "mission" && !tree?.nodes.some((node) => node.id === target))) throw new Error("关系图节点不存在");
@@ -64,6 +71,6 @@ export class ResearchGraphComponent {
   }
   client() {
     const client = componentClient<"research-graph">(async <T>({ request }: { request: ComponentRequest<"research-graph"> }) => await this.call(request) as T);
-    return { ...client, focus: (component: "research-graph", target = "current") => client.focus(component, target) as Promise<Focus & { accepted: boolean; reason?: string }> };
+    return { ...client, move: (node: string, parent: string, revision: number) => this.call({ action: "move", component: "research-graph", node, parent, revision }), focus: (component: "research-graph", target = "current") => client.focus(component, target) as Promise<Focus & { accepted: boolean; reason?: string }> };
   }
 }

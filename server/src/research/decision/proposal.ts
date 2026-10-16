@@ -2,6 +2,7 @@
  * Created on 2026-10-15
  * @author: https://github.com/Linmoqian
  */
+import { parseMoves } from "./relations.js";
 import { condition, record, text } from "../validation.js";
 import type { Candidate, DecisionProposal } from "./types.js";
 function unit(value: unknown): number {
@@ -19,5 +20,5 @@ export function parseProposal(value: unknown): DecisionProposal {
   if (candidates.filter((n) => n.kind !== "group").length > 5 || new Set(candidates.map((n) => n.key)).size !== candidates.length) throw new Error("每轮最多 5 个任务，候选 key 不能重复");
   const paths = item.observe_paths ?? [];
   if (!Array.isArray(paths) || paths.length > 8) throw new Error("决策观察路径无效");
-  return { decision: item.decision as DecisionProposal["decision"], reason: text(item.reason), candidates, observe_paths: paths.map((p) => text(p, 500)), ...(item.mission_condition === undefined ? {} : { mission_condition: condition(item.mission_condition) }) };
+  return { decision: item.decision as DecisionProposal["decision"], reason: text(item.reason), candidates, relations: parseMoves(item.relations), observe_paths: paths.map((p) => text(p, 500)), ...(item.mission_condition === undefined ? {} : { mission_condition: condition(item.mission_condition) }) };
 }

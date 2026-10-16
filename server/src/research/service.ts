@@ -2,6 +2,7 @@
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
+import { moveRelations } from "./decision/relations.js";
 import { ResearchGraphComponent } from "./graph-component.js";
 import { randomUUID } from "node:crypto";
 import { realpath, stat } from "node:fs/promises";
@@ -36,8 +37,19 @@ export class ResearchService {
     const task = this.context.store.get(id);
     if (!task?.autonomy || task.mode !== "research") throw new Error("科研任务不存在");
     let graph = this.graphs.get(id);
-    if (!graph) { graph = new ResearchGraphComponent(() => this.context.store.get(id)!); this.graphs.set(id, graph); }
+    if (!graph) { graph = new ResearchGraphComponent(() => this.context.store.get(id)!, Date.now, (node, parent, revision) => this.moveNode(id, node, parent, revision)); this.graphs.set(id, graph); }
     return graph;
+  }
+
+  private async moveNode(id: string, node: string, parent: string, revision: number): Promise<void> {
+    const task = this.context.store.get(id)!;
+    if (task.lastEventSeq !== revision) throw new Error("GRAPH_CONFLICT：请重新读取关系图版本");
+    if (this.instances.get(id)?.runtime.busy || task.autonomy?.jobId || task.autonomy?.approvalId || !["WAITING", "PAUSED", "COMPLETED", "FAILED"].includes(task.autonomy?.phase ?? "")) throw new Error("GRAPH_BUSY：等待当前科研阶段完成后再调整");
+    if (!task.autonomy?.decision) throw new Error("目标树尚未建立");
+    const decision = moveRelations(task.autonomy.decision, [{ node, parent }]);
+    if (JSON.stringify(decision) === JSON.stringify(task.autonomy.decision)) return;
+    this.context.store.update(id, (state) => { state.autonomy!.decision = decision; });
+    await this.context.hub.emit(id, "task_updated", publicResearchTask(task));
   }
 
   async create(cwd: string, goal: string, model: TaskModelRef | undefined, options: Record<string, unknown>): Promise<TaskState> {

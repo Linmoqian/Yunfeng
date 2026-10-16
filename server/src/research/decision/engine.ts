@@ -2,6 +2,7 @@
  * Created on 2026-10-15
  * @author: https://github.com/Linmoqian
  */
+import { moveRelations } from "./relations.js";
 import { createHash } from "node:crypto";
 import type { Plan, ResearchCheckpoint, Result } from "../types.js";
 import type { DecisionProposal, DecisionState, TaskNode } from "./types.js";
@@ -27,7 +28,7 @@ function depth(state: DecisionState, id: string): number {
 }
 /** 合并时保留尝试次数、结果与身份，按收益评分生成最多五个待选节点。 */
 export function decide(previous: DecisionState, proposal: DecisionProposal): DecisionState {
-  const state = structuredClone(previous);
+  let state = structuredClone(previous);
   state.reason = proposal.reason;
   state.selectedId = undefined;
   if (proposal.mission_condition) {
@@ -54,6 +55,7 @@ export function decide(previous: DecisionState, proposal: DecisionProposal): Dec
       node.priority = score(node);
     }
   }
+  state = moveRelations(state, proposal.relations ?? []);
   const eligible = state.nodes.filter((n) => n.kind !== "group" && ["pending", "failed"].includes(n.status) && n.attempts < 2 && n.priority > 0 && n.cost <= state.budget.limit - state.budget.spent + 1e-9);
   state.horizon = eligible.sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id)).slice(0, 5).map((n) => n.id);
   if (proposal.decision === "select") {

@@ -1,9 +1,10 @@
 // TaskStore：任务领域状态的持久化与事件日志。
-// 保存到全局用户目录 ~/.lin/tasks/<task-id>/ 下。
-// state.json 采用临时文件加原子重命名；events.jsonl 使用任务内递增 seq 支持断线重放。
+// 默认数据目录为 ~/.lin；普通任务与事件位于 tasks/<task-id>/，科研数据库位于目录根部。
+// 普通任务使用原子 JSON，科研检查点与节点关系使用 research.sqlite 同一事务；事件日志支持断线重放。
 // Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 
+import { ResearchGraphStore } from "../research/decision/store.js";
 import { randomUUID } from "node:crypto";
 import {
   closeSync,
@@ -92,12 +93,13 @@ export interface TaskStoreOptions {
 export type TaskStateVisitor = (task: TaskState) => void;
 
 /**
- * TaskStore 管理任务目录内的 state.json 与 events.jsonl。
+ * TaskStore 统一管理 JSON 普通任务、SQLite 科研检查点和事件日志。
  * 实例共享底层同步文件操作；事件日志追加由 TaskEventHub 调用。
  */
 export class TaskStore {
   private readonly dataDir: string;
   private readonly now: () => string;
+  private readonly research: ResearchGraphStore;
   private readonly states = new Map<string, TaskState>();
   private readonly seqByTask = new Map<string, number>();
 
@@ -106,6 +108,8 @@ export class TaskStore {
     this.now = options.now ?? (() => new Date().toISOString());
     const tasksDir = getTasksDir(this.dataDir);
     if (!existsSync(tasksDir)) mkdirSync(tasksDir, { recursive: true });
+    this.research = new ResearchGraphStore(this.dataDir);
+    for (const state of this.research.readAll()) { this.states.set(state.id, state); this.seqByTask.set(state.id, state.lastEventSeq); }
     this.loadAll();
   }
 
@@ -119,6 +123,7 @@ export class TaskStore {
       return;
     }
     for (const entry of entries) {
+      if (this.states.has(entry)) continue;
       const dir = path.join(tasksDir, entry);
       const file = statePath(this.dataDir, entry);
       if (!existsSync(file)) continue;
@@ -128,6 +133,7 @@ export class TaskStore {
         if (typeof state.lastEventSeq !== "number") {
           state.lastEventSeq = readLastEventSeq(this.dataDir, state.id);
         }
+        if (state.mode === "research") this.research.save(state);
         this.states.set(state.id, state);
         this.seqByTask.set(state.id, state.lastEventSeq);
       } catch (error) {
@@ -138,6 +144,7 @@ export class TaskStore {
   }
 
   private persist(state: TaskState): void {
+    if (state.mode === "research") { this.research.save(state); return; }
     const dir = taskDirPath(this.dataDir, state.id);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     const target = statePath(this.dataDir, state.id);
@@ -197,9 +204,16 @@ export class TaskStore {
   update(taskId: string, mutate: (state: TaskState) => void): TaskState | undefined {
     const state = this.states.get(taskId);
     if (!state) return undefined;
-    mutate(state);
-    state.updatedAt = this.now();
-    this.persist(state);
+    const previous = structuredClone(state);
+    try {
+      mutate(state);
+      state.updatedAt = this.now();
+      this.persist(state);
+    } catch (error) {
+      for (const key of Object.keys(state)) delete (state as unknown as Record<string, unknown>)[key];
+      Object.assign(state, previous);
+      throw error;
+    }
     return state;
   }
 

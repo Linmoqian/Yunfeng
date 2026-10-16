@@ -4,6 +4,7 @@
  */
 export interface GraphSnapshot {
   revision: number;
+  state?: import("./taskService").ResearchDecisionState;
   focus: { epoch: string; revision: number; target: string | null };
   interaction: { known: boolean; visible: boolean; editing: boolean; yielded: boolean; rendered: boolean; focusedRevision: number | null };
 }

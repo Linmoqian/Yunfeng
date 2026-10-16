@@ -226,3 +226,32 @@ UI 通过同一路径提交 `{action:"report",report:{sequence,visible,editing,r
 该步骤计入现有八步上限；返回接收或让出原因进入执行结果，拒绝不会终止实验。observe 的 `component.research-graph` 事实包含交互反馈，遇到让出原因不得立即重试争抢视野。程序可以直接使用上述组件 API；服务端亦提供 `ResearchGraphComponent.client()` 复用 `componentClient`。
 
 每个决策节点可选保存 `report`（科研组件快照）和 `reflection`（本次作业反思摘要），与节点 `jobId` 绑定。报告仍只允许从授权的真实 JSON 产物读取，验收由 Runtime 计算；节点采用较大的半粗体标题与灰色小字概述，由目标原文拆分，概述最多两行、完整文本悬停查看；点击节点在周围展开胶囊：状态与进度位于上方，最多两项指标和单行结论位于下方；长结论悬停查看原文。重复点击、点击画布空白或 Escape 收起，胶囊随节点平移缩放定位，使用轻量淡入淡出，系统减少动态效果时即时切换；节点固定预留上下胶囊空间，展开不触发画布重排。旧检查点无这些字段时仅展示已有状态与进度，不从最新的其他实验补造数据。新字段可选，无需迁移旧任务。
+
+
+### 数据库与节点关系调整
+
+科研检查点及节点关系统一持久化到 Server 数据目录的 `research.sqlite`；节点表具有任务范围内的父节点外键，图关系不再由前端或 JSON 副本管理。首次启动导入旧科研 JSON，保留原文件作迁移备份，后续以 SQLite 为准。检查点、节点历史与关系在单事务更新，失败回滚；重启按同一数据目录恢复。需要 Node ≥22.13 的内置 `node:sqlite`，不增加数据库服务。普通开发任务与事件日志保持既有存储方式。旧 JSON 备份不包含升级后的最新进度，降级需先导出数据库中的检查点，不应直接用旧服务接管该目录。
+
+复用 `POST /api/tasks/:id/components/research-graph`，认证和任务隔离沿用上述组件接口。`read` 返回 `{component,revision,state,focus,interaction}`，`state` 是该任务的目标树。调用方须容忍可选字段扩展。
+
+```json
+{"action":"read","component":"research-graph"}
+```
+
+读取版本后，用真实节点 ID 调整父节点：
+
+```json
+{"action":"move","component":"research-graph","node":"experiment-id","parent":"group-id","revision":12}
+```
+
+| 字段 | 类型 | 必填 | 约束与含义 |
+| --- | --- | --- | --- |
+| action | string | 是 | 固定 move |
+| component | string | 是 | 固定 research-graph |
+| node | string | 是 | 当前任务已有节点 ID，非空 ≤100 字符；不允许 mission |
+| parent | string | 是 | mission 或当前任务已有分组 ID，非空 ≤100 字符 |
+| revision | integer | 是 | read 返回的非负安全整数版本；不允许覆盖更新后的快照 |
+
+成功为 HTTP 200，返回最新组件快照并通过 `task_updated` SSE 发布关系；不会启动实验、恢复任务或自动移动画布。相同版本下重复指定相同父节点无额外副作用；版本过期须重新 read，不盲目重试。HTTP 404 为科研任务不存在；HTTP 400 的 `{error}` 包含非法字段、跨任务/未知节点、循环、非分组父节点、超过四层，以及 `GRAPH_CONFLICT`（版本变化）或 `GRAPH_BUSY`（规划/执行/反思中或作业/审批尚未结束）。仅在 WAITING/PAUSED/COMPLETED/FAILED 且无活动作业时允许外部调整。该操作同步事务保存，不创建后台作业；请求取消后需 read 确认是否已提交，禁止假定取消等于回滚。
+
+Server 内调用可使用 `graph.client().move(node,parent,revision)`。科研 Decision Layer 无需发送 HTTP：结构化提案新增可选 `relations:[{node,parent}]`，每轮最多十条、每节点一条，候选合并后整批校验、保存。未知字段拒绝。模型通过现有决策节点选择该操作；执行 Agent 的四个元接口保持原样。关系调整保留节点 ID、类型、尝试次数、结果、报告、反思及预算，不允许移动正在执行的节点或包含它的分组；节点新增继续通过 candidates，删除不开放。未提供 relations 的旧提案与原有 read/status/focus/blur/report 调用继续兼容。
