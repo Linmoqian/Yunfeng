@@ -166,3 +166,5 @@ await components.close("resources");
 共享指针由同一 Rust Runtime 管理；Agent SDK 的组件快照新增可选 `focus`（组件、全局版本、区域或 null），不写入文稿数据库。前端使用 `componentSharing.focus(component, target)`、`blur(component)` 和 `readFocus(component)`。
 
 组件可见、呈现确认和编辑让出通过 [交互反馈接口](2026-10-16-component-interaction.md) 的 status 读取；既有 Agent 组件快照增加可选 interaction，业务状态和持久化格式沿用原契约。
+
+科研关系图另以任务内 `research-graph` 组件提供 `read/status/focus/blur`，不注册到桌面 writing/resources 状态。通过 `focus_component` execute 步骤聚焦，复用组件 envelope 和人工优先语义。契约及呈现反馈见 [科研 Runtime 的任务内关系图组件](2026-10-15-research-runtime.md#任务内关系图组件)。

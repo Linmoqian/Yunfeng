@@ -16,7 +16,8 @@ export interface ResearchDecisionState {
   mission: { id: "mission"; objective: string; condition?: ResearchCondition };
   nodes: { id: string; parent: string; objective: string; kind: "group" | "explore" | "execute";
     priority: number; confidence: number; cost: number; expected_gain: number;
-    status: "pending" | "running" | "succeeded" | "failed" | "blocked"; attempts: number }[];
+    status: "pending" | "running" | "succeeded" | "failed" | "blocked"; attempts: number; jobId?: string; result?: import("./researchComponent").ResearchResult;
+    reflection?: string; report?: import("./researchComponent").ResearchComponentSnapshot }[];
   horizon: string[];
   selectedId?: string;
   budget: { limit: number; spent: number };

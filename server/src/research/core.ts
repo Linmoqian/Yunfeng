@@ -25,6 +25,7 @@ export async function planAuthorized(task: TaskState, plan: Plan): Promise<boole
       const roots = await Promise.all(config.permissions.writeRoots.map((root) => projectPath(task.cwd, root)));
       if (!roots.some((root) => { const rel = relative(root, target); return rel && !rel.startsWith("..") && !rel.startsWith("/"); })) allowed = false;
     } else if (step.action === "update_component") await projectPath(task.cwd, step.patch.source);
+    else if (step.action === "focus_component") continue;
     else if (!config.permissions.commands.some((cmd) => cmd.program === step.program && JSON.stringify(cmd.args) === JSON.stringify(step.args))) allowed = false;
   }
   return allowed || config.authorizedPlan === JSON.stringify(plan);
@@ -35,10 +36,13 @@ export class ProjectCore implements AgentCore {
   constructor(private readonly task: () => TaskState, private readonly reason: Reasoner, private readonly memory: MemoryService,
     private readonly jobs: JobExecutor, private readonly signal: AbortSignal, private readonly completed: (result: Result) => Promise<void>,
     private readonly strategy: Reasoner = reason,
-    private readonly updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>) {}
+    private readonly updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>,
+    private readonly focusComponent?: (target: string) => Promise<string>, private readonly graphStatus?: () => unknown) {}
   async observe(): Promise<State> {
     const task = this.task();
-    return buildContext(task, this.memory.retrieve({ projectKey: task.cwd, limit: 8 }));
+    const state = await buildContext(task, this.memory.retrieve({ projectKey: task.cwd, limit: 8 }));
+    if (this.graphStatus) state.facts.push({ key: "component.research-graph", value: this.graphStatus(), timestamp: new Date().toISOString(), source: "UI interaction" });
+    return state;
   }
   async plan(state: State): Promise<Plan> {
     const task = this.task();
@@ -69,7 +73,7 @@ export class ProjectCore implements AgentCore {
     const task = this.task();
     if (!await planAuthorized(task, plan)) throw new Error("实验计划尚未授权");
     this.signal.throwIfAborted();
-    return this.jobs.start(task.autonomy!.jobId!, task.cwd, plan, this.completed, this.updateComponent);
+    return this.jobs.start(task.autonomy!.jobId!, task.cwd, plan, this.completed, this.updateComponent, this.focusComponent);
   }
   async reflect(result: Result) {
     const task = this.task();

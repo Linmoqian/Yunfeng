@@ -8,6 +8,10 @@ import { record, text } from "./values.js";
 export { record, text } from "./values.js";
 export function step(value: unknown): Step {
   const item = record(value);
+  if (item.action === "focus_component") {
+    if (item.component !== "research-graph" || Object.keys(item).some((key) => !["action", "component", "target"].includes(key))) throw new Error("仅允许聚焦当前科研关系图");
+    return { action: "focus_component", component: "research-graph", target: text(item.target ?? "current", 100) };
+  }
   if (item.action === "update_component") {
     if (item.component !== "research" || Object.keys(item).some((key) => !["action", "component", "patch"].includes(key))) throw new Error("仅允许更新当前科研组件");
     return { action: "update_component", component: "research", patch: parseResearchPatch(item.patch) };

@@ -42,7 +42,7 @@ function runCommand(step: Extract<Step, { action: "run_command" }>, cwd: string,
 export class JobExecutor {
   private readonly jobs = new Map<string, { controller: AbortController; done: Promise<void> }>();
   private closed = false;
-  start(id: string, cwd: string, plan: Plan, completed: (result: Result) => Promise<void>, updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>): Result {
+  start(id: string, cwd: string, plan: Plan, completed: (result: Result) => Promise<void>, updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>, focusComponent?: (target: string) => Promise<string>): Result {
     if (this.closed || this.jobs.size >= 4 || this.jobs.has(id)) throw new Error("实验作业容量已满或作业重复");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30 * 60_000);
@@ -53,7 +53,10 @@ export class JobExecutor {
         let output = "";
         for (const step of plan.steps) {
           controller.signal.throwIfAborted();
-          if (step.action === "run_command") output = (output + await runCommand(step, cwd, controller.signal)).slice(-65536);
+          if (step.action === "focus_component") {
+            if (!focusComponent) throw new Error("关系图组件未连接");
+            output = (output + "\n" + await focusComponent(step.target)).slice(-65536);
+          } else if (step.action === "run_command") output = (output + await runCommand(step, cwd, controller.signal)).slice(-65536);
           else if (step.action === "update_component") {
             if (!updateComponent) throw new Error("科研组件未连接当前作业");
             await updateComponent(step.patch, controller.signal);

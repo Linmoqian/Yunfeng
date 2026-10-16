@@ -8,7 +8,7 @@ import type { AgentCore, Plan, ResearchCheckpoint, ResearchPhase, Result } from 
 import { DecisionBlocked, feedback, reserveExecution } from "./decision/engine.js";
 import type { HookSignal } from "./hooks/types.js";
 import { contextChanged } from "./context.js";
-import { settleResearchComponent } from "./components.js";
+import { settleResearchReports } from "./components.js";
 interface Ports {
   read(): TaskState;
   save(change: (state: ResearchCheckpoint) => void): Promise<void>;
@@ -45,7 +45,7 @@ export class ResearchRuntime {
       const learning = await this.core.reflect(state.result);
       if (this.stopped) return;
       const complete = state.plan?.decision === "complete" && (state.plan.mission_complete || !state.decision) && state.result.evaluation?.passed;
-      await this.ports.save((s) => { feedback(s, s.result!); s.learning = learning; s.lastResult = s.result; delete s.result; delete s.jobId; delete s.authorizedPlan; });
+      await this.ports.save((s) => { feedback(s, s.result!); const node = s.decision?.nodes.find((n) => n.jobId === s.result!.job_id); if (node) node.reflection = learning.summary; s.learning = learning; s.lastResult = s.result; delete s.result; delete s.jobId; delete s.authorizedPlan; });
       // 反思与下一问题保存在检查点和记忆中；对话只播报实际实验结果和最终验收。
       if (complete) await this.ports.message("研究完成：目标验收条件已通过。");
       else if (result.status !== "succeeded" || (executed && !(state.component?.state.jobId === result.job_id && state.component.state.conclusion))) {
@@ -68,7 +68,7 @@ export class ResearchRuntime {
     const tree = this.ports.read().autonomy!.decision;
     const node = tree?.nodes.find((n) => n.id === plan.node_id);
     if (node) await this.ports.message(`决策：${node.objective}\n\n评分 ${node.priority}；估计收益 ${node.expected_gain}；成功概率估计 ${node.confidence}；相对成本 ${node.cost}；预算 ${tree!.budget.spent}/${tree!.budget.limit}`);
-    const steps = plan.steps.map((step) => step.action === "write_file" ? `写入 ${step.path}` : step.action === "update_component" ? `更新科研组件，报告 ${step.patch.source}` : `运行 ${step.program}，参数 ${JSON.stringify(step.args)}`).join("\n");
+    const steps = plan.steps.map((step) => step.action === "write_file" ? `写入 ${step.path}` : step.action === "focus_component" ? `聚焦节点 ${step.target}` : step.action === "update_component" ? `更新科研组件，报告 ${step.patch.source}` : `运行 ${step.program}，参数 ${JSON.stringify(step.args)}`).join("\n");
     await this.ports.message(`计划：${plan.reason}${steps ? `\n\n步骤：\n${steps}` : ""}${plan.success_condition ? `\n\n验收条件：${JSON.stringify(plan.success_condition)}` : ""}`);
     if (plan.decision === "wait") { await this.phase("WAITING", plan.reason); return; }
     if (plan.decision === "pause") { await this.phase("PAUSED", plan.reason); return; }
@@ -92,7 +92,7 @@ export class ResearchRuntime {
     if (state?.jobId !== result.job_id || state.result) return false;
     await this.ports.save((s) => {
       if (!s.result) s.result = result;
-      settleResearchComponent(s.component, result);
+      settleResearchReports(s, result);
     });
     await this.ports.message(`实验结果：${result.status}\n\n${result.output ?? ""}\n\n验收：${result.evaluation?.reason ?? "未完成"}`);
     return true;

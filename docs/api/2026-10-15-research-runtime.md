@@ -202,3 +202,27 @@ Pi plan 示例（验收当前选中的节点）：
 | 2026-10-16 | 0.1.0 | 兼容扩展 | execute 发布任务专属科研组件，展示报告进度、指标和结论 | 新增可选 autonomy.component 与计划步骤；旧检查点无需迁移 |
 
 2026-10-16 验证：Server 构建与前端 TypeScript 通过，18 项服务端核心测试和 5 项 React 核心测试通过。macOS 开发应用中，真实 Pi 按 execute 计划发布基线报告（实验 1/2），暂停并重启后快照保留；继续后执行一次优化并发布实验 2/2，压缩体积从 8686 降至 7736 字节（减少 10.94%），解压一致且 completed==1。日志仅有 baseline、optimize 各一次，最终结论由胶囊与报告摘要展示，对话未重复输出同轮反思。原生展开详情、Enter 收起通过；重载时仍存在既有 HTTP 502，需要一次手动重连。其他桌面平台和长命令内的实时报告刷新尚未验收。
+
+### 任务内关系图组件
+
+`POST /api/tasks/:id/components/research-graph` 沿用组件请求形状：
+
+```json
+{"action":"focus","component":"research-graph","target":"current"}
+```
+
+支持 `read`、`status`、`focus`、`blur`。`target` 为当前任务真实节点 ID、`mission` 或 `current`（服务端解析当前节点）。不存在的节点或跨组件请求返回 HTTP 400；非科研任务返回 404。该接口沿用任务接口的本机访问边界，不访问项目外文件，也不执行实验或改变目标树。
+
+`read` 返回 TaskStore 中的目标树、临时 `focus` 和 `interaction`。`status` 返回 `known/visible/editing/yielded/rendered/renderedRevision/focusedRevision`。`focus` 返回 `accepted`；画布不可见或反馈超过 2.5 秒时拒绝并返回 `INTERACTION_UNAVAILABLE`，工程师操作时返回 `COMPONENT_BUSY`。拒绝不排队。接收不等于已呈现：客户端实际定位后报告 `focusedRevision`；聚焦请求两秒失效，重启不重放。未打开关系图时不自动切换工程师的视图。
+
+UI 通过同一路径提交 `{action:"report",report:{sequence,visible,editing,renderedRevision,focusedRevision,epoch}}`。序号须单调递增，版本不能超过当前任务或已发出的焦点版本；旧反馈忽略，非法反馈返回 400。拖动、缩放、点击和输入立即让出，松手后保留短暂保护，不回放旧请求。报告中的 `epoch` 回传服务提供的 `focus.epoch`（初次为 null），服务重启会更换 epoch，旧聚焦确认随即失效，前端自动重新同步。交互租约仅保存在内存，不写业务检查点；离开关系图上报不可见，断联后自动失效。这里使用有界心跳同步 UI 临时租约，不唤醒科研决策或调用模型。
+
+科研 Agent 通过受控 `execute` 步骤调用：
+
+```json
+{"action":"focus_component","component":"research-graph","target":"current"}
+```
+
+该步骤计入现有八步上限；返回接收或让出原因进入执行结果，拒绝不会终止实验。observe 的 `component.research-graph` 事实包含交互反馈，遇到让出原因不得立即重试争抢视野。程序可以直接使用上述组件 API；服务端亦提供 `ResearchGraphComponent.client()` 复用 `componentClient`。
+
+每个决策节点可选保存 `report`（科研组件快照）和 `reflection`（本次作业反思摘要），与节点 `jobId` 绑定。报告仍只允许从授权的真实 JSON 产物读取，验收由 Runtime 计算；点击节点显示其进度、指标、结论，执行原文和决策估计默认折叠。旧检查点无这些字段时显示无指标报告及已有验收，不从最新的其他实验补造数据。新字段可选，无需迁移旧任务。

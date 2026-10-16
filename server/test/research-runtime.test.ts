@@ -58,19 +58,23 @@ test("execute 读取真实报告发布科研组件，完成与暂停恢复保留
   const ctx = await fixture(async (phase) => {
     if (phase === "reflect") return learning;
     plans += 1;
-    return { decision: "act", reason: "运行后发布报告", steps: [{ action: "run_command", program, args }, { action: "update_component", component: "research", patch }, { action: "update_component", component: "research", patch }], success_condition: condition };
+    return { decision: "act", reason: "运行后发布报告", steps: [{ action: "focus_component", component: "research-graph", target: "current" }, { action: "run_command", program, args }, { action: "update_component", component: "research", patch }, { action: "update_component", component: "research", patch }], success_condition: condition };
   });
   try {
     const completed = ctx.phase("COMPLETED");
     const task = await ctx.service.create(ctx.cwd, "核验并展示实验", undefined, { permissions: { commands: [{ program, args }] } });
     await completed;
     const snapshot = structuredClone(task.autonomy!.component!);
+    const experiment = task.autonomy!.decision!.nodes.find((n) => n.jobId === snapshot.state.jobId)!;
+    assert.deepEqual(experiment.report, snapshot);
+    assert.equal(experiment.reflection, learning.summary);
     assert.equal(snapshot.revision, 2); // 相同报告只发布一次，实际验收再递增一次。
     assert.equal(snapshot.state.progress!.current, 2);
     assert.equal(snapshot.state.metrics[0]!.value, report.accuracy);
     assert.equal(snapshot.state.conclusion!.summary, report.summary);
     assert.equal(snapshot.result!.job_id, snapshot.state.jobId);
     assert.equal(snapshot.result!.evaluation!.passed, true);
+    assert.match(snapshot.result!.output!, /INTERACTION_UNAVAILABLE/);
     assert.notEqual(task.autonomy!.lastResult!.job_id, snapshot.state.jobId);
     assert.ok(!ctx.service.conversation(task.id).context.messages.some((m) => m!.role === "assistant" && m!.content.startsWith("实验结论：")));
     assert.equal(task.autonomy!.learning!.summary, learning.summary);

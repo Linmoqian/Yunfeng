@@ -79,7 +79,7 @@ export function reserveExecution(checkpoint: ResearchCheckpoint, plan: Plan, job
   const cost = plan.decision === "act" ? node.cost : 0;
   if (state.budget.spent + cost > state.budget.limit + 1e-9) throw new DecisionBlocked("估计成本预算已用完");
   state.budget.spent = Number((state.budget.spent + cost).toFixed(6));
-  node.attempts += 1; node.status = "running"; node.jobId = jobId; node.fingerprint = fingerprint;
+  node.attempts += 1; node.status = "running"; node.jobId = jobId; delete node.reflection; node.fingerprint = fingerprint;
 }
 /** 仅实测验收通过才将节点标为成功，反思文本不能修改验收状态。 */
 export function feedback(checkpoint: ResearchCheckpoint, result: Result): void {

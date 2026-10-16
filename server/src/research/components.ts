@@ -26,6 +26,12 @@ export function settleResearchComponent(snapshot: ResearchSnapshot | undefined, 
   if (snapshot?.state.jobId === result.job_id && !snapshot.result) { snapshot.result = result; snapshot.revision += 1; }
 }
 
+/** 包含旧检查点恢复路径，节点报告和当前报告均绑定同一个实测结果。 */
+export function settleResearchReports(checkpoint: Pick<import("./types.js").ResearchCheckpoint, "component" | "decision">, result: Result): void {
+  settleResearchComponent(checkpoint.component, result);
+  for (const node of checkpoint.decision?.nodes ?? []) settleResearchComponent(node.report, result);
+}
+
 function fields(row: Record<string, unknown>, allowed: string[]): void {
   if (Object.keys(row).some((key) => !allowed.includes(key))) throw new Error("科研组件包含未知字段");
 }

@@ -17,6 +17,8 @@ export interface TaskNode {
   fingerprint?: string;
   jobId?: string;
   result?: Result;
+  reflection?: string;
+  report?: import("../components.js").ResearchSnapshot;
 }
 export interface DecisionState {
   mission: { id: "mission"; objective: string; condition?: Condition };

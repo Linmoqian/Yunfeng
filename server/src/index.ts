@@ -38,6 +38,7 @@ import { destroyAllSessions } from "./rpc-manager.js";
 import {
   handleTaskCapabilities,
   handleTaskCommands,
+  handleResearchGraph,
   handleTaskConversation,
   handleTaskCreate,
   handleTaskEvents,
@@ -201,6 +202,8 @@ const server = createServer(async (req, res) => {
     if (taskCapabilitiesMatch && method === "GET") {
       return sendResult(res, await handleTaskCapabilities(decodeURIComponent(taskCapabilitiesMatch[1])));
     }
+    const researchGraphMatch = route.match(/^\/tasks\/([^/]+)\/components\/research-graph$/);
+    if (researchGraphMatch && method === "POST") return sendResult(res, await handleResearchGraph(decodeURIComponent(researchGraphMatch[1]), await readJsonBody(req)));
     const taskCommandsMatch = route.match(/^\/tasks\/([^/]+)\/commands$/);
     if (taskCommandsMatch && method === "POST") {
       return sendResult(res, await handleTaskCommands(decodeURIComponent(taskCommandsMatch[1]), await readJsonBody(req)));

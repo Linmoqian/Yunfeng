@@ -487,3 +487,14 @@ export function handleTaskEvents(
     },
   };
 }
+
+/** 任务专属关系图组件接口；交互反馈不写入业务检查点。 */
+export async function handleResearchGraph(id: string, body: Record<string, unknown>): Promise<RouteResult> {
+  const task = getTaskContext().store.get(id);
+  if (!task?.autonomy || task.mode !== "research") return json({ error: "科研任务不存在" }, 404);
+  try {
+    const graph = getResearchService().graph(id);
+    if (body.action === "report" && Object.keys(body).every((key) => ["action", "report"].includes(key))) return json(graph.receive(body.report));
+    return json(await graph.call(body));
+  } catch (error) { return json({ error: error instanceof Error ? error.message : String(error) }, 400); }
+}

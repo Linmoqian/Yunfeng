@@ -4,7 +4,8 @@
  */
 export interface Fact { key: string; value: unknown; timestamp: string; source: string }
 export interface State { facts: Fact[]; events: unknown[]; constraints: string[]; memory: unknown[] }
-export type Step = { action: "write_file"; path: string; content: string }
+export type Step = { action: "focus_component"; component: "research-graph"; target: string }
+  | { action: "write_file"; path: string; content: string }
   | { action: "run_command"; program: string; args: string[] }
   | { action: "update_component"; component: "research"; patch: import("./components.js").ResearchPatch };
 export type Condition = { kind: "file_exists"; path: string }

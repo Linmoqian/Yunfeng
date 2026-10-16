@@ -2,6 +2,7 @@
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
+import { ResearchGraphComponent } from "./graph-component.js";
 import { randomUUID } from "node:crypto";
 import { realpath, stat } from "node:fs/promises";
 import { getTaskContext } from "../task/task-context.js";
@@ -17,7 +18,7 @@ import { HookLayer } from "./hooks/layer.js";
 import { FileHooks } from "./hooks/files.js";
 import { researchEvent } from "./hooks/types.js";
 import { researchMessageRole } from "./messages.js";
-import { researchComponents, settleResearchComponent } from "./components.js";
+import { researchComponents, settleResearchReports } from "./components.js";
 import type { Plan } from "./types.js";
 import type { TaskCommand, TaskModelRef, TaskState } from "../task/types.js";
 
@@ -30,6 +31,14 @@ export class ResearchService {
   private readonly jobs = new JobExecutor();
   private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; hooks: HookLayer; files: FileHooks }>();
   private closed = false;
+  private readonly graphs = new Map<string, ResearchGraphComponent>();
+  graph(id: string): ResearchGraphComponent {
+    const task = this.context.store.get(id);
+    if (!task?.autonomy || task.mode !== "research") throw new Error("科研任务不存在");
+    let graph = this.graphs.get(id);
+    if (!graph) { graph = new ResearchGraphComponent(() => this.context.store.get(id)!); this.graphs.set(id, graph); }
+    return graph;
+  }
 
   async create(cwd: string, goal: string, model: TaskModelRef | undefined, options: Record<string, unknown>): Promise<TaskState> {
     text(goal, 10000);
@@ -86,12 +95,17 @@ export class ResearchService {
         const previous = task.autonomy!.component;
         if (previous && JSON.stringify({ ...previous.state, updatedAt: undefined }) === JSON.stringify({ ...view, updatedAt: undefined })) return previous;
         const snapshot = { component: "research" as const, revision: (previous?.revision ?? 0) + 1, state: view };
-        this.context.store.update(id, (s) => { s.autonomy!.component = snapshot; });
+        this.context.store.update(id, (s) => { s.autonomy!.component = snapshot;
+          const node = s.autonomy!.decision?.nodes.find((n) => n.jobId === jobId);
+          if (node) node.report = snapshot; });
         await this.context.hub.emit(id, "task_updated", publicResearchTask(task));
         return snapshot;
       }, signal);
       await components.patch("research", patch);
-    });
+    }, async (target) => {
+      const result = await this.graph(id).call({ action: "focus", component: "research-graph", target });
+      return JSON.stringify(result);
+    }, () => this.graph(id).status());
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {
@@ -178,7 +192,7 @@ export class ResearchService {
     await stopping;
     await fileStopping;
     if (task.autonomy?.jobId && !task.autonomy.result) {
-      this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; settleResearchComponent(s.autonomy!.component, s.autonomy!.result); });
+      this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); });
     }
     this.instances.delete(id);
   }
@@ -192,7 +206,7 @@ export class ResearchService {
     for (const task of this.context.store.findAll().filter((s) => s.mode === "research" && s.autonomy?.schemaVersion === 1)) {
       const state = task.autonomy!;
       if (state.jobId && !state.result) {
-        this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; settleResearchComponent(s.autonomy!.component, s.autonomy!.result); s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; });
+        this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; });
       } else if (state.approvalId) {
         this.context.store.update(task.id, (s) => { delete s.autonomy!.approvalId; delete s.autonomy!.authorizedPlan; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "重启后授权已失效"; });
       } else if (!["PAUSED", "FAILED", "COMPLETED"].includes(state.phase) && task.status !== "archived") this.start(task.id, "recovered");
@@ -207,6 +221,7 @@ export class ResearchService {
   }
   async close(): Promise<void> {
     this.closed = true;
+    this.graphs.clear();
     for (const id of [...this.instances.keys()]) await this.pause(id, "服务停止，手动继续后恢复");
     await this.jobs.close();
   }
