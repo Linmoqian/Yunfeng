@@ -38,12 +38,9 @@ function isTaskStateLike(value: unknown): value is TaskState {
   return typeof candidate.id === "string" && typeof candidate.sessionId === "string" && typeof candidate.status === "string";
 }
 
-function formatConnectionNotice(error: string): string {
-  const httpMatch = error.match(/（HTTP\s+(\d+)）/);
-  const reason = error.replace(/（HTTP\s+\d+）/, "").trim();
-  return httpMatch
-    ? `在风里已迷失了方向（HTTP ${httpMatch[1]}：${reason}）`
-    : `在风里已迷失了方向（${reason}）`;
+function actionableConnectionError(error: string | null): string | null {
+  if (!error || /HTTP\s+(502|503|504)|Failed to fetch|Load failed|NetworkError|fetch failed|网络连接|网络中断/i.test(error)) return null;
+  return error;
 }
 
 export function WorkbenchPage() {
@@ -167,7 +164,7 @@ export function WorkbenchPage() {
         }
       },
       (connected) => {
-        dispatch(workbenchActions.connection({ state: connected ? "connected" : "offline" }));
+        dispatch(workbenchActions.connection({ state: connected ? "connecting" : "offline" }));
         if (connected) void refreshSnapshot();
       },
     );
@@ -271,7 +268,7 @@ export function WorkbenchPage() {
 
   return (
     <WorkspaceView
-      navigationLoading={snapshotLoading} navigationError={snapshotError || (connectionState === "offline" ? loadError || "连接已断开" : null)}
+      navigationLoading={snapshotLoading} navigationError={null}
       tasks={tasks} sessions={sessions} summaries={filteredSummaries}
       currentTaskId={currentTaskId} currentSessionId={currentSessionId}
       initialMessage={initialMessage} search={search}
@@ -295,7 +292,7 @@ export function WorkbenchPage() {
       onReopen={async (id) => { await sendTaskCommand(id, { type: "reopen" }); await refreshSnapshot(); }}
       archived={archivedFilter === "archived"} onArchivedChange={(value) => dispatch(workbenchActions.archived(value ? "archived" : "active"))}
       onSettings={() => setSettingsOpen(true)}
-      notice={connectionState === "offline" && loadError ? formatConnectionNotice(loadError) : null}
+      notice={actionableConnectionError(snapshotError || loadError)}
       onReconnect={() => void refreshSnapshot()}
       settings={{
         open: settingsOpen, onClose: () => setSettingsOpen(false),

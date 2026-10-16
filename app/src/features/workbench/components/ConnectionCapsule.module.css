@@ -1,0 +1,11 @@
+/* 固定悬浮位置，只做透明度和微位移动画，不挤动对话。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.anchor { position: absolute; z-index: 5; top: 66px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); pointer-events: none; }
+.capsule { display: inline-flex; align-items: center; min-height: 30px; padding: 3px 11px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-secondary); background: var(--yf-bg-canvas); box-shadow: 0 2px 8px rgb(0 0 0 / 4%); font-size: 11px; white-space: nowrap; user-select: none; }
+.status, .errorButton { display: inline-flex; align-items: center; gap: 5px; }
+.errorButton { padding: 0; border: 0; background: transparent; color: var(--yf-semantic-error); font: inherit; cursor: pointer; pointer-events: auto; }
+.errorButton:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 4px; border-radius: 999px; }
+.detail { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; max-width: 280px; overflow-wrap: anywhere; font-size: 12px; }
+.detail button { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: var(--yf-radius-sm); padding: 5px 8px; color: var(--yf-brand-primary); background: var(--yf-bg-secondary); cursor: pointer; }

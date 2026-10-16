@@ -8,6 +8,7 @@ import { sessionToLegacySummary, taskToSummary, type TaskSummary } from "../task
 import { useWorkspaceTabs, type WorkspaceTab } from "../hooks/useWorkspaceTabs";
 import { useTeamWorkspace } from "../hooks/useTeamWorkspace";
 import { WorkspaceShell } from "./WorkspaceShell";
+import { ConnectionCapsule } from "./ConnectionCapsule";
 import { ConversationLoading } from "./ConversationLoading";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { WorkspaceTabs } from "./WorkspaceTabs";
@@ -113,14 +114,14 @@ export function WorkspaceView(props: WorkspaceViewProps) {
   return <PaperWritingContext.Provider value={paper}>
     <WorkspaceShell team={teamOpen}
       toolPanels={!teamOpen && tabs.active === "tool-writing" ? { leftTitle: "参考文献与章节", rightTitle: "图文素材", left: <PaperNavigation onBack={() => { tabs.setActive("home"); props.onClear(); }} />, right: <PaperMaterials /> } : undefined}
-      navigation={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceNavigation loading={props.navigationLoading} error={props.navigationError} onRetry={props.onReconnect} tasks={props.summaries} activeId={props.currentTaskId ?? props.currentSessionId ?? undefined}
+      navigation={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceNavigation loading={props.navigationLoading && !props.tasks.length && !props.sessions.length} error={props.navigationError} onRetry={props.onReconnect} tasks={props.summaries} activeId={props.currentTaskId ?? props.currentSessionId ?? undefined}
         search={props.search} onSearch={props.onSearch} onOpen={openTask} onNew={startNew} onUtility={openUtility} onTeam={() => setTeamOpen(true)} onSettings={props.onSettings} onRename={props.onRename} onArchive={props.onArchive} onReopen={props.onReopen} archived={props.archived} onArchivedChange={props.onArchivedChange} /></div>
         <div className={shell.dockStage} hidden={!teamOpen}><TeamContacts state={team} onBack={() => setTeamOpen(false)} /></div></>}
       workbench={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceWorkbench tasks={props.summaries} onOpen={openTask} onUtility={openUtility} infoRef={setInfoContainer} /></div>
         <div className={shell.dockStage} hidden={!teamOpen}><TeamWorkbench state={team} /></div></>}>
       {teamOpen ? <TeamChat state={team} onBack={() => setTeamOpen(false)} /> : <>
         <WorkspaceTabs tabs={tabs} onActivate={activate} onClose={close} onNew={startNew} onReopen={reopen} resolveTitle={resolveTitle} />
-        {props.notice && <div className={shell.notice} data-error role="status"><span>{props.notice}</span><button type="button" className={shell.iconButton} aria-label="重新连接" onClick={props.onReconnect}>↻</button></div>}
+        <ConnectionCapsule busy={props.settings.connectionState !== "connected"} error={props.notice} onRetry={props.onReconnect} />
       </>}
       <div className={shell.stage} hidden={teamOpen} style={teamOpen ? { display: "none" } : undefined}>
         {tabs.items.map((tab) => <div key={tab.id} className={shell.sessionStage} hidden={tab.id !== tabs.active} role="tabpanel" aria-label={resolveTitle(tab)}><Suspense fallback={<ConversationLoading />}>{renderSession(tab)}</Suspense></div>)}
