@@ -37,3 +37,23 @@ test("指标存在不代表通过，失败和中断保留可见状态", () => {
   rerender(<ResearchReport snapshot={{ ...snapshot, result: { job_id: "job-1", status: "cancelled" } }} />);
   expect(screen.getByText("执行中断")).toBeTruthy();
 });
+
+test("事实更新立即可读，保留已展开过程与键盘焦点", async () => {
+  const { rerender } = render(<ResearchReport snapshot={{ ...snapshot, result: undefined, state: {
+    ...snapshot.state, progress: { label: "实验", current: 1, total: 2 }, metrics: [{ label: "减小", value: 0, unit: "%" }],
+  } }} />);
+  const progress = screen.getByRole("progressbar", { name: "实验" });
+  const trigger = screen.getByRole("button", { name: "详细过程" });
+  await userEvent.click(trigger);
+  trigger.focus();
+  rerender(<ResearchReport snapshot={{ ...snapshot, revision: 2 }} />);
+  expect(screen.getByRole("progressbar", { name: "实验" })).toBe(progress);
+  expect(progress.getAttribute("aria-valuenow")).toBe("2");
+  expect(screen.getByText("减小 14.4 %")).toBeTruthy();
+  expect(screen.queryByText("减小 0 %")).toBeNull();
+  expect(screen.getByText("节点验收通过")).toBeTruthy();
+  expect(screen.getByText("原始实验过程")).toBeTruthy();
+  expect(document.activeElement).toBe(trigger);
+  await userEvent.keyboard("{Enter}");
+  expect(trigger.getAttribute("aria-expanded")).toBe("false");
+});

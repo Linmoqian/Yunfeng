@@ -5,6 +5,8 @@
 import { ChevronRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useId, type ReactNode } from "react";
+import { Capsule } from "./Capsule";
+import interaction from "./CapsuleInteraction.module.css";
 import styles from "./WorkspaceNavigation.module.css";
 
 export function NavigationReveal({ open, children }: { open: boolean; children: ReactNode }) {
@@ -21,9 +23,9 @@ interface NavigationGroupProps {
 export function NavigationGroup({ label, count, tone, open, onToggle, children }: NavigationGroupProps) {
   const id = useId();
   return <section className={styles.group} aria-label={label}>
-    <button type="button" className={styles.groupToggle} data-navigation-group data-tone={tone} aria-expanded={open} aria-controls={id} onClick={onToggle}>
+    <button type="button" className={`${styles.groupToggle} ${interaction.pressable}`} data-navigation-group data-tone={tone} aria-expanded={open} aria-controls={id} onClick={onToggle}>
       <ChevronRight size={11} className={styles.chevron} data-open={open} />
-      <span className={styles.dot} /><span>{label}</span><span className={styles.count}>{count}</span>
+      <span className={styles.dot} /><span>{label}</span><Capsule className={styles.count} value={count} animateOnMount={false}>{count}</Capsule>
     </button>
     <div id={id}><NavigationReveal open={open}>{children}</NavigationReveal></div>
   </section>;
