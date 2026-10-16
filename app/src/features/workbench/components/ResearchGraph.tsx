@@ -4,20 +4,31 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { useResearchGraphComponent } from "../hooks/useResearchGraphComponent";
-import { ResearchReport } from "./ResearchReport";
 import { Capsule } from "./Capsule";
-import { Collapse } from "antd";
 import { Button } from "antd";
-import { MessageSquare, Scan, X, ZoomIn, ZoomOut } from "lucide-react";
-import { ReactFlow, Handle, Position, MarkerType, type Node, type NodeProps, type ReactFlowInstance } from "@xyflow/react";
+import { MessageSquare, Scan, ZoomIn, ZoomOut } from "lucide-react";
+import { ReactFlow, Handle, NodeToolbar, Position, MarkerType, type Node, type NodeProps, type ReactFlowInstance } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TaskState } from "../../../services/taskService";
+import { researchNodeInfo, type NodeInfo } from "../researchNodeInfo";
 import { layoutResearchGraph, researchNodeStatus, type ResearchGraphItem } from "../researchGraph";
 import styles from "./ResearchGraph.module.css";
 
-type GraphNode = Node<ResearchGraphItem & { agent?: boolean; onInspect: (id: string) => void }, "research">;
+type GraphNode = Node<ResearchGraphItem & { agent?: boolean; expanded: boolean; info: NodeInfo; onInspect: (id: string) => void }, "research">;
 function ResearchNode({ data }: NodeProps<GraphNode>) {
-  return <div className={styles.node} data-status={data.status} data-current={data.current} data-agent={data.agent} data-kind={data.kind}>
+  return <div className={styles.node} data-status={data.status} data-current={data.current} data-agent={data.agent} data-kind={data.kind} data-expanded={data.expanded}>
+    <NodeToolbar isVisible={data.expanded} position={Position.Top} offset={12}>
+      <div className={`${styles.satellites} nodrag nopan`} aria-label="节点概览">
+        <Capsule className={styles.pill} status={data.info.passed === undefined ? undefined : data.info.passed ? "passed" : "failed"}>{data.info.status}</Capsule>
+        {data.info.progress && <Capsule className={styles.pill} value={data.info.progress}>{data.info.progress}</Capsule>}
+      </div>
+    </NodeToolbar>
+    <NodeToolbar isVisible={data.expanded && Boolean(data.info.metrics.length || data.info.conclusion)} position={Position.Bottom} offset={12}>
+      <div className={`${styles.satellites} ${styles.below} nodrag nopan`} aria-label="节点实验信息">
+        {data.info.metrics.map((metric) => <Capsule className={styles.pill} value={metric} key={metric}>{metric}</Capsule>)}
+        {data.info.conclusion && <Capsule className={`${styles.pill} ${styles.conclusion}`} title={data.info.conclusion} value={data.info.conclusion}>{data.info.conclusion}</Capsule>}
+      </div>
+    </NodeToolbar>
     <Handle id="in-left" type="target" position={Position.Left} /><Handle id="in-right" type="target" position={Position.Right} />
     <button type="button" className={`${styles.nodeButton} nodrag nopan`} onClick={() => data.onInspect(data.id)} aria-label={`${data.objective} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`}>
       <span className={styles.nodeLabel}>{data.objective}</span>
@@ -28,6 +39,8 @@ function ResearchNode({ data }: NodeProps<GraphNode>) {
 }
 const nodeTypes = { research: ResearchNode };
 const options = { hideAttribution: true };
+// 保留只读节点的命中区域；展开由节点按钮处理，避免重复切换。
+const keepNodeHitArea = () => {};
 export function ResearchGraph({ task, onClose }: { task: TaskState; onClose: () => void }) {
   const decision = task.autonomy?.decision;
   const [inspected, setInspected] = useState<string | null>(null);
@@ -42,9 +55,7 @@ export function ResearchGraph({ task, onClose }: { task: TaskState; onClose: () 
     setInspected(id);
     if (!await flow.current.setCenter(item.position.x + 110, item.position.y + 40, { zoom: flow.current.getZoom() })) throw new Error("画布尚未就绪");
   });
-  const nodes = useMemo(() => graph?.items.map((item): GraphNode => ({ id: item.id, type: "research", position: item.position, data: { ...item, onInspect: setInspected, agent: control.agentTarget === item.id } })) ?? [], [graph, control.agentTarget]);
-  const selected = graph?.items.find((item) => item.id === inspected);
-  const detail = decision?.nodes.find((node) => node.id === inspected);
+  const nodes = useMemo(() => graph?.items.map((item): GraphNode => ({ id: item.id, type: "research", position: item.position, data: { ...item, onInspect: (id) => setInspected((previous) => previous === id ? null : id), expanded: inspected === item.id, info: researchNodeInfo(task, item.id), agent: control.agentTarget === item.id } })) ?? [], [graph, control.agentTarget, inspected, task]);
   return <section ref={control.root} className={styles.graph} aria-label="科研分支关系图" onKeyDown={(event) => {
     if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
     if (inspected) setInspected(null); else onClose();
@@ -58,22 +69,11 @@ export function ResearchGraph({ task, onClose }: { task: TaskState; onClose: () 
     <div className={styles.canvas}>
       {graph ? <ReactFlow<GraphNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes}
         onMoveStart={(event) => { if (event) control.yieldControl(); }}
-        onNodeClick={(_, node) => setInspected(node.id)}
+        onNodeClick={keepNodeHitArea} onPaneClick={() => setInspected(null)}
         onInit={(instance) => { flow.current = instance; void instance.setCenter(110, 40, { zoom: 0.85 }); }} nodesDraggable={false} nodesConnectable={false} nodesFocusable={false} edgesFocusable={false}
         elementsSelectable={false} zoomOnDoubleClick={false} minZoom={0.15} maxZoom={1.5} proOptions={options} />
         : <div className={styles.empty}>目标树尚未生成，Agent 规划后会自动呈现。</div>}
       {Boolean(graph?.disconnected) && <p className={styles.warning}>部分节点缺少有效父关系，暂未连线。</p>}
-      {selected && <aside className={styles.detail} aria-label="节点详情">
-        <Button className={styles.close} type="text" size="small" aria-label="关闭节点详情" icon={<X size={14} />} onClick={() => setInspected(null)} />
-        <span className={styles.nodeMeta}>{selected.kind === "mission" ? "研究目标" : selected.kind === "group" ? "目标分组" : researchNodeStatus[selected.status]}</span>
-        <p className={styles.objective} title={selected.objective}>{selected.objective}</p>
-        {detail && detail.kind !== "group" && <>
-          {detail.report && detail.report.state.jobId === detail.jobId ? <ResearchReport snapshot={detail.report} />
-            : task.autonomy?.component && task.autonomy.component.state.jobId === detail.jobId ? <ResearchReport snapshot={task.autonomy.component} />
-            : <><small>尚无该实验的指标报告</small>{detail.reflection && <p>{detail.reflection}</p>}{detail.result && detail.result.job_id === detail.jobId && <Collapse ghost size="small" items={[{ key: "result", label: "验收详情", children: <p>{detail.result.evaluation?.reason ?? "尚无验收结果"}</p> }]} />}</>}
-          <Collapse ghost size="small" items={[{ key: "decision", label: "决策依据", children: <small>已尝试 {detail.attempts} 次 · 估计优先级 {detail.priority.toFixed(2)}<br />估计收益 {detail.expected_gain} · 估计成功率 {Math.round(detail.confidence * 100)}% · 估计成本 {detail.cost}</small> }]} />
-        </>}
-      </aside>}
     </div>
   </section>;
 }
