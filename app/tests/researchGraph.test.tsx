@@ -7,6 +7,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ResearchGraph } from "../src/features/workbench/components/ResearchGraph";
 import type { TaskState } from "../src/services/taskService";
+vi.mock("../src/features/workbench/hooks/useResearchGraphSummaries", () => ({ useResearchGraphSummaries: () => ({ busy: false, error: false, retry: vi.fn() }) }));
 vi.mock("../src/features/workbench/hooks/useResearchGraphComponent", () => ({ useResearchGraphComponent: () => ({ root: { current: null }, agentTarget: null, yieldControl: vi.fn() }) }));
 vi.mock("@xyflow/react", () => ({
   ReactFlow: ({ nodes, nodeTypes }: any) => <div>{nodes.map((node: any) => { const View = nodeTypes[node.type]; return <View key={node.id} data={node.data} />; })}</div>,
@@ -19,7 +20,7 @@ afterAll(() => vi.unstubAllGlobals());
 afterEach(cleanup);
 test("节点周围按需展开真实胶囊，重复点击收起，切换快照不串实验", async () => {
   const task = { id: "research", mode: "research", autonomy: { decision: { mission: { id: "mission", objective: "研究目标" },
-    nodes: [{ id: "exp", parent: "mission", objective: "训练实验", kind: "execute", status: "running", priority: 0.8, confidence: 0.9, cost: 1, expected_gain: 0.7, attempts: 1 }], horizon: [], selectedId: "exp" } } } as unknown as TaskState;
+    nodes: [{ id: "exp", parent: "mission", objective: "训练实验", kind: "execute", presentation: { title: "训练实验", summary: "核对实验结果与目标" }, status: "running", priority: 0.8, confidence: 0.9, cost: 1, expected_gain: 0.7, attempts: 1 }], horizon: [], selectedId: "exp" } } } as unknown as TaskState;
   const close = vi.fn();
   const view = render(<ResearchGraph task={task} onClose={close} />);
   expect(screen.queryByLabelText("节点概览")).toBeNull();
@@ -50,11 +51,13 @@ test("节点周围按需展开真实胶囊，重复点击收起，切换快照�
 
 test("相关性按需打开，区分余弦值和语义建议，点击目标切换节点", async () => {
   const task = { id: "research", lastEventSeq: 4, autonomy: { decision: { mission: { id: "mission", objective: "研究目标" },
-    nodes: [{ id: "exp", parent: "mission", objective: "训练实验", kind: "execute", status: "pending", relevance: { status: "ready", source: "hash", matches: [
+    nodes: [{ id: "exp", parent: "mission", objective: "训练实验", kind: "execute", presentation: { title: "模型训练", summary: "核对训练配置与研究目标" }, status: "pending", relevance: { status: "ready", source: "hash", matches: [
       { target: "mission", similarity: 0.76, relation: "abstraction", direction: "outgoing", confidence: 0.8, reason: "训练服务于整体研究目标" },
     ] } }], horizon: [] } } } as unknown as TaskState;
   render(<ResearchGraph task={task} onClose={vi.fn()} />);
-  await userEvent.click(screen.getByRole("button", { name: "训练实验 · 待执行" }));
+  await userEvent.click(screen.getByRole("button", { name: "模型训练 · 待执行" }));
+  expect(screen.getByText("模型训练")).toBeTruthy();
+  expect(screen.getByText("核对训练配置与研究目标")).toBeTruthy();
   expect(screen.queryByText("关系建议 · 非实测因果")).toBeNull();
   await userEvent.click(screen.getByRole("button", { name: "节点相关性" }));
   expect(await screen.findByText("关系建议 · 非实测因果")).toBeTruthy();

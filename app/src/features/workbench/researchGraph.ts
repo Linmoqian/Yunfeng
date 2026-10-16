@@ -6,25 +6,23 @@ import type { ResearchDecisionState } from "../../services/taskService";
 
 export const researchNodeStatus = { pending: "待执行", running: "进行中", succeeded: "验收通过", failed: "未通过", blocked: "受阻" };
 export type ResearchGraphItem = {
+  presentation?: import("../../services/taskService").NodePresentation;
   id: string; parent?: string; objective: string; side: number;
   kind: "mission" | "group" | "explore" | "execute";
   status: keyof typeof researchNodeStatus; current: boolean;
   position: { x: number; y: number };
 };
 
-/** 从目标原文拆出标题与概述，不生成未观测到的实验内容。 */
-export function researchNodeText(item: Pick<ResearchGraphItem, "objective" | "kind">) {
-  const text = item.objective.replace(/\s+/g, " ").trim();
-  const parts = text.match(/^(.{2,40}?)[：:，,。；;]\s*(.+)$/u);
-  return parts ? { title: parts[1], summary: parts[2] }
-    : { title: text, summary: { mission: "研究目标", group: "目标分组", explore: "探索任务", execute: "实验任务" }[item.kind] };
+/** 展示数据库中的 Agent 摘要；旧节点等待生成，不在前端截取操作指令。 */
+export function researchNodeText(item: Pick<ResearchGraphItem, "objective" | "kind" | "presentation">) {
+  return item.presentation ?? { title: { mission: "研究目标", group: "目标分组", explore: "探索任务", execute: "实验任务" }[item.kind], summary: "等待 Agent 总结" };
 }
 
 /** 仅 parent 构成关系；horizon 和 selectedId 用于标记，不推断任务依赖。 */
 export function layoutResearchGraph(decision: ResearchDecisionState): { items: ResearchGraphItem[]; disconnected: number } {
   // 固定预留上下胶囊的空间，展开时不移动节点；胶囊随画布缩小。
   const rowHeight = 200;
-  const items: ResearchGraphItem[] = [{ id: "mission", objective: decision.mission.objective, side: 0, kind: "mission", status: "pending", current: false, position: { x: 0, y: 0 } }];
+  const items: ResearchGraphItem[] = [{ id: "mission", presentation: decision.mission.presentation, objective: decision.mission.objective, side: 0, kind: "mission", status: "pending", current: false, position: { x: 0, y: 0 } }];
   const children = (id: string) => decision.nodes.filter((node) => node.parent === id && node.id !== "mission");
   const visited = new Set(["mission"]);
   const weight = (id: string, seen = new Set<string>()): number => {
@@ -36,7 +34,7 @@ export function layoutResearchGraph(decision: ResearchDecisionState): { items: R
     if (visited.has(node.id)) return;
     visited.add(node.id);
     const height = weight(node.id) * rowHeight;
-    items.push({ id: node.id, parent: node.parent, objective: node.objective, side, kind: node.kind,
+    items.push({ id: node.id, presentation: node.presentation, parent: node.parent, objective: node.objective, side, kind: node.kind,
       status: node.status, current: node.id === decision.selectedId, position: { x: side * depth * 300, y: top + height / 2 - rowHeight / 2 } });
     let cursor = top;
     for (const child of children(node.id)) { place(child, side, depth + 1, cursor); cursor += weight(child.id) * rowHeight; }
@@ -49,7 +47,7 @@ export function layoutResearchGraph(decision: ResearchDecisionState): { items: R
   }
   const missing = decision.nodes.filter((node) => !visited.has(node.id));
   const bottom = items.reduce((max, item) => Math.max(max, item.position.y), 0);
-  missing.forEach((node, index) => items.push({ id: node.id, objective: node.objective, kind: node.kind, side: 1,
+  missing.forEach((node, index) => items.push({ id: node.id, presentation: node.presentation, objective: node.objective, kind: node.kind, side: 1,
     status: node.status, current: node.id === decision.selectedId, position: { x: 300, y: (index + 1) * rowHeight + bottom } }));
   return { items, disconnected: missing.length };
 }

@@ -4,6 +4,7 @@
  */
 import type { Condition, Result } from "../types.js";
 export interface TaskNode {
+  presentation?: import("./presentation.js").NodePresentation;
   id: string;
   parent: string;
   objective: string;
@@ -22,7 +23,7 @@ export interface TaskNode {
   report?: import("../components.js").ResearchSnapshot;
 }
 export interface DecisionState {
-  mission: { id: "mission"; objective: string; condition?: Condition; relevance?: import("../relevance/types.js").NodeRelevance };
+  mission: { id: "mission"; objective: string; condition?: Condition; presentation?: import("./presentation.js").NodePresentation; relevance?: import("../relevance/types.js").NodeRelevance };
   nodes: TaskNode[];
   horizon: string[];
   selectedId?: string;
@@ -30,6 +31,7 @@ export interface DecisionState {
   reason: string;
 }
 export interface Candidate {
+  presentation?: import("./presentation.js").NodePresentation;
   key: string;
   parent: string;
   objective: string;
@@ -42,6 +44,7 @@ export interface DecisionProposal {
   decision: "select" | "wait" | "ask" | "stop" | "complete";
   reason: string;
   candidates: Candidate[];
+  mission_presentation?: import("./presentation.js").NodePresentation;
   relations?: import("./relations.js").RelationMove[];
   mission_condition?: Condition;
   observe_paths: string[];

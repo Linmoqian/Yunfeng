@@ -17,9 +17,10 @@ export interface NodeRelevance {
   matches: { target: string; similarity: number; relation: "progression" | "dependency" | "abstraction" | "related";
     direction: "outgoing" | "incoming" | "undirected"; confidence: number; reason: string }[];
 }
+export interface NodePresentation { title: string; summary: string }
 export interface ResearchDecisionState {
-  mission: { id: "mission"; objective: string; condition?: ResearchCondition; relevance?: NodeRelevance };
-  nodes: { id: string; parent: string; objective: string; kind: "group" | "explore" | "execute";
+  mission: { id: "mission"; objective: string; condition?: ResearchCondition; presentation?: NodePresentation; relevance?: NodeRelevance };
+  nodes: { presentation?: NodePresentation; id: string; parent: string; objective: string; kind: "group" | "explore" | "execute";
     priority: number; confidence: number; cost: number; expected_gain: number;
     status: "pending" | "running" | "succeeded" | "failed" | "blocked"; attempts: number; jobId?: string; result?: import("./researchComponent").ResearchResult;
     reflection?: string; relevance?: NodeRelevance; report?: import("./researchComponent").ResearchComponentSnapshot }[];

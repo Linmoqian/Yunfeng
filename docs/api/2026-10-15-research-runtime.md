@@ -290,3 +290,21 @@ HTTP 200 返回现有 `GraphSnapshot`。`state.mission.relevance` 或 `state.nod
 项目 `.env` / 宿主环境的可选 `YUNFENG_EMBEDDING_URL`（完整端点）、`YUNFENG_EMBEDDING_MODEL` 必须同时指定，`YUNFENG_EMBEDDING_API_KEY` 按服务需要提供；配置后重启后端生效。URL 只接受 HTTPS 或本机回环 HTTP，拒绝内嵌凭据、查询参数、重定向。不会尝试将聊天模型当作 Embedding 模型，也不会自动读取 `.pi` 或复制聊天凭据。
 
 该接口兼容 [Create embeddings](https://developers.openai.com/api/reference/resources/embeddings/methods/create)：发送 `{model,input:string[],encoding_format:"float"}`，解析 `data:[{index,embedding:number[]}]`，若响应含 model 必须匹配。配置意味着将节点目标文本发送给选定服务，不发送文件内容、实验产物或密钥到分类上下文。上游正文和凭据不对外回显。
+
+### Agent 节点标题与描述
+
+节点与 mission 新增可选 `presentation:{title,summary}`，标题和描述均由当前决策模型总结。`title` 是最多32字符的非空单行文本（建议6到16个汉字），`summary` 是最多100字符的一句目的或方法概述；拒绝未知字段、空文本和换行。前端不再按标点拆分、截取执行指令作为标题或描述；生成前显示通用类型与“等待 Agent 总结”。摘要不是实测结论，完整 `objective`、验收条件、父子关系、作业与预算继续作为执行依据。
+
+新规划在 `mission_presentation` 和候选 `presentation` 中提供摘要，服务端保存到目标树与现有 SQLite。既有节点只更新展示文字，不更换 ID 或完整目标；已有准确摘要由 Agent 沿用，状态变化不重复生成。字段可选保证旧记录和旧提案可读，无需数据库迁移。
+
+旧节点补齐复用 `POST /api/tasks/:id/components/research-graph`：
+
+```json
+{"action":"summarize","component":"research-graph","revision":42}
+```
+
+Agent/程序可调用 `graph.client().summarize(revision)`；`action/component` 为固定值，`revision` 是必填的当前非负安全整数版本，拒绝其他字段。HTTP 200 返回现有 `GraphSnapshot`，一次最多补齐20个缺失摘要；没有缺失时不调用模型、不递增版本。已生成摘要通过 `read` 获取。
+
+UI 打开关系图后仅在 WAITING/PAUSED/COMPLETED/FAILED 阶段补齐，后续批次随服务端快照逐批接续；失败显示紧凑重试入口，不持续轮询模型。摘要生成使用配置中的决策模型，不依赖 Embedding，也不使用项目文件、执行工具或修改验收结果；仅将节点 ID、类型与完整目标交给模型，产生一次模型调用费用，JSON 校验失败最多纠正一次。
+
+认证和任务范围沿用关系图接口。HTTP 404 为任务不存在或非科研任务；HTTP 400 `{error}` 包括字段无效、模型或摘要结构失败、无目标树、`GRAPH_CONFLICT`（版本变化）和 `GRAPH_BUSY`（科研运行或同任务组件分析未完成）。和相关性分析共用每任务一项、服务内最多四项并发限制；模型总超时45秒，服务关闭时中止。保存前再次检查版本与运行状态，模型不得增删或遗漏本批节点，校验失败整批不保存。新字段为兼容新增，客户端应容忍缺失。

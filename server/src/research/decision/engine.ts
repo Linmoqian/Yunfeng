@@ -30,6 +30,7 @@ function depth(state: DecisionState, id: string): number {
 export function decide(previous: DecisionState, proposal: DecisionProposal): DecisionState {
   let state = structuredClone(previous);
   state.reason = proposal.reason;
+  if (proposal.mission_presentation) state.mission.presentation = proposal.mission_presentation;
   state.selectedId = undefined;
   if (proposal.mission_condition) {
     if (state.mission.condition && JSON.stringify(state.mission.condition) !== JSON.stringify(proposal.mission_condition)) throw new Error("长期目标验收条件已锁定，模型不能更换");
@@ -50,6 +51,7 @@ export function decide(previous: DecisionState, proposal: DecisionProposal): Dec
       if (state.nodes.length >= 100) throw new DecisionBlocked("目标树已达到 100 个节点上限，请工程师缩小范围");
       state.nodes.push(node);
     }
+    if (candidate.presentation) node.presentation = candidate.presentation;
     if (["pending", "failed"].includes(node.status)) {
       Object.assign(node, { confidence: candidate.confidence, cost: candidate.cost, expected_gain: candidate.expected_gain });
       node.priority = score(node);

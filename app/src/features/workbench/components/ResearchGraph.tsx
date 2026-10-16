@@ -3,10 +3,11 @@
  * @author: https://github.com/Linmoqian
  */
 import { useMemo, useRef, useState } from "react";
+import { useResearchGraphSummaries } from "../hooks/useResearchGraphSummaries";
 import { useResearchGraphComponent } from "../hooks/useResearchGraphComponent";
 import { Capsule } from "./Capsule";
 import { Button } from "antd";
-import { MessageSquare, Scan, ZoomIn, ZoomOut } from "lucide-react";
+import { MessageSquare, RefreshCw, Scan, ZoomIn, ZoomOut } from "lucide-react";
 import { ReactFlow, Handle, Position, MarkerType, type Node, type NodeProps, type ReactFlowInstance } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TaskState } from "../../../services/taskService";
@@ -22,7 +23,7 @@ function ResearchNode({ data }: NodeProps<GraphNode>) {
   return <div className={styles.node} data-status={data.status} data-current={data.current} data-agent={data.agent} data-kind={data.kind} data-expanded={data.expanded}>
     <ResearchNodeCapsules expanded={data.expanded} info={data.info} relevance={data.relevance} />
     <Handle id="in-left" type="target" position={Position.Left} /><Handle id="in-right" type="target" position={Position.Right} />
-    <button type="button" className={`${styles.nodeButton} nodrag nopan`} onClick={() => data.onInspect(data.id)} aria-label={`${data.objective} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`}>
+    <button type="button" className={`${styles.nodeButton} nodrag nopan`} onClick={() => data.onInspect(data.id)} aria-label={`${text.title} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`}>
       <span className={styles.nodeLabel} title={text.title}>{text.title}</span>
       <span className={styles.nodeMeta} title={text.summary}>{text.summary}</span>
     </button>
@@ -35,6 +36,7 @@ const options = { hideAttribution: true };
 const keepNodeHitArea = () => {};
 export function ResearchGraph({ task, onClose }: { task: TaskState; onClose: () => void }) {
   const decision = task.autonomy?.decision;
+  const summaries = useResearchGraphSummaries(task.id, task.lastEventSeq, decision, task.autonomy?.phase);
   const [inspected, setInspected] = useState<string | null>(null);
   const flow = useRef<ReactFlowInstance<GraphNode>>(null);
   const graph = useMemo(() => decision ? layoutResearchGraph(decision) : null, [decision]);
@@ -63,7 +65,8 @@ export function ResearchGraph({ task, onClose }: { task: TaskState; onClose: () 
     if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
     if (inspected) setInspected(null); else onClose();
   }}>
-    <header className={styles.toolbar}><span>研究分支<span className={styles.count}>{decision?.nodes.length ?? 0} 个节点</span></span>{(control.agentTarget || control.yielded) && <Capsule value={control.agentTarget ?? "yielded"}>{control.yielded ? "已让出控制" : "云枫聚焦"}</Capsule>}<div>
+    <header className={styles.toolbar}><span>研究分支<span className={styles.count}>{decision?.nodes.length ?? 0} 个节点</span></span>{summaries.busy && <Capsule>整理节点</Capsule>}{(control.agentTarget || control.yielded) && <Capsule value={control.agentTarget ?? "yielded"}>{control.yielded ? "已让出控制" : "云枫聚焦"}</Capsule>}<div>
+      {summaries.error && <Button type="text" size="small" title="节点概述暂未生成，检查模型配置后重试" aria-label="重试节点概述" icon={<RefreshCw size={15} />} onClick={summaries.retry} />}
       <Button type="text" size="small" title="适应画布" aria-label="适应画布" icon={<Scan size={15} />} onClick={() => void flow.current?.fitView({ padding: 0.2, maxZoom: 1 })} />
       <Button type="text" size="small" title="放大关系图" aria-label="放大关系图" icon={<ZoomIn size={15} />} onClick={() => void flow.current?.zoomIn()} />
       <Button type="text" size="small" title="缩小关系图" aria-label="缩小关系图" icon={<ZoomOut size={15} />} onClick={() => void flow.current?.zoomOut()} />

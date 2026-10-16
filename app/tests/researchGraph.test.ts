@@ -35,7 +35,9 @@ test("缺失父节点或循环关系不补造连线，节点仍可查看", () =>
   assert.equal(new Set(graph.items.map((item) => item.position.y)).size, 4);
 });
 
-test("节点标题与概述取自目标原文，保留完整约束供悬停查看", () => {
-  assert.deepEqual(researchNodeText({ kind: "execute", objective: "压缩实验：比较 level=1 与 level=9，校验解压一致。只读真实指标。" }),
-    { title: "压缩实验", summary: "比较 level=1 与 level=9，校验解压一致。只读真实指标。" });
+test("节点展示 Agent 总结，生成前不拆分或截取执行指令", () => {
+  const presentation = { title: "压缩参数优化", summary: "比较压缩级别，验证体积与解压一致性。" };
+  const state = decision([{ ...node("exp"), objective: "先写 config.json，再运行脚本，必须遵守完整权限约束", presentation }]);
+  assert.deepEqual(researchNodeText(layoutResearchGraph(state).items.find((item) => item.id === "exp")!), presentation);
+  assert.deepEqual(researchNodeText({ kind: "execute", objective: "压缩实验：长操作指令不可用于摘要" }), { title: "实验任务", summary: "等待 Agent 总结" });
 });
