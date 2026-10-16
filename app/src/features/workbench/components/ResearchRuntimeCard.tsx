@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { Button, Popover } from "antd";
-import { Ellipsis, Pause, Play } from "lucide-react";
+import { Ellipsis, GitFork, Pause, Play } from "lucide-react";
 import { sendTaskCommand, type TaskState } from "../../../services/taskService";
 import { researchProgress } from "../researchPresentation";
 import { ProgressCapsule } from "./ProgressCapsule";
@@ -12,7 +12,7 @@ import { ResearchReport } from "./ResearchReport";
 import { Capsule } from "./Capsule";
 import styles from "./ResearchRuntimeCard.module.css";
 const labels = { OBSERVING: "查看进展", PLANNING: "分析中", EXECUTING: "实验中", WAITING: "等待中", REFLECTING: "整理结果", PAUSED: "已暂停", COMPLETED: "已完成", FAILED: "需要处理" };
-export function ResearchRuntimeCard({ task }: { task: TaskState }) {
+export function ResearchRuntimeCard({ task, graphOpen, onToggleGraph }: { task: TaskState; graphOpen?: boolean; onToggleGraph?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const state = task.autonomy;
@@ -28,6 +28,7 @@ export function ResearchRuntimeCard({ task }: { task: TaskState }) {
   return <aside className={styles.card} aria-label="科研自主任务">
     <Capsule className={styles.line} value={state.phase}><strong aria-live="polite">科研 · {labels[state.phase]}</strong>
       {state.phase !== "COMPLETED" && <Button size="small" loading={busy} onClick={() => void control()} icon={paused ? <Play size={14} /> : <Pause size={14} />}>{paused ? "继续" : "暂停"}</Button>}
+      {onToggleGraph && <Button id={`research-graph-${task.id}`} type="text" size="small" aria-label="研究分支关系图" title="研究分支关系图" aria-pressed={Boolean(graphOpen)} icon={<GitFork size={15} />} onClick={onToggleGraph} />}
       <Popover trigger="click" title="运行详情" content={<div className={styles.details}><p>第 {state.cycle} / {state.maxCycles} 轮</p><p>{state.reason}</p><small>{task.cwd}</small></div>}>
         <Button type="text" size="small" aria-label="运行详情" title="运行详情" icon={<Ellipsis size={16} />} />
       </Popover>

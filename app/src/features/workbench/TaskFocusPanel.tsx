@@ -21,6 +21,7 @@ import { ChangeSummary } from "./components/ChangeSummary";
 import { QueuedMessages } from "./components/QueuedMessages";
 import { ConversationWelcome } from "./components/ConversationWelcome";
 import { ResearchRuntimeCard } from "./components/ResearchRuntimeCard";
+import { ResearchGraph } from "./components/ResearchGraph";
 import { researchConversation } from "./researchPresentation";
 import { SESSION_ENTER } from "./workspaceMotion";
 import { ConversationInfoCard } from "./components/ConversationInfoCard";
@@ -47,6 +48,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
   const reduced = useReducedMotion();
   const [sending, setSending] = useState(false);
   const [workMode, setWorkMode] = useState<"development" | "research">("development");
+  const [graphTaskId, setGraphTaskId] = useState<string | null>(null);
   const [busyCommand, setBusyCommand] = useState<string | null>(null);
   const [showThinking, setShowThinking] = useState(() => window.localStorage.getItem("yunfeng-show-thinking") === "true");
   const conversationLogRef = useRef<HTMLDivElement>(null);
@@ -86,7 +88,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
   useEffect(() => {
     const log = conversationLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
-  }, [conversation, toolCalls]);
+  }, [conversation, toolCalls, graphTaskId]);
 
   useEffect(() => {
     window.localStorage.setItem("yunfeng-show-thinking", String(showThinking));
@@ -210,8 +212,9 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
       transition={SESSION_ENTER}
     >
       <div className="focus-panel__body">
-        <section className="conversation-section" aria-label="对话">
-          {draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} /> : <ConversationLog
+        <section className="conversation-section" aria-label={activeTask?.mode === "research" && graphTaskId === activeTask.id ? "研究分支" : "对话"}>
+          {activeTask?.mode === "research" && graphTaskId === activeTask.id ? <ResearchGraph key={activeTask.id} task={activeTask} onClose={() => { setGraphTaskId(null); document.getElementById(`research-graph-${activeTask.id}`)?.focus(); }} />
+          : draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} /> : <ConversationLog
             ref={conversationLogRef}
             research={activeTask?.mode === "research"}
             items={researchConversation(conversation, activeTask?.mode)}
@@ -233,7 +236,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         <Composer
           changes={activeTask ? <ChangeSummary key={activeTask.id} taskId={activeTask.id} allowDiff={activeTask.mode !== "research"} revision={`${changesRevision}:${streamStatus}:${conversation.length}:${toolCalls.length}`} /> : undefined}
           queued={activeTask && activeTask.mode !== "research" ? <QueuedMessages key={activeTask.id} taskId={activeTask.id} revision={`${queueRevision}:${streamStatus}`} /> : undefined}
-          status={activeTask?.mode === "research" ? <ResearchRuntimeCard task={activeTask} /> : undefined}
+          status={activeTask?.mode === "research" ? <ResearchRuntimeCard task={activeTask} graphOpen={graphTaskId === activeTask.id} onToggleGraph={() => setGraphTaskId(graphTaskId === activeTask.id ? null : activeTask.id)} /> : undefined}
           modelLabel={composerModelLabel}
           isDraft={draft}
           research={activeTask?.mode === "research" || (draft && workMode === "research")}
