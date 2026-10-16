@@ -1,5 +1,5 @@
 /* 导航的分组胶囊、会话状态与加载骨架，复用现有主题变量。
- * Created on 2026-10-16
+ * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
 .group { margin: 6px 0 10px; }
@@ -20,13 +20,11 @@
 .row .statusIcon[data-tone="completed"] { color: var(--yf-semantic-success); }
 .row .statusIcon[data-tone="attention"], .row .statusIcon[data-tone="waiting_approval"] { color: var(--yf-semantic-warning); }
 .pin { flex: none; color: var(--yf-text-tertiary); margin-right: -3px; }
-.loadState, .loadingPill { display: flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%; margin: 6px 4px; padding: 4px 8px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-secondary); font-size: 11px; }
+.loadState { display: flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%; margin: 6px 4px; padding: 4px 8px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-secondary); font-size: 11px; }
 .loadState svg { flex: none; }
 .loadState span { min-width: 0; }
 .loadState button { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
-.loadingPlaceholder { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0 14px; color: var(--yf-text-tertiary); font-size: 11px; animation: appear 160ms 120ms both; }
 .groupToggle:hover, .loadState button:hover { background: var(--yf-bg-secondary); }
 .groupToggle:focus-visible, .loadState button:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } .loadingPlaceholder, .row .statusIcon[data-tone="running"] { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } .row .statusIcon[data-tone="running"] { animation: none; } }

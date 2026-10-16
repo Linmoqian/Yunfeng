@@ -1,5 +1,5 @@
 /* 会话组织核心交互：折叠、搜索、置顶、真实加载与错误恢复入口。
- * Created on 2026-10-16
+ * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
 import { App } from "antd";
@@ -57,10 +57,10 @@ test("置顶集中展示且不重复，取消后归回原状态组，归档入�
 test("首次读取与失败不误报空列表，后台同步保留已有行并可重试", async () => {
   const p = props({ loading: true, tasks: [], onRetry: vi.fn() });
   const result = render(view(p));
-  expect(screen.getByRole("status", { name: "正在读取会话" })).toBeTruthy();
+  expect(screen.queryByRole("status")).toBeNull();
   expect(screen.queryByText("还没有会话")).toBeNull();
   result.rerender(view({ ...p, tasks }));
-  expect(screen.getByRole("status", { name: "正在同步会话" })).toBeTruthy();
+  expect(screen.queryByRole("status")).toBeNull();
   expect(screen.getByRole("button", { name: "打开任务：检查模型" })).toBeTruthy();
   result.rerender(view({ ...p, loading: false, error: "HTTP 502" }));
   expect(screen.getByRole("alert")).toBeTruthy();

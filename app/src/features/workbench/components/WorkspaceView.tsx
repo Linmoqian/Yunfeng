@@ -1,5 +1,5 @@
 /* 三栏与会话标签组装；已打开会话保持挂载，切换不打断流或清空草稿。
- * Created on 2026-10-16
+ * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -8,7 +8,7 @@ import { sessionToLegacySummary, taskToSummary, type TaskSummary } from "../task
 import { useWorkspaceTabs, type WorkspaceTab } from "../hooks/useWorkspaceTabs";
 import { useTeamWorkspace } from "../hooks/useTeamWorkspace";
 import { WorkspaceShell } from "./WorkspaceShell";
-import { ConnectionCapsule } from "./ConnectionCapsule";
+import { WorkspaceLoadingProvider, WorkspaceLoadingIndicator } from "./WorkspaceLoading";
 import { ConversationLoading } from "./ConversationLoading";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { WorkspaceTabs } from "./WorkspaceTabs";
@@ -111,7 +111,7 @@ export function WorkspaceView(props: WorkspaceViewProps) {
       onTaskUpdated={props.onTaskUpdated}
       onTaskCreated={(created, text) => { tabs.replace(tab.id, { id: `task-${created.id}`, title: created.title, kind: "task", entityId: created.id }); props.onTaskCreated(created, text); }} />;
   }
-  return <PaperWritingContext.Provider value={paper}>
+  return <WorkspaceLoadingProvider><PaperWritingContext.Provider value={paper}>
     <WorkspaceShell team={teamOpen}
       toolPanels={!teamOpen && tabs.active === "tool-writing" ? { leftTitle: "参考文献与章节", rightTitle: "图文素材", left: <PaperNavigation onBack={() => { tabs.setActive("home"); props.onClear(); }} />, right: <PaperMaterials /> } : undefined}
       navigation={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceNavigation loading={props.navigationLoading && !props.tasks.length && !props.sessions.length} error={props.navigationError} onRetry={props.onReconnect} tasks={props.summaries} activeId={props.currentTaskId ?? props.currentSessionId ?? undefined}
@@ -121,7 +121,7 @@ export function WorkspaceView(props: WorkspaceViewProps) {
         <div className={shell.dockStage} hidden={!teamOpen}><TeamWorkbench state={team} /></div></>}>
       {teamOpen ? <TeamChat state={team} onBack={() => setTeamOpen(false)} /> : <>
         <WorkspaceTabs tabs={tabs} onActivate={activate} onClose={close} onNew={startNew} onReopen={reopen} resolveTitle={resolveTitle} />
-        <ConnectionCapsule busy={props.settings.connectionState !== "connected"} error={props.notice} onRetry={props.onReconnect} />
+        <WorkspaceLoadingIndicator busy={props.settings.connectionState !== "connected"} error={props.notice} onRetry={props.onReconnect} />
       </>}
       <div className={shell.stage} hidden={teamOpen} style={teamOpen ? { display: "none" } : undefined}>
         {tabs.items.map((tab) => <div key={tab.id} className={shell.sessionStage} hidden={tab.id !== tabs.active} role="tabpanel" aria-label={resolveTitle(tab)}><Suspense fallback={<ConversationLoading />}>{renderSession(tab)}</Suspense></div>)}
@@ -129,5 +129,5 @@ export function WorkspaceView(props: WorkspaceViewProps) {
       </div>
     </WorkspaceShell>
     <WorkspaceSettings {...props.settings} />
-  </PaperWritingContext.Provider>;
+  </PaperWritingContext.Provider></WorkspaceLoadingProvider>;
 }

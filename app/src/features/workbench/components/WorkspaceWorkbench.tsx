@@ -1,9 +1,9 @@
 /* LianAgent 的固定工作台标签与工具扩展中心，接入 Yunfeng 任务列表。
- * Created on 2026-10-13
+ * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
 import { Button, Checkbox, Dropdown, Modal, Tabs } from "antd";
-import { ChevronDown, ChevronRight, ExternalLink, FolderOpen, ListTodo, Maximize2, MonitorSmartphone, Plus, Terminal, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ArrowUpRight, ExternalLink, FolderOpen, ListTodo, Maximize2, MonitorSmartphone, Plus, Terminal, X } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { WORKBENCH_TOOLS } from "../workbenchTools";
@@ -56,7 +56,7 @@ export function WorkspaceWorkbench({ tasks, onOpen, onUtility, infoRef }: {
               {isSharedComponent(id) && <button type="button" className={shell.iconButton} aria-label={`在独立窗口打开${tool.label}`} title="独立窗口" onClick={() => { setShareError(""); void openComponentWindow(id).catch((reason) => setShareError(sharingError(reason))); }}><ExternalLink size={13} /></button>}
               <button type="button" className={shell.iconButton} onClick={() => setTools((current) => current.filter((item) => item !== id))} aria-label={`移除${tool.label}模块`}><X size={13} /></button>
             </header>
-            {!closed && <div className={styles.toolContent}><p className={styles.hint}>{tool.description}</p><Button size="small" block onClick={() => onUtility(`tool-${id}`, tool.label)}>打开{tool.label}</Button></div>}
+            {!closed && <div className={styles.toolContent}><p className={styles.hint}>{tool.description}</p><Button type="text" size="small" className={styles.toolOpen} icon={<ArrowUpRight size={13} />} onClick={() => onUtility(`tool-${id}`, tool.label)}>打开{tool.label}</Button></div>}
           </section>;
         })}
       </>}

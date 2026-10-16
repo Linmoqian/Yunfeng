@@ -1,5 +1,5 @@
 /* 工作台模块、团队与资源视图的 Yunfeng 色彩映射。
- * Created on 2026-10-13
+ * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
 .pane { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 0; padding: 12px; overflow: auto; }
@@ -40,7 +40,8 @@
 .toolHeader { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 10px; font-size: 12px; }
 .toolHeader > button:first-child { display: flex; flex: 1; align-items: center; gap: 7px; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--yf-text-primary); text-align: left; cursor: pointer; }
 .toolHeader svg { color: var(--yf-brand-primary); }
-.toolContent { padding: 0 12px 12px; }
+.toolContent { padding: 0 12px 8px; }
+.toolOpen { width: fit-content; max-width: 100%; height: 24px; padding-inline: 6px; border-radius: 999px; font-size: 11px; }
 .rail { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 8px; }
 .resourceStage { flex: 1; min-width: 0; min-height: 0; overflow: auto; padding: 28px; }
 .resourceStage h1 { font-size: 22px; font-weight: 600; }

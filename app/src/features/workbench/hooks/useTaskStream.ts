@@ -1,6 +1,6 @@
 // 任务聚焦面板的事件流 Hook：聚合会话输出、工具调用、审批与任务状态变更。
 // 按服务端消息身份合并快照和增量；Server TaskStore 是任务事实来源。
-// Created on 2026-10-16
+// Created on 2026-10-17
 // @author: https://github.com/Linmoqian
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -226,6 +226,9 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
     if (isLegacy) {
       void loadSessionConversation(sessionId, controller.signal)
         .then((messages) => {
+          if (controller.signal.aborted) return;
+          setStreamStatus("idle");
+          setStreamError(null);
           const loaded = messages.map(normalizeConversationMessage).filter((item): item is ConversationItem => item !== null);
           setConversation((current) => mergeConversation(current, loaded));
         })

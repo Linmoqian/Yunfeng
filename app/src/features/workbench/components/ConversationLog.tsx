@@ -1,5 +1,5 @@
 /* 通用对话日志，科研正文与待确认计划通过独立呈现组件接入。
- * Created on 2026-10-16
+ * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
 import ReactMarkdown from "react-markdown";
@@ -206,7 +206,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
 
   return (
     <div ref={ref} className="conversation-log" role="log" aria-label="任务对话" aria-live="polite">
-      {loading ? <ConversationLoading compact={visibleItems.length > 0} /> : null}
+      {(loading || streamStatus === "connecting") ? <ConversationLoading /> : null}
       {!loading && !streamError && visibleItems.length === 0 ? <p className="conversation-placeholder">这段会话还没有可展示的消息。</p> : null}
 
       {visibleItems.map((item) => (
