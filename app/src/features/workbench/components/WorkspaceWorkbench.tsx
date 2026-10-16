@@ -3,7 +3,7 @@
  * @author: https://github.com/Linmoqian
  */
 import { Button, Checkbox, Dropdown, Modal, Tabs } from "antd";
-import { ChevronDown, ChevronRight, ArrowUpRight, ExternalLink, FolderOpen, ListTodo, Maximize2, MonitorSmartphone, Plus, Terminal, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink, FolderOpen, ListTodo, Maximize2, MonitorSmartphone, Plus, Terminal, X } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { WORKBENCH_TOOLS } from "../workbenchTools";
@@ -51,12 +51,13 @@ export function WorkspaceWorkbench({ tasks, onOpen, onUtility, infoRef }: {
           if (!tool) return null;
           const closed = collapsed.includes(id);
           return <section className={styles.toolCard} key={id}>
-            <header className={styles.toolHeader}><button type="button" aria-expanded={!closed} onClick={() => setCollapsed((current) => closed ? current.filter((item) => item !== id) : [...current, id])}>{closed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}<tool.icon size={15} /><span>{tool.label}</span></button>
-              <button type="button" className={shell.iconButton} onClick={() => onUtility(`tool-${id}`, tool.label)} aria-label={`在中央打开${tool.label}`}><Maximize2 size={13} /></button>
+            <header className={styles.toolHeader}>
+              <button type="button" className={shell.iconButton} aria-label={`${closed ? "展开" : "收起"}${tool.label}`} aria-expanded={!closed} onClick={() => setCollapsed((current) => closed ? current.filter((item) => item !== id) : [...current, id])}>{closed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}</button>
+              <button type="button" className={styles.toolTitle} aria-label={`打开${tool.label}`} title={`打开${tool.label}`} onClick={() => onUtility(`tool-${id}`, tool.label)}><tool.icon size={15} /><span>{tool.label}</span></button>
               {isSharedComponent(id) && <button type="button" className={shell.iconButton} aria-label={`在独立窗口打开${tool.label}`} title="独立窗口" onClick={() => { setShareError(""); void openComponentWindow(id).catch((reason) => setShareError(sharingError(reason))); }}><ExternalLink size={13} /></button>}
               <button type="button" className={shell.iconButton} onClick={() => setTools((current) => current.filter((item) => item !== id))} aria-label={`移除${tool.label}模块`}><X size={13} /></button>
             </header>
-            {!closed && <div className={styles.toolContent}><p className={styles.hint}>{tool.description}</p><Button type="text" size="small" className={styles.toolOpen} icon={<ArrowUpRight size={13} />} onClick={() => onUtility(`tool-${id}`, tool.label)}>打开{tool.label}</Button></div>}
+            {!closed && <div className={styles.toolContent}><p className={styles.hint}>{tool.description}</p></div>}
           </section>;
         })}
       </>}
