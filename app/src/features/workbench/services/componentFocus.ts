@@ -20,7 +20,7 @@ export const componentFocus = {
   },
 };
 
-const writingRoots = ['section[aria-label="论文文稿"]', 'section[aria-label="论文写作"]'];
+const writingRoots = ['[data-agent-component="writing"]', 'section[aria-label="论文文稿"]', 'section[aria-label="论文写作"]'];
 const writingSelector = (suffix = "") => writingRoots.map((root) => `${root}${suffix}`).join(",");
 const selectors: Record<SharedComponentId, Record<string, string>> = {
   writing: { component: writingSelector(), name: writingSelector(' input:not([type="file"])'), body: ["编辑视图", "预览视图"].map((label) => writingSelector(` [role="region"][aria-label="${label}"]`)).join(",") },

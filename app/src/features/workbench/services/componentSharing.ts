@@ -1,7 +1,8 @@
 /* 组件共享 SDK：其他模块通过此入口读写状态和打开独立窗口。
- * Created on 2026-10-14
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
+import { componentInteraction } from "./componentInteraction";
 import { componentFocus } from "./componentFocus";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -49,7 +50,7 @@ export async function subscribeComponent<K extends SharedComponentId>(component:
   });
 }
 
-export const componentSharing = { read: readComponent, patch: patchComponent, open: openComponentWindow, close: closeComponentWindow, focus: componentFocus.focus, blur: componentFocus.blur, readFocus: componentFocus.read, subscribe: subscribeComponent };
+export const componentSharing = { read: readComponent, patch: patchComponent, open: openComponentWindow, close: closeComponentWindow, focus: componentFocus.focus, blur: componentFocus.blur, readFocus: componentFocus.read, status: componentInteraction.read, subscribe: subscribeComponent };
 export function sharingError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object" && "code" in error && "message" in error

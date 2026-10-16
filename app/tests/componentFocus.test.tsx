@@ -7,6 +7,7 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { AgentFocusOverlay } from "../src/features/workbench/components/AgentFocusOverlay";
 import { componentFocus, focusElement, type ComponentFocus } from "../src/features/workbench/services/componentFocus";
 
+vi.mock("../src/features/workbench/hooks/useComponentInteraction", () => ({ useComponentInteraction: () => ({ statuses: {}, error: false }) }));
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true, invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/webviewWindow", () => ({ getCurrentWebviewWindow: () => ({ label: "main" }) }));
 let deliver: (snapshot: ComponentFocus) => void = () => {};

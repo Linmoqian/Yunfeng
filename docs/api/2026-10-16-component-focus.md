@@ -34,6 +34,8 @@ IPC：`invoke("component_focus", {request:{action:"focus",component:"writing",ta
 
 错误沿用组件契约：UNKNOWN_COMPONENT、INVALID_STATE（区域未注册）、FORBIDDEN（越权窗口）、STATE_ERROR；未连接桌面 UNAVAILABLE。输入错误原子拒绝；通知失败不回滚已生效状态，前端通过读补偿。请求发出后失败不自动重放。
 
+交互反馈见 [组件交互反馈](2026-10-16-component-interaction.md)：操作前读取 status，工程师正在编辑或反馈未知时，Agent 的 focus/patch/open/close 被门禁拒绝。
+
 ## 行为与边界
 
 - 只有一个全局共享指针；切换组件时清除旧组件标记，版本单调递增。重复聚焦相同区域不递增，也不重播动画；旧组件的延迟 blur 不会清除另一组件的指针。

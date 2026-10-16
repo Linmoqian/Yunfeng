@@ -841,6 +841,7 @@ pub fn run() {
             terminal::terminal_action,
             collaboration::collaboration_action,
             component_sharing::focus_command::component_focus,
+            component_sharing::interaction_command::component_interaction,
             component_sharing::component_read,
             component_sharing::component_patch,
             component_sharing::component_window,

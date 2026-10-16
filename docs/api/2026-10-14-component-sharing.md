@@ -164,3 +164,5 @@ await components.close("resources");
 2026-10-16 验证：服务端构建、前端 TypeScript、Rust fmt/clippy 通过；组件与终端 TypeScript 核心测试 5 项、前端 SDK 3 项、Rust 38 项通过，2 项既有文稿导出测试按依赖要求跳过。macOS 真实 Agent 读取资源后 open 并切换到“结果”；受信 Node 程序通过同一 SDK 改为“图片”，原生界面同步更新，非法 patch 原子拒绝，重复打开保持同一窗口，最后 SDK 恢复分类并关闭窗口。原有启动瞬时 HTTP 502 仍需手动重新连接；其他桌面平台尚未原生验收。
 
 共享指针由同一 Rust Runtime 管理；Agent SDK 的组件快照新增可选 `focus`（组件、全局版本、区域或 null），不写入文稿数据库。前端使用 `componentSharing.focus(component, target)`、`blur(component)` 和 `readFocus(component)`。
+
+组件可见、呈现确认和编辑让出通过 [交互反馈接口](2026-10-16-component-interaction.md) 的 status 读取；既有 Agent 组件快照增加可选 interaction，业务状态和持久化格式沿用原契约。

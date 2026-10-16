@@ -9,6 +9,9 @@ use tauri::Manager;
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Request {
+    Status {
+        component: String,
+    },
     Read {
         component: String,
     },
@@ -33,7 +36,32 @@ pub enum Request {
 }
 
 pub fn execute(app: &tauri::AppHandle, request: Request) -> Result<Value, Error> {
+    let runtime = app.state::<Runtime>();
+    if let Request::Status { component } = &request {
+        return Ok(json!(super::interaction_command::read(
+            app, &runtime, component
+        )?));
+    }
+    // 门禁与状态提交共用锁范围，编辑反馈一旦被接受便不能被 Agent 写入越过。
+    let mut interaction = runtime
+        .3
+        .lock()
+        .map_err(|_| error("STATE_ERROR", "交互反馈不可用"))?;
+    super::interaction_command::prune(app, &mut interaction);
+    let component = match &request {
+        Request::Read { component }
+        | Request::Status { component }
+        | Request::Patch { component, .. }
+        | Request::Open { component, .. }
+        | Request::Focus { component, .. }
+        | Request::Blur { component }
+        | Request::Close { component } => component,
+    };
+    if !matches!(request, Request::Read { .. } | Request::Blur { .. }) {
+        interaction.allow_agent(component, 0, std::time::Instant::now())?;
+    }
     let (component, patch, open) = match request {
+        Request::Status { .. } => return Err(error("INVALID_STATE", "交互请求无效")),
         Request::Focus { component, target } => {
             let runtime = app.state::<Runtime>();
             return Ok(json!(super::focus_command::execute(
@@ -71,6 +99,7 @@ pub fn execute(app: &tauri::AppHandle, request: Request) -> Result<Value, Error>
             None => store.get(&component)?,
         }
     };
+    drop(interaction);
     if updating {
         publish(app, &snapshot);
     }
@@ -84,6 +113,7 @@ pub fn execute(app: &tauri::AppHandle, request: Request) -> Result<Value, Error>
         .read(&component)?;
     let mut result = json!(snapshot);
     result["focus"] = json!(focus);
+    result["interaction"] = json!(super::interaction_command::read(app, &runtime, &component)?);
     Ok(result)
 }
 

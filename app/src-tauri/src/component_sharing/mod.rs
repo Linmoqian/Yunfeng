@@ -7,6 +7,8 @@ mod document_export;
 pub mod export;
 mod focus;
 pub(crate) mod focus_command;
+mod interaction;
+pub(crate) mod interaction_command;
 mod model;
 mod pdf;
 mod persistence;
@@ -24,12 +26,14 @@ pub struct Runtime(
     pub Arc<Mutex<Store>>,
     pub PathBuf,
     pub Arc<Mutex<focus::FocusStore>>,
+    pub Arc<Mutex<interaction::InteractionStore>>,
 );
 impl Runtime {
     pub fn new(path: PathBuf) -> Self {
         Self(
             Arc::new(Mutex::new(Store::persistent(path.clone()))),
             path,
+            Arc::default(),
             Arc::default(),
         )
     }

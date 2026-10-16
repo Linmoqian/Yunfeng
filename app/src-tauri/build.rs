@@ -6,6 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "terminal_action",
             "collaboration_action",
             "component_focus",
+            "component_interaction",
             "component_read",
             "component_patch",
             "component_window",

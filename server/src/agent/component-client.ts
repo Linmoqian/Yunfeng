@@ -6,9 +6,10 @@ import { desktopConnection, type DesktopCall } from "./desktop-client.js";
 
 export type ComponentId = "writing" | "resources";
 export interface ComponentFocus<Id extends string = ComponentId> { component: Id; revision: number; target: string | null }
+export interface ComponentInteraction<Id extends string = ComponentId> { component: Id; version: number; known: boolean; visible: boolean; rendered: boolean; renderedRevision: number | null; editing: boolean; yielded: boolean }
 export type ComponentPatch = Record<string, unknown>;
-export interface ComponentSnapshot<Id extends string = ComponentId, State = Record<string, unknown>> { component: Id; revision: number; state: State; focus?: ComponentFocus<Id> }
-export type ComponentRequest<Id extends string = ComponentId, Patch = ComponentPatch> = { action: "read" | "close"; component: Id }
+export interface ComponentSnapshot<Id extends string = ComponentId, State = Record<string, unknown>> { component: Id; revision: number; state: State; focus?: ComponentFocus<Id>; interaction?: ComponentInteraction<Id> }
+export type ComponentRequest<Id extends string = ComponentId, Patch = ComponentPatch> = { action: "read" | "status" | "close"; component: Id }
   | { action: "focus"; component: Id; target?: string }
   | { action: "blur"; component: Id }
   | { action: "patch"; component: Id; patch: Patch }
@@ -19,6 +20,7 @@ type Envelope = ComponentEnvelope;
 /** 返回完整快照；open 可同时更新并打开，窗口失败不回滚已提交状态。 */
 export function componentClient<Id extends string = ComponentId, Patch = ComponentPatch, State = Record<string, unknown>>(call: DesktopCall<ComponentEnvelope<Id, Patch>>) {
   return {
+    status: (component: Id) => call<ComponentInteraction<Id>>({ action: "component", request: { action: "status", component } }),
     read: (component: Id) => call<ComponentSnapshot<Id, State>>({ action: "component", request: { action: "read", component } }),
     patch: (component: Id, patch: Patch) => call<ComponentSnapshot<Id, State>>({ action: "component", request: { action: "patch", component, patch } }),
     open: (component: Id, patch?: Patch) => call<ComponentSnapshot<Id, State>>({ action: "component", request: { action: "open", component, ...(patch ? { patch } : {}) } }),

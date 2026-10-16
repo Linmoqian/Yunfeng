@@ -10,12 +10,12 @@ export function nativeComponentTools(client: ComponentClient | undefined = appli
   if (!client) return [];
   return [defineTool({
     name: "app_component", label: "应用组件", executionMode: "sequential",
-    description: "读取、更新或打开应用组件。writing 为文稿，patch 支持 name/body；resources 为资源，支持 view（文件/图片/视频/结果）及 files（name/size 数组，只含元数据）。open 可带 patch 一步更新并打开。Rust 校验并通知现有组件渲染；focus 显示云枫的指针提示，不抢输入焦点；target 默认为 component，writing 支持 name/body，resources 支持 view/files；blur 清除该组件指针。不执行任意 HTML、脚本或 URL。",
-    promptSnippet: "通过 read/patch/open/close/focus/blur 与应用文稿、资源组件交互。",
-    promptGuidelines: ["修改已有文稿前先用 app_component read 查看，保留工程师原有内容。app_component open 用于需要展示组件的任务；不要重复在聊天中输出完整工具结果。处理组件前用 focus 标示区域，结束后用 blur 清除；聚焦只是提示，不代表组件已经显示。"],
+    description: "读取、更新或打开应用组件。writing 为文稿，patch 支持 name/body；resources 为资源，支持 view（文件/图片/视频/结果）及 files（name/size 数组，只含元数据）。open 可带 patch 一步更新并打开。Rust 校验并通知现有组件渲染；focus 显示云枫的指针提示，不抢输入焦点；target 默认为 component，writing 支持 name/body，resources 支持 view/files；blur 清除该组件指针。status 返回 known/visible/rendered/renderedRevision/editing/yielded；editing 或 yielded 为 true 时让出操作，反馈未知时等待新状态；成功写入不等于已呈现。不执行任意 HTML、脚本或 URL。",
+    promptSnippet: "通过 status/read/patch/open/close/focus/blur 与应用文稿、资源组件交互。",
+    promptGuidelines: ["修改已有文稿前先用 app_component read 查看，保留工程师原有内容。app_component open 用于需要展示组件的任务；不要重复在聊天中输出完整工具结果。操作前用 status 检查；COMPONENT_BUSY 或 INTERACTION_UNAVAILABLE 时停止组件操作，等待工程师结束后重新读取，不连续重试。修改后用 status 检查 rendered 与版本，未确认时不宣称已显示。处理组件前用 focus 标示区域，结束后用 blur 清除；聚焦只是提示，不代表组件已经显示。"],
     parameters: Type.Object({
       component: StringEnum(["writing", "resources"] as const),
-      action: StringEnum(["read", "patch", "open", "close", "focus", "blur"] as const),
+      action: StringEnum(["read", "status", "patch", "open", "close", "focus", "blur"] as const),
       target: Type.Optional(Type.String({ description: "仅 focus 接受，必须是注册区域名称，不能传 CSS 选择器或坐标。" })),
       patch: Type.Optional(Type.Object({}, { additionalProperties: true, description: "patch 操作必填；open 时可选；其他操作不接受。字段沿用组件契约。" })),
     }, { additionalProperties: false }),
@@ -28,8 +28,8 @@ export function nativeComponentTools(client: ComponentClient | undefined = appli
       const snapshot = action === "patch" ? await client.patch(component, changes!)
         : action === "open" ? await client.open(component, changes)
         : action === "focus" ? await client.focus(component, target) : await client[action](component);
-      const summary = { component, action, ...(snapshot ? { revision: snapshot.revision } : {}), ...(snapshot && "target" in snapshot ? { target: snapshot.target } : {}) };
-      const text = JSON.stringify(action === "read" ? snapshot : summary);
+      const summary = { component, action, ...(snapshot && "revision" in snapshot ? { revision: snapshot.revision } : {}), ...(snapshot && "target" in snapshot ? { target: snapshot.target } : {}) };
+      const text = JSON.stringify(["read", "status"].includes(action) ? snapshot : summary);
       return { content: [{ type: "text" as const, text: text.length > 32000 ? `${text.slice(0, 32000)}\n[内容已截断，完整快照可通过组件 SDK 读取]` : text }], details: summary };
     },
   })];

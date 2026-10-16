@@ -1,7 +1,8 @@
 /* 双窗口共享视图：单个在途写入，其余编辑合并，确认前保留本地输入。
- * Created on 2026-10-14
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
+import { useComponentPresentation } from "./useComponentPresentation";
 import { isTauri } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { componentDefaults, patchComponent, readComponent, sharingError, subscribeComponent, type ComponentSnapshot, type ComponentStates, type SharedComponentId } from "../services/componentSharing";
@@ -81,5 +82,6 @@ export function useSharedComponent<K extends SharedComponentId>(component: K) {
     try { accept(await readComponent(component)); setError(""); void flush(); }
     catch (reason) { setError(sharingError(reason)); }
   }
+  useComponentPresentation(component, revision.current, ready, Object.keys(pending.current).length > 0);
   return { value, update, error, ready, syncing, retry };
 }

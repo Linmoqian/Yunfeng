@@ -1,5 +1,5 @@
 /* 写作中央插槽；分栏布局与导航由 WorkspaceShell 统一管理。
- * Created on 2026-10-14
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import { Button, Input, Segmented } from "antd";
@@ -18,7 +18,7 @@ export function PaperWriting({ independent = false }: { independent?: boolean })
   const paper = usePaperContext();
   const [notice, setNotice] = useState("");
   const id = useId();
-  return <section className={styles.document} aria-label="论文写作">
+  return <section data-agent-component="writing" className={styles.document} aria-label="论文写作">
     <div className={styles.toolbar}><strong>论文写作</strong>{!independent && <Button size="small" icon={<ExternalLink size={14} />} onClick={() => { void openComponentWindow("writing").catch((reason) => setNotice(sharingError(reason))); }}>独立窗口</Button>}</div>
     <label className={styles.title}>文稿标题<Input value={paper.value.name} disabled={!paper.ready} onChange={(event) => paper.update({ name: Array.from(event.target.value).slice(0, 200).join("") })} placeholder="未命名论文" /></label>
     <Segmented aria-label="论文写作视图" options={["编辑", "预览"]} value={paper.view} onChange={(value) => paper.setView(String(value))} />

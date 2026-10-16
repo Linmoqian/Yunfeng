@@ -11,12 +11,13 @@ import { nativeComponentTools } from "../src/agent/component-tool.js";
 
 test("组件 SDK 使用桌面通道，工具打开并更新只返回简短摘要", async () => {
   const requests: unknown[] = [];
+  const feedback = { component: "resources", version: 1, known: true, visible: true, rendered: true, renderedRevision: 3, editing: false, yielded: false };
   const snapshot = { component: "resources", revision: 3, state: { view: "结果", files: [] } };
   const server = createServer(socket => socket.once("data", bytes => {
     const envelope = JSON.parse(bytes.toString());
     assert.equal(envelope.token, "test-only");
     requests.push(envelope.request);
-    socket.end(JSON.stringify({ result: envelope.request.request.action === "close" ? null : ["focus", "blur"].includes(envelope.request.request.action) ? { component: "resources", revision: 4, target: envelope.request.request.action === "focus" ? "files" : null } : snapshot }) + "\n");
+    socket.end(JSON.stringify({ result: envelope.request.request.action === "status" ? feedback : envelope.request.request.action === "close" ? null : ["focus", "blur"].includes(envelope.request.request.action) ? { component: "resources", revision: 4, target: envelope.request.request.action === "focus" ? "files" : null } : snapshot }) + "\n");
   }));
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   try {
@@ -33,6 +34,9 @@ test("组件 SDK 使用桌面通道，工具打开并更新只返回简短摘要
     const focused = await tool.execute("focus", { action: "focus", component: "resources", target: "files" }, undefined, undefined, {} as never);
     assert.deepEqual(focused.details, { component: "resources", action: "focus", revision: 4, target: "files" });
     assert.deepEqual(await client.blur("resources"), { component: "resources", revision: 4, target: null });
+    assert.deepEqual(await client.status("resources"), feedback);
+    const status = await tool.execute("status", { action: "status", component: "resources" }, undefined, undefined, {} as never);
+    assert.deepEqual(JSON.parse((status.content[0] as { text: string }).text), feedback);
     await client.close("resources");
     assert.deepEqual(requests, [
       { action: "component", request: { action: "open", component: "resources", patch: { view: "结果" } } },
@@ -40,6 +44,8 @@ test("组件 SDK 使用桌面通道，工具打开并更新只返回简短摘要
       { action: "component", request: { action: "patch", component: "resources", patch: { view: "文件" } } },
       { action: "component", request: { action: "focus", component: "resources", target: "files" } },
       { action: "component", request: { action: "blur", component: "resources" } },
+      { action: "component", request: { action: "status", component: "resources" } },
+      { action: "component", request: { action: "status", component: "resources" } },
       { action: "component", request: { action: "close", component: "resources" } },
     ]);
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
