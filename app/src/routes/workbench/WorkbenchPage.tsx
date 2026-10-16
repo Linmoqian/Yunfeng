@@ -50,6 +50,7 @@ export function WorkbenchPage() {
   const dispatch = useAppDispatch();
   const { setMode, mode: themeMode } = useThemeMode();
   const initialTaskResolved = useRef(false);
+  const snapshotRequest = useRef<AbortController | null>(null);
 
   const tasks = useAppSelector((state) => state.workbench.tasks);
   const sessions = useAppSelector((state) => state.workbench.sessions);
@@ -118,12 +119,16 @@ export function WorkbenchPage() {
   const modelCwd = currentTask?.cwd || currentSession?.cwd || tasks.find((task) => task.cwd)?.cwd;
 
   const refreshSnapshot = useCallback(async () => {
+    snapshotRequest.current?.abort();
+    const controller = new AbortController();
+    snapshotRequest.current = controller;
     setSnapshotLoading(true);
     try {
       const [taskResult, legacySessions] = await Promise.all([
-        loadTasks({ limit: 500 }),
-        loadLegacySessions(),
+        loadTasks({ limit: 500 }, controller.signal),
+        loadLegacySessions(controller.signal),
       ]);
+      if (controller.signal.aborted) return;
       setSnapshotError(null);
       dispatch(workbenchActions.snapshot({ tasks: taskResult.tasks, sessions: legacySessions }));
       if (!initialTaskResolved.current) {
@@ -136,19 +141,20 @@ export function WorkbenchPage() {
       }
       dispatch(workbenchActions.connection({ state: "connected", error: null }));
     } catch (error) {
+      if (controller.signal.aborted) return;
       setSnapshotError(error instanceof Error ? error.message : "任务状态暂时无法读取");
       dispatch(workbenchActions.connection({
         state: "offline",
         error: error instanceof Error ? error.message : "任务状态暂时无法读取",
       }));
     } finally {
-      setSnapshotLoading(false);
+      if (!controller.signal.aborted) setSnapshotLoading(false);
     }
   }, [dispatch]);
 
   useEffect(() => {
     void refreshSnapshot();
-    return subscribeTaskSummary(
+    const stop = subscribeTaskSummary(
       (event: TaskStreamEvent) => {
         // 任务快照只更新 tasks；sessions 由 refreshSnapshot 的 REST 结果独立维护，
         // 避免 SSE 连接/重连时用旧闭包覆盖旧会话列表。
@@ -160,9 +166,19 @@ export function WorkbenchPage() {
           dispatch(workbenchActions.taskUpdated(event.data));
         }
       },
-      (connected) => dispatch(workbenchActions.connection({ state: connected ? "connected" : "offline" })),
+      (connected) => {
+        dispatch(workbenchActions.connection({ state: connected ? "connected" : "offline" }));
+        if (connected) void refreshSnapshot();
+      },
     );
+    return () => { stop(); snapshotRequest.current?.abort(); };
   }, [dispatch, refreshSnapshot]);
+
+  useEffect(() => {
+    if (!snapshotError || snapshotLoading) return;
+    const timer = setTimeout(() => { void refreshSnapshot(); }, 5000);
+    return () => clearTimeout(timer);
+  }, [snapshotError, snapshotLoading, refreshSnapshot]);
 
   // 同步 URL 深链接
   useEffect(() => {

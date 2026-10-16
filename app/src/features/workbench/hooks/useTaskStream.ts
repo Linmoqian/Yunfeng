@@ -241,21 +241,30 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
     if (!activeTask) return () => controller.abort();
     const taskId = activeTask.id;
 
-    const unsubscribe = subscribeTaskEvents(taskId, handleStreamEvent, (connected) => {
-      if (!connected) setStreamStatus("connecting");
-    });
-
-    void loadTaskConversation(taskId, controller.signal)
-      .then((messages) => {
+    let reading = false;
+    const refreshConversation = async () => {
+      if (reading || controller.signal.aborted) return;
+      reading = true;
+      try {
+        const messages = await loadTaskConversation(taskId, controller.signal);
+        if (controller.signal.aborted) return;
         const loaded = messages.map(normalizeConversationMessage).filter((item): item is ConversationItem => item !== null);
         setConversation((current) => mergeConversation(current, loaded));
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        setStreamError(null);
+      } catch (error) {
+        if (controller.signal.aborted) return;
         setStreamError(error instanceof Error ? error.message : "会话记录暂时无法读取");
         setStreamStatus("error");
-      })
-      .finally(() => setConversationLoading(false));
+      } finally {
+        reading = false;
+        if (!controller.signal.aborted) setConversationLoading(false);
+      }
+    };
+    const unsubscribe = subscribeTaskEvents(taskId, handleStreamEvent, (connected) => {
+      if (!connected) setStreamStatus("connecting");
+      else { setStreamStatus((status) => status === "streaming" ? status : "idle"); void refreshConversation(); }
+    });
+    void refreshConversation();
 
     void loadTaskInterventions(taskId, controller.signal)
       .then((items) => {

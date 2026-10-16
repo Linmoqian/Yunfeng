@@ -3,6 +3,8 @@
 // Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 
+import { fetchRead, recoveryDelay } from "./recovery.ts";
+
 export interface TaskModelRef {
   provider: string;
   modelId: string;
@@ -171,7 +173,7 @@ export async function browseDirectories(
   const params = new URLSearchParams();
   if (path) params.set("path", path);
   const query = params.toString();
-  const response = await fetch(`/api/cwd/browse${query ? `?${query}` : ""}`, { signal });
+  const response = await fetchRead(`/api/cwd/browse${query ? `?${query}` : ""}`, { signal });
   return readJson<DirectoryBrowseResult>(response);
 }
 
@@ -193,30 +195,30 @@ export async function loadTasks(query: TaskQuery = {}, signal?: AbortSignal): Pr
   if (query.cursor) params.set("cursor", query.cursor);
   if (query.limit) params.set("limit", String(query.limit));
   const queryString = params.toString();
-  const response = await fetch(`/api/tasks${queryString ? `?${queryString}` : ""}`, { signal });
+  const response = await fetchRead(`/api/tasks${queryString ? `?${queryString}` : ""}`, { signal });
   return readJson<TaskListResponse>(response);
 }
 
 export async function loadTask(taskId: string, signal?: AbortSignal): Promise<TaskState> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, { signal });
+  const response = await fetchRead(`/api/tasks/${encodeURIComponent(taskId)}`, { signal });
   const data = await readJson<{ task: TaskState }>(response);
   return data.task;
 }
 
 /** 旧会话列表（未导入任务前仅浏览用）。 */
 export async function loadLegacySessions(signal?: AbortSignal): Promise<SessionSnapshot[]> {
-  const response = await fetch("/api/sessions", { signal });
+  const response = await fetchRead("/api/sessions", { signal });
   const data = await readJson<{ sessions: SessionSnapshot[] }>(response);
   return data.sessions ?? [];
 }
 
 export async function loadSessionDetails(sessionId: string, signal?: AbortSignal): Promise<SessionDetails> {
-  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}?deferMedia&deferThinking`, { signal });
+  const response = await fetchRead(`/api/sessions/${encodeURIComponent(sessionId)}?deferMedia&deferThinking`, { signal });
   return readJson<SessionDetails>(response);
 }
 
 export async function loadSessionRuntimeState(sessionId: string, signal?: AbortSignal): Promise<SessionRuntimeState> {
-  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/state`, { signal });
+  const response = await fetchRead(`/api/sessions/${encodeURIComponent(sessionId)}/state`, { signal });
   return readJson<SessionRuntimeState>(response);
 }
 
@@ -231,12 +233,12 @@ async function readConversation(response: Response): Promise<unknown[]> {
 }
 
 export async function loadTaskConversation(taskId: string, signal?: AbortSignal): Promise<unknown[]> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/conversation?deferMedia`, { signal });
+  const response = await fetchRead(`/api/tasks/${encodeURIComponent(taskId)}/conversation?deferMedia`, { signal });
   return readConversation(response);
 }
 
 export async function loadSessionConversation(sessionId: string, signal?: AbortSignal): Promise<unknown[]> {
-  const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}?deferMedia`, { signal });
+  const response = await fetchRead(`/api/sessions/${encodeURIComponent(sessionId)}?deferMedia`, { signal });
   return readConversation(response);
 }
 
@@ -315,7 +317,7 @@ export async function renameTask(taskId: string, name: string): Promise<TaskStat
 }
 
 export async function loadTaskInterventions(taskId: string, signal?: AbortSignal): Promise<unknown[]> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/interventions`, { signal });
+  const response = await fetchRead(`/api/tasks/${encodeURIComponent(taskId)}/interventions`, { signal });
   const data = await readJson<{ interventions?: unknown[] }>(response);
   return data.interventions ?? [];
 }
@@ -356,13 +358,13 @@ export interface TaskGitSummary {
 }
 
 export async function loadTaskGit(taskId: string, signal?: AbortSignal): Promise<TaskGitSummary> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/git`, { signal });
+  const response = await fetchRead(`/api/tasks/${encodeURIComponent(taskId)}/git`, { signal });
   const data = await readJson<{ git: TaskGitSummary }>(response);
   return data.git;
 }
 
 export async function loadTaskGitDiff(taskId: string, filePath: string, signal?: AbortSignal): Promise<{ supported: boolean; status?: string; patch?: string }> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/git/diff?path=${encodeURIComponent(filePath)}`, { signal });
+  const response = await fetchRead(`/api/tasks/${encodeURIComponent(taskId)}/git/diff?path=${encodeURIComponent(filePath)}`, { signal });
   return readJson<{ supported: boolean; status?: string; patch?: string }>(response);
 }
 
@@ -404,7 +406,7 @@ export interface TaskCapabilitiesResult {
 }
 
 export async function loadTaskCapabilities(taskId: string, signal?: AbortSignal): Promise<TaskCapabilitiesResult> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/capabilities`, { signal });
+  const response = await fetchRead(`/api/tasks/${encodeURIComponent(taskId)}/capabilities`, { signal });
   const data = await readJson<{ capabilities: TaskCapabilitiesResult }>(response);
   return data.capabilities;
 }
@@ -418,42 +420,40 @@ export async function loadTaskCapabilities(taskId: string, signal?: AbortSignal)
  * 首次订阅默认只收实时事件；EventSource 断线重连会自动携带 Last-Event-ID，
  * 服务端据此只补发缺失的 seq。需要显式补发历史时使用 ?afterSeq=N。
  */
-export function subscribeTaskEvents(
-  taskId: string,
-  onEvent: (event: TaskStreamEvent) => void,
-  onConnectionChange?: (connected: boolean) => void,
-): () => void {
-  const source = new EventSource(`/api/tasks/${encodeURIComponent(taskId)}/events`);
-  source.onopen = () => onConnectionChange?.(true);
-  source.onmessage = (event) => {
-    try {
-      onEvent(JSON.parse(event.data) as TaskStreamEvent);
-    } catch {
+function subscribeStream(url: string, onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void): () => void {
+  let source: EventSource, timer: ReturnType<typeof setTimeout> | undefined;
+  let closed = false, attempt = 0, lastId = "";
+  const connect = () => {
+    if (closed) return;
+    source = new EventSource(`${url}${lastId ? `?afterSeq=${encodeURIComponent(lastId)}` : ""}`);
+    source.onopen = () => { attempt = 0; onConnectionChange?.(true); };
+    source.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data) as TaskStreamEvent;
+        onEvent(parsed);
+        if (event.lastEventId) lastId = event.lastEventId;
+      } catch { onConnectionChange?.(false); }
+    };
+    source.onerror = () => {
+      if (closed) return;
       onConnectionChange?.(false);
-    }
+      // 非 200 响应可能使 EventSource 永久关闭；CONNECTING 由浏览器自己续接。
+      if (source.readyState === EventSource.CLOSED) {
+        source.close();
+        clearTimeout(timer);
+        timer = setTimeout(connect, recoveryDelay(attempt++));
+      }
+    };
   };
-  source.onerror = () => onConnectionChange?.(false);
-  return () => source.close();
+  connect();
+  return () => { closed = true; clearTimeout(timer); source.close(); };
 }
-
-/**
- * 工作台任务摘要事件流：首帧 task_snapshot，之后是所有任务的状态事件。
- */
-export function subscribeTaskSummary(
-  onEvent: (event: TaskStreamEvent) => void,
-  onConnectionChange?: (connected: boolean) => void,
-): () => void {
-  const source = new EventSource("/api/tasks/events");
-  source.onopen = () => onConnectionChange?.(true);
-  source.onmessage = (event) => {
-    try {
-      onEvent(JSON.parse(event.data) as TaskStreamEvent);
-    } catch {
-      onConnectionChange?.(false);
-    }
-  };
-  source.onerror = () => onConnectionChange?.(false);
-  return () => source.close();
+export function subscribeTaskEvents(taskId: string, onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void): () => void {
+  return subscribeStream(`/api/tasks/${encodeURIComponent(taskId)}/events`, onEvent, onConnectionChange);
+}
+/** 摘要流重连首帧为权威快照；重建监听后刷新旧会话的 REST 快照。 */
+export function subscribeTaskSummary(onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void): () => void {
+  return subscribeStream("/api/tasks/events", onEvent, onConnectionChange);
 }
 
 // ---------------------------------------------------------------------------
@@ -462,7 +462,7 @@ export function subscribeTaskSummary(
 
 export async function loadModelCatalog(cwd?: string, signal?: AbortSignal): Promise<ModelCatalog> {
   const query = cwd ? `?cwd=${encodeURIComponent(cwd)}` : "";
-  const response = await fetch(`/api/models${query}`, { signal });
+  const response = await fetchRead(`/api/models${query}`, { signal });
   const data = await readJson<{
     modelList?: ModelOption[];
     defaultModel?: ModelSelection | null;

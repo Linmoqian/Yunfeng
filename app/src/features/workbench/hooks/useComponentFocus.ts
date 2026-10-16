@@ -29,8 +29,9 @@ export function useComponentFocus() {
       if (!alive) { unsubscribe(); return; }
       stop = unsubscribe; void refresh();
     }).catch(() => { if (alive) setError(true); });
+    const timer = setInterval(() => { void refresh(); }, 5000);
     window.addEventListener("focus", refresh);
-    return () => { alive = false; stop?.(); window.removeEventListener("focus", refresh); };
+    return () => { alive = false; clearInterval(timer); stop?.(); window.removeEventListener("focus", refresh); };
   }, []);
   return { focus, error };
 }

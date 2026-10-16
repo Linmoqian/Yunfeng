@@ -3,6 +3,7 @@
  * @author: https://github.com/Linmoqian
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { recoverSubscription } from "../../../services/recovery";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { SharedComponentId } from "./componentSharing";
 export interface ComponentInteraction {
@@ -26,5 +27,5 @@ function native(component: SharedComponentId, report?: InteractionReport) {
 export const componentInteraction = {
   read: (component: SharedComponentId) => native(component),
   report: (component: SharedComponentId, report: InteractionReport) => native(component, report),
-  subscribe: (listener: (status: ComponentInteraction) => void) => getCurrentWebviewWindow().listen<ComponentInteraction>("component-interaction-changed", ({ payload }) => listener(payload)),
+  subscribe: (listener: (status: ComponentInteraction) => void) => recoverSubscription(() => getCurrentWebviewWindow().listen<ComponentInteraction>("component-interaction-changed", ({ payload }) => listener(payload))),
 };

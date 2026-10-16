@@ -60,15 +60,15 @@ export function useSharedComponent<K extends SharedComponentId>(component: K) {
     let unsubscribe: (() => void) | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = async () => {
-      try { const snapshot = await readComponent(component); if (alive) accept(snapshot); }
+      try { const snapshot = await readComponent(component); if (alive) { accept(snapshot); if (!Object.keys(pending.current).length) setError(""); } }
       catch (reason) { if (alive) setError(sharingError(reason)); }
     };
     const poll = async () => {
       await refresh();
       if (alive) timer = setTimeout(poll, 5000);
     };
-    // 先订阅后读取，消除首个快照和事件之间的空隙；轮询与聚焦补偿遗漏。
-    void subscribeComponent(component, (snapshot) => { if (alive) accept(snapshot); }).then((stop) => {
+    // 注册失败在后台恢复；轮询与聚焦补偿首次读取和订阅之间遗漏的通知。
+    void subscribeComponent(component, (snapshot) => { if (alive) { accept(snapshot); if (!Object.keys(pending.current).length) setError(""); } }).then((stop) => {
       if (!alive) { stop(); return; }
       unsubscribe = stop;
       void poll();

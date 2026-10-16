@@ -5,6 +5,7 @@
 import { componentInteraction } from "./componentInteraction";
 import { componentFocus } from "./componentFocus";
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { recoverSubscription } from "../../../services/recovery";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { ResearchState } from "../research-tools/model";
 
@@ -42,12 +43,12 @@ export function openComponentWindow(component: SharedComponentId): Promise<void>
 export function closeComponentWindow(component: SharedComponentId): Promise<void> {
   return native("component_window", { component, open: false });
 }
-/** 订阅当前 WebView 的通知；需结合 readComponent 补偿丢失并按 revision 去重。 */
+/** 后台恢复当前 WebView 的通知注册，立即返回清理函数；需补读快照并按 revision 去重。 */
 export async function subscribeComponent<K extends SharedComponentId>(component: K, listener: (snapshot: ComponentSnapshot<K>) => void): Promise<() => void> {
   if (!isTauri()) throw new Error("组件共享需要 Tauri 原生应用");
-  return getCurrentWebviewWindow().listen<ComponentSnapshot<K>>("component-state-changed", ({ payload }) => {
+  return recoverSubscription(() => getCurrentWebviewWindow().listen<ComponentSnapshot<K>>("component-state-changed", ({ payload }) => {
     if (payload.component === component) listener(payload);
-  });
+  }));
 }
 
 export const componentSharing = { read: readComponent, patch: patchComponent, open: openComponentWindow, close: closeComponentWindow, focus: componentFocus.focus, blur: componentFocus.blur, readFocus: componentFocus.read, status: componentInteraction.read, subscribe: subscribeComponent };

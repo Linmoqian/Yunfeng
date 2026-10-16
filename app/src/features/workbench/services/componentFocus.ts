@@ -3,6 +3,7 @@
  * @author: https://github.com/Linmoqian
  */
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { recoverSubscription } from "../../../services/recovery";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { SharedComponentId } from "./componentSharing";
 export interface ComponentFocus { component: SharedComponentId; revision: number; target: string | null }
@@ -16,7 +17,7 @@ export const componentFocus = {
   blur: (component: SharedComponentId) => call(component, "blur"),
   subscribe: async (listener: (snapshot: ComponentFocus) => void): Promise<() => void> => {
     if (!isTauri()) throw new Error("共享指针需要 Tauri 原生应用");
-    return getCurrentWebviewWindow().listen<ComponentFocus>("component-focus-changed", ({ payload }) => listener(payload));
+    return recoverSubscription(() => getCurrentWebviewWindow().listen<ComponentFocus>("component-focus-changed", ({ payload }) => listener(payload)));
   },
 };
 
