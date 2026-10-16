@@ -17,7 +17,8 @@ test("中心目标向两侧分支，真实关系与状态保持一致，更新�
   assert.deepEqual(get("mission").position, { x: 0, y: 0 });
   assert.ok(get("group").position.x > 0 && get("c").position.x < 0);
   assert.equal(get("a").parent, "group");
-  assert.notEqual(get("a").position.y, get("b").position.y);
+  // 节点高 80，上下胶囊与间距合计不超过 112；缩放不改变安全比例。
+  assert.ok(Math.abs(get("a").position.y - get("b").position.y) >= 192);
   assert.equal(get("a").current, true);
   state.nodes[1].status = "succeeded";
   state.selectedId = "b";

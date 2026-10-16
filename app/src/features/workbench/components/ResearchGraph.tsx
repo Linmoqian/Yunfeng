@@ -7,9 +7,10 @@ import { useResearchGraphComponent } from "../hooks/useResearchGraphComponent";
 import { Capsule } from "./Capsule";
 import { Button } from "antd";
 import { MessageSquare, Scan, ZoomIn, ZoomOut } from "lucide-react";
-import { ReactFlow, Handle, NodeToolbar, Position, MarkerType, type Node, type NodeProps, type ReactFlowInstance } from "@xyflow/react";
+import { ReactFlow, Handle, Position, MarkerType, type Node, type NodeProps, type ReactFlowInstance } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { TaskState } from "../../../services/taskService";
+import { ResearchNodeCapsules } from "./ResearchNodeCapsules";
 import { researchNodeInfo, type NodeInfo } from "../researchNodeInfo";
 import { layoutResearchGraph, researchNodeStatus, type ResearchGraphItem } from "../researchGraph";
 import styles from "./ResearchGraph.module.css";
@@ -17,18 +18,7 @@ import styles from "./ResearchGraph.module.css";
 type GraphNode = Node<ResearchGraphItem & { agent?: boolean; expanded: boolean; info: NodeInfo; onInspect: (id: string) => void }, "research">;
 function ResearchNode({ data }: NodeProps<GraphNode>) {
   return <div className={styles.node} data-status={data.status} data-current={data.current} data-agent={data.agent} data-kind={data.kind} data-expanded={data.expanded}>
-    <NodeToolbar isVisible={data.expanded} position={Position.Top} offset={12}>
-      <div className={`${styles.satellites} nodrag nopan`} aria-label="节点概览">
-        <Capsule className={styles.pill} status={data.info.passed === undefined ? undefined : data.info.passed ? "passed" : "failed"}>{data.info.status}</Capsule>
-        {data.info.progress && <Capsule className={styles.pill} value={data.info.progress}>{data.info.progress}</Capsule>}
-      </div>
-    </NodeToolbar>
-    <NodeToolbar isVisible={data.expanded && Boolean(data.info.metrics.length || data.info.conclusion)} position={Position.Bottom} offset={12}>
-      <div className={`${styles.satellites} ${styles.below} nodrag nopan`} aria-label="节点实验信息">
-        {data.info.metrics.map((metric) => <Capsule className={styles.pill} value={metric} key={metric}>{metric}</Capsule>)}
-        {data.info.conclusion && <Capsule className={`${styles.pill} ${styles.conclusion}`} title={data.info.conclusion} value={data.info.conclusion}>{data.info.conclusion}</Capsule>}
-      </div>
-    </NodeToolbar>
+    <ResearchNodeCapsules expanded={data.expanded} info={data.info} />
     <Handle id="in-left" type="target" position={Position.Left} /><Handle id="in-right" type="target" position={Position.Right} />
     <button type="button" className={`${styles.nodeButton} nodrag nopan`} onClick={() => data.onInspect(data.id)} aria-label={`${data.objective} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`}>
       <span className={styles.nodeLabel}>{data.objective}</span>

@@ -27,9 +27,10 @@
 .node[data-agent="true"] { outline: 2px solid color-mix(in srgb, var(--yf-brand-primary) 35%, transparent); outline-offset: 4px; }
 
 .node[data-expanded="true"] { border-color: var(--yf-brand-primary); }
-.satellites { display: flex; justify-content: center; gap: 6px; max-width: 300px; flex-wrap: wrap; }
-.below { width: 280px; }
-.pill { display: inline-flex; align-items: center; max-width: 100%; padding: 5px 10px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-secondary); font-size: 11px; line-height: 1.5; box-shadow: 0 2px 8px #00000004; white-space: nowrap; }
+.satellites { display: flex; justify-content: center; gap: 6px; width: 220px; }
+.below { flex-wrap: wrap; }
+.metricRow { display: flex; justify-content: center; gap: 6px; width: 100%; min-width: 0; }
+.pill { display: inline-flex; align-items: center; max-width: 100%; padding: 5px 10px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-secondary); font-size: 11px; line-height: 1.5; box-shadow: 0 2px 8px #00000004; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .pill[data-status="passed"] { color: var(--yf-semantic-success); }
 .pill[data-status="failed"] { color: var(--yf-semantic-error); }
-.conclusion { display: block; overflow: hidden; text-overflow: ellipsis; }
+.conclusion { display: block; }

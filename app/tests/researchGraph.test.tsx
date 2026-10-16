@@ -3,13 +3,14 @@
  * @author: https://github.com/Linmoqian
  */
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ResearchGraph } from "../src/features/workbench/components/ResearchGraph";
 import type { TaskState } from "../src/services/taskService";
 vi.mock("../src/features/workbench/hooks/useResearchGraphComponent", () => ({ useResearchGraphComponent: () => ({ root: { current: null }, agentTarget: null, yieldControl: vi.fn() }) }));
 vi.mock("@xyflow/react", () => ({
   ReactFlow: ({ nodes, nodeTypes }: any) => <div>{nodes.map((node: any) => { const View = nodeTypes[node.type]; return <View key={node.id} data={node.data} />; })}</div>,
+  useViewport: () => ({ zoom: 1 }),
   NodeToolbar: ({ isVisible, children }: any) => isVisible ? children : null,
   Handle: () => null, Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" }, MarkerType: { ArrowClosed: "arrow" },
 }));
@@ -35,8 +36,10 @@ test("节点周围按需展开真实胶囊，重复点击收起，切换快照�
   expect(screen.queryByText("折叠的实验过程")).toBeNull();
   expect(screen.getByLabelText("节点实验信息").textContent).not.toContain("错误实验");
   await userEvent.click(screen.getByRole("button", { name: "训练实验 · 验收通过" }));
-  expect(screen.queryByLabelText("节点概览")).toBeNull();
-  expect(screen.queryByLabelText("节点实验信息")).toBeNull();
+  await waitFor(() => {
+    expect(screen.queryByLabelText("节点概览")).toBeNull();
+    expect(screen.queryByLabelText("节点实验信息")).toBeNull();
+  });
   await userEvent.click(screen.getByRole("button", { name: "返回对话" }));
   expect(close).toHaveBeenCalledOnce();
   view.rerender(<ResearchGraph task={{ ...task, autonomy: undefined }} onClose={close} />);
