@@ -5,6 +5,8 @@ pub(crate) mod agent;
 mod assets;
 mod document_export;
 pub mod export;
+mod focus;
+pub(crate) mod focus_command;
 mod model;
 mod pdf;
 mod persistence;
@@ -18,10 +20,18 @@ use std::{
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 #[derive(Default)]
-pub struct Runtime(pub Arc<Mutex<Store>>, pub PathBuf);
+pub struct Runtime(
+    pub Arc<Mutex<Store>>,
+    pub PathBuf,
+    pub Arc<Mutex<focus::FocusStore>>,
+);
 impl Runtime {
     pub fn new(path: PathBuf) -> Self {
-        Self(Arc::new(Mutex::new(Store::persistent(path.clone()))), path)
+        Self(
+            Arc::new(Mutex::new(Store::persistent(path.clone()))),
+            path,
+            Arc::default(),
+        )
     }
 }
 

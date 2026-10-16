@@ -2,6 +2,7 @@
  * Created on 2026-10-14
  * @author: https://github.com/Linmoqian
  */
+import { componentFocus } from "./componentFocus";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { ResearchState } from "../research-tools/model";
@@ -48,7 +49,7 @@ export async function subscribeComponent<K extends SharedComponentId>(component:
   });
 }
 
-export const componentSharing = { read: readComponent, patch: patchComponent, open: openComponentWindow, close: closeComponentWindow, subscribe: subscribeComponent };
+export const componentSharing = { read: readComponent, patch: patchComponent, open: openComponentWindow, close: closeComponentWindow, focus: componentFocus.focus, blur: componentFocus.blur, readFocus: componentFocus.read, subscribe: subscribeComponent };
 export function sharingError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object" && "code" in error && "message" in error

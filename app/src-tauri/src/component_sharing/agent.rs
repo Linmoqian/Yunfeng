@@ -20,6 +20,13 @@ pub enum Request {
         component: String,
         patch: Option<Map<String, Value>>,
     },
+    Focus {
+        component: String,
+        target: Option<String>,
+    },
+    Blur {
+        component: String,
+    },
     Close {
         component: String,
     },
@@ -27,6 +34,22 @@ pub enum Request {
 
 pub fn execute(app: &tauri::AppHandle, request: Request) -> Result<Value, Error> {
     let (component, patch, open) = match request {
+        Request::Focus { component, target } => {
+            let runtime = app.state::<Runtime>();
+            return Ok(json!(super::focus_command::execute(
+                app,
+                &runtime,
+                super::focus_command::FocusRequest::Focus { component, target }
+            )?));
+        }
+        Request::Blur { component } => {
+            let runtime = app.state::<Runtime>();
+            return Ok(json!(super::focus_command::execute(
+                app,
+                &runtime,
+                super::focus_command::FocusRequest::Blur { component }
+            )?));
+        }
         Request::Read { component } => (component, None, false),
         Request::Patch { component, patch } => (component, Some(patch), false),
         Request::Open { component, patch } => (component, patch, true),
@@ -54,7 +77,14 @@ pub fn execute(app: &tauri::AppHandle, request: Request) -> Result<Value, Error>
     if open {
         set_window(app, &component, true)?;
     }
-    Ok(json!(snapshot))
+    let focus = runtime
+        .2
+        .lock()
+        .map_err(|_| error("STATE_ERROR", "聚焦状态不可用"))?
+        .read(&component)?;
+    let mut result = json!(snapshot);
+    result["focus"] = json!(focus);
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -63,6 +93,8 @@ mod tests {
     #[test]
     fn request_rejects_scripts_unknown_fields_and_missing_patch() {
         for value in [
+            json!({"action":"focus", "component":"writing", "x":10, "y":20}),
+            json!({"action":"blur", "component":"writing", "target":"body"}),
             json!({"action":"eval", "script":"alert(1)"}),
             json!({"action":"read", "component":"writing", "patch":{}}),
             json!({"action":"patch", "component":"writing"}),

@@ -1,0 +1,9 @@
+/* 共享指针保持静止，不遮挡操作，不跟随工程师的系统鼠标。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
+.region { position: fixed; z-index: 1100; border: 1px solid color-mix(in srgb, var(--yf-brand-primary) 38%, transparent); border-radius: 12px; box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--yf-brand-primary) 4%, transparent); pointer-events: none; }
+.label { display: inline-flex; align-items: center; gap: 6px; max-width: calc(100vw - 32px); padding: 4px 9px; border: 1px solid color-mix(in srgb, var(--yf-brand-primary) 18%, var(--yf-border-divider)); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-brand-primary); box-shadow: 0 2px 8px color-mix(in srgb, var(--yf-text-primary) 5%, transparent); font-size: 11px; line-height: 18px; white-space: nowrap; pointer-events: none; user-select: none; }
+.region .label { position: absolute; left: 8px; top: -14px; }
+.fallback { position: fixed; right: 20px; top: 42px; z-index: 1100; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .region, .fallback { animation: none; transition: none; } }

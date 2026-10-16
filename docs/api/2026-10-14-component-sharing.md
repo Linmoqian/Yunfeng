@@ -91,7 +91,7 @@ URL、窗口标签和配置由 Rust 固定，不允许调用方提供远程页�
 
 ### Agent 与程序入口
 
-开发会话注册单个 `app_component` 工具，参数为 `component`、`action` 和按需 `patch`。沿用当前会话的工具启用规则；空工具列表仍禁用全部工具。科研决策节点不直接调用工具，通过受控 execute 的 `update_component` 步骤更新当前任务的 `research` 组件，见[科研 Runtime API](2026-10-15-research-runtime.md#科研组件更新)。
+开发会话注册单个 `app_component` 工具，参数为 `component`、`action` 和按需 `patch`；新增 `focus` / `blur` 及注册区域 `target`，见[共享指针接口](2026-10-16-component-focus.md)。沿用当前会话的工具启用规则；空工具列表仍禁用全部工具。科研决策节点不直接调用工具，通过受控 execute 的 `update_component` 步骤更新当前任务的 `research` 组件，见[科研 Runtime API](2026-10-15-research-runtime.md#科研组件更新)。
 
 组件调用器 `componentClient` 复用 read/patch/open/close 的调用形状和快照契约，支持适配不同事实来源。桌面 `writing`、`resources` 仍由 Rust 管理；任务专属的 `research` 由既有 TaskStore 检查点管理，随 task_updated 同步，不建立全局科研状态。科研适配器只实现 read/patch，不提供独立窗口，也不向桌面通道注册 research ID。程序更新科研展示需提交受控科研计划，不能借开发工具绕过 execute。
 
@@ -162,3 +162,5 @@ await components.close("resources");
 验证：Rust 字段合并、原子拒绝、窗口授权测试；SDK 读写、打开关闭载荷及浏览器拒绝测试。macOS 原生文稿双向编辑、重复打开聚焦、关闭重开、资源分类同步通过。文件清单选入和其他桌面平台尚未原生验收。
 
 2026-10-16 验证：服务端构建、前端 TypeScript、Rust fmt/clippy 通过；组件与终端 TypeScript 核心测试 5 项、前端 SDK 3 项、Rust 38 项通过，2 项既有文稿导出测试按依赖要求跳过。macOS 真实 Agent 读取资源后 open 并切换到“结果”；受信 Node 程序通过同一 SDK 改为“图片”，原生界面同步更新，非法 patch 原子拒绝，重复打开保持同一窗口，最后 SDK 恢复分类并关闭窗口。原有启动瞬时 HTTP 502 仍需手动重新连接；其他桌面平台尚未原生验收。
+
+共享指针由同一 Rust Runtime 管理；Agent SDK 的组件快照新增可选 `focus`（组件、全局版本、区域或 null），不写入文稿数据库。前端使用 `componentSharing.focus(component, target)`、`blur(component)` 和 `readFocus(component)`。

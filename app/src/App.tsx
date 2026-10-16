@@ -1,3 +1,7 @@
+/* 应用路由与共享指针提示的组装入口。
+ * Created on 2026-10-16
+ * @author: https://github.com/Linmoqian
+ */
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 
@@ -6,6 +10,7 @@ import { TitleBar } from "./components/titlebar/TitleBar";
 import { AppContextMenu } from "./components/context-menu/AppContextMenu";
 import { getRuntimeWindowPlatform } from "./components/titlebar/windowPlatform";
 import { WorkbenchPage } from "./routes/workbench/WorkbenchPage";
+import { AgentFocusOverlay } from "./features/workbench/components/AgentFocusOverlay";
 import { ComponentWindow } from "./features/workbench/components/ComponentWindow";
 
 const TaskboardPage = lazy(() => import("./routes/taskboard/TaskboardPage").then((module) => ({
@@ -38,6 +43,7 @@ export function App() {
     <div className="app-root" data-desktop={getRuntimeWindowPlatform() !== "browser" || undefined}>
       <AppContextMenu>
         <TitleBar />
+        <AgentFocusOverlay />
         <div className="app-viewport">
           <RouterProvider router={router} />
         </div>

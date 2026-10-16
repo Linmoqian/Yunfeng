@@ -5,6 +5,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "paper_export_pdf",
             "terminal_action",
             "collaboration_action",
+            "component_focus",
             "component_read",
             "component_patch",
             "component_window",

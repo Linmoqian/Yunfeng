@@ -20,7 +20,7 @@ export function WorkspaceUtility({ id, title, independent = false }: { id: strin
   const component = tool?.id ?? ((id === "resources" || id === "workbench-files") ? "resources" : "");
   const shared = isSharedComponent(component);
   if (id === "tool-terminal") return <Suspense fallback={<p role="status">正在加载终端…</p>}><TerminalPanel /></Suspense>;
-  return <section className={styles.resourceStage} aria-label={title}>
+  return <section className={styles.resourceStage} aria-label={title} data-agent-component={shared ? component : undefined}>
     <header className={styles.sectionTitle}><h1>{title}</h1><span>{device ? "Rust 本机档案" : shared ? "共享组件" : "前端交互预览"}</span>
       {shared && !independent && <Button icon={<ExternalLink size={15} />} onClick={() => { void openComponentWindow(component).catch((reason) => setNotice(sharingError(reason))); }}>独立窗口</Button>}
     </header>

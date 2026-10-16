@@ -10,6 +10,7 @@
     "allow-collaboration-action",
     "desktop-services",
     "allow-component-read",
+    "allow-component-focus",
     "allow-component-patch",
     "allow-component-window",
     "core:default",

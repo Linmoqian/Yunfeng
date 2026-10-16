@@ -5,9 +5,12 @@
 import { desktopConnection, type DesktopCall } from "./desktop-client.js";
 
 export type ComponentId = "writing" | "resources";
+export interface ComponentFocus<Id extends string = ComponentId> { component: Id; revision: number; target: string | null }
 export type ComponentPatch = Record<string, unknown>;
-export interface ComponentSnapshot<Id extends string = ComponentId, State = Record<string, unknown>> { component: Id; revision: number; state: State }
+export interface ComponentSnapshot<Id extends string = ComponentId, State = Record<string, unknown>> { component: Id; revision: number; state: State; focus?: ComponentFocus<Id> }
 export type ComponentRequest<Id extends string = ComponentId, Patch = ComponentPatch> = { action: "read" | "close"; component: Id }
+  | { action: "focus"; component: Id; target?: string }
+  | { action: "blur"; component: Id }
   | { action: "patch"; component: Id; patch: Patch }
   | { action: "open"; component: Id; patch?: Patch };
 export type ComponentEnvelope<Id extends string = ComponentId, Patch = ComponentPatch> = { action: "component"; request: ComponentRequest<Id, Patch> };
@@ -19,6 +22,8 @@ export function componentClient<Id extends string = ComponentId, Patch = Compone
     read: (component: Id) => call<ComponentSnapshot<Id, State>>({ action: "component", request: { action: "read", component } }),
     patch: (component: Id, patch: Patch) => call<ComponentSnapshot<Id, State>>({ action: "component", request: { action: "patch", component, patch } }),
     open: (component: Id, patch?: Patch) => call<ComponentSnapshot<Id, State>>({ action: "component", request: { action: "open", component, ...(patch ? { patch } : {}) } }),
+    focus: (component: Id, target = "component") => call<ComponentFocus<Id>>({ action: "component", request: { action: "focus", component, target } }),
+    blur: (component: Id) => call<ComponentFocus<Id>>({ action: "component", request: { action: "blur", component } }),
     close: (component: Id) => call<null>({ action: "component", request: { action: "close", component } }),
   };
 }

@@ -16,7 +16,7 @@ test("组件 SDK 使用桌面通道，工具打开并更新只返回简短摘要
     const envelope = JSON.parse(bytes.toString());
     assert.equal(envelope.token, "test-only");
     requests.push(envelope.request);
-    socket.end(JSON.stringify({ result: envelope.request.request.action === "close" ? null : snapshot }) + "\n");
+    socket.end(JSON.stringify({ result: envelope.request.request.action === "close" ? null : ["focus", "blur"].includes(envelope.request.request.action) ? { component: "resources", revision: 4, target: envelope.request.request.action === "focus" ? "files" : null } : snapshot }) + "\n");
   }));
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   try {
@@ -30,11 +30,16 @@ test("组件 SDK 使用桌面通道，工具打开并更新只返回简短摘要
     assert.ok(!JSON.stringify(result).includes('"files"'));
     assert.deepEqual(await client.read("resources"), snapshot);
     assert.deepEqual(await client.patch("resources", { view: "文件" }), snapshot);
+    const focused = await tool.execute("focus", { action: "focus", component: "resources", target: "files" }, undefined, undefined, {} as never);
+    assert.deepEqual(focused.details, { component: "resources", action: "focus", revision: 4, target: "files" });
+    assert.deepEqual(await client.blur("resources"), { component: "resources", revision: 4, target: null });
     await client.close("resources");
     assert.deepEqual(requests, [
       { action: "component", request: { action: "open", component: "resources", patch: { view: "结果" } } },
       { action: "component", request: { action: "read", component: "resources" } },
       { action: "component", request: { action: "patch", component: "resources", patch: { view: "文件" } } },
+      { action: "component", request: { action: "focus", component: "resources", target: "files" } },
+      { action: "component", request: { action: "blur", component: "resources" } },
       { action: "component", request: { action: "close", component: "resources" } },
     ]);
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
@@ -49,7 +54,9 @@ test("组件工具在取消和非法请求时不调用桌面，未连接时不�
   for (const args of [
     { action: "patch", component: "writing" },
     { action: "read", component: "writing", patch: {} },
+    { action: "focus", component: "writing", patch: {} },
   ]) await assert.rejects(tool.execute("invalid", args, undefined, undefined, {} as never), /patch 字段/);
+  await assert.rejects(tool.execute("invalid", { action: "read", component: "writing", target: "body" }, undefined, undefined, {} as never), /target 字段/);
   await assert.rejects(tool.execute("cancelled", { action: "open", component: "resources" }, AbortSignal.abort(), undefined, {} as never), /取消/);
   assert.throws(() => validateToolArguments(tool, { type: "toolCall", id: "invalid", name: tool.name, arguments: { action: "eval", component: "unknown" } }));
   assert.equal(called, false);
