@@ -30,6 +30,7 @@ export interface TaskState {
   source: "task" | "legacy" | "history";
   mode?: "development" | "research";
   autonomy?: {
+    component?: import("./researchComponent").ResearchComponentSnapshot;
     phase: "OBSERVING" | "PLANNING" | "EXECUTING" | "WAITING" | "REFLECTING" | "PAUSED" | "COMPLETED" | "FAILED";
     goal: string; reason: string; cycle: number; maxCycles: number; jobId?: string; approvalId?: string;
     decision?: ResearchDecisionState;

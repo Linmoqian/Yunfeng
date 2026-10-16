@@ -56,6 +56,7 @@
 | autonomy.plan | object | 否 | decision、reason、steps、success_condition、observe_paths | 最近计划；观察文件最多 8 个 |
 | autonomy.jobId、approvalId | string | 否 | 活跃时提供 | 作业或待授权请求 |
 | autonomy.result、lastResult | object | 否 | job_id、status、output、evaluation、completedAt | 当前待反思或上一作业结果 |
+| autonomy.component | object | 否 | component=research、revision、state、可选 result | execute 发布的任务专属科研展示快照，见下文 |
 | autonomy.learning | object | 否 | summary、knowledge_update、next_question | 最近候选学习；最多 8 条知识更新 |
 | autonomy.permissions | object | 是 | 同请求清单 | 当前执行范围 |
 | autonomy.decision | object | 新任务是；旧任务规划后是 | mission、nodes、horizon、selectedId、budget、reason | 持久化目标树及决策依据 |
@@ -77,6 +78,31 @@
 计划、决策评分与作业原始输出属于 `role=tool` 的过程记录，对话默认过滤。`role=assistant` 仅播报实际实验结论、失败后的处理事项与一次最终验收通知；无副作用的中间核验不追加反思消息。反思与下一问题仍写入检查点和候选记忆。用户消息保留。历史快照将旧助手角色的固定过程前缀映射为 tool，不改写原事件；客户端过滤旧 SSE 补发的对应前缀、历史自动追问、连续同文结论和紧接实验结论的完成流程复述。运行卡显示简短阶段进展，内部依据和目录在详情中查看；失败、人工问题与具体计划授权保持可见。
 
 `trigger.signals` 每项包含 hook、reason、event。event 有 id、occurredAt，以及 kind：lifecycle（action=started/resumed/recovered）、files_changed（最多八个项目内 paths）、job_completed（jobId、status）、approval_granted（requestId）。这些事件来自受信任的本地适配器；没有新增 HTTP 事件注入接口。Hook 筛选通知，Context Builder 重读真实状态，Decision Layer 判断是否值得行动。具体模块见 [Hook 说明](../../server/src/research/hooks/README.md)。
+
+## 科研组件更新
+
+Pi 计划可加入 `{"action":"update_component","component":"research","patch":{...}}`。沿用原有 execute 作业、授权、取消和顺序执行机制；该步骤计入每计划最多八步。组件身份由 Runtime 绑定当前任务和作业，Agent 不能指定其他 taskId、jobId、验收结果或 revision。
+
+| patch 字段 | 类型 | 必填 | 约束与含义 |
+| --- | --- | --- | --- |
+| source | string | 是 | 项目内 JSON 报告相对路径，≤500 字符；普通文件≤64 KiB，沿用敏感路径与符号链接校验 |
+| progress | object | 否 | `{label,current,total?,unit?}`；current/total 是报告字段路径，读取有限数值；current≥0，total>0 且 current≤total |
+| metrics | array | 否 | 1–6 项 `{label,key,unit?}`，key 读取有限数值；保留原单位和值，百分数不自动乘 100 |
+| conclusion | object | 否 | `{summary,details?}`，均为报告文本字段路径；读出的 summary 非空≤500 字符、details 非空≤8000 字符；限制与待办应放在 summary 中保持可见 |
+
+至少提供 progress、metrics、conclusion 中一项。字段路径使用点号，最多200字符，拒绝原型字段；label 最多40字符，unit 最多16字符，文本不得含 NUL。未知字段、数值字符串、直接填写的指标数值和非法进度均原子拒绝。报告应由授权的真实实验生成，组件步骤只读取数据；文件来源可核对，不构成对实验方法或科学结论的独立验证。
+
+一次更新发布 source 中的一份展示快照；省略项在新快照中为空，不拼接旧报告。相同作业、相同数据重复提交不递增版本。返回的 `autonomy.component` 为 `{component:"research",revision,state:{jobId,source,updatedAt,progress?,metrics,conclusion?},result?}`；revision 从1递增，updatedAt 为读取报告的时间。`result` 仅由 Runtime 附加对应作业的真实结果，完成时版本再次递增；后续整体目标核验不会覆盖该实验的节点验收。前端以任务 SSE 快照更新，进度与指标为轻量胶囊，结论摘要保持可见，报告来源、详细过程和作业输出默认折叠。
+
+示例（字段必须已存在于实际报告中）：
+
+```json
+{"action":"update_component","component":"research","patch":{"source":".lin/experiments/report.json","progress":{"label":"实验","current":"done","total":"total"},"metrics":[{"label":"体积减小","key":"reduction","unit":"%"}],"conclusion":{"summary":"summary","details":"details"}}}
+```
+
+该步骤可在一次实验命令完成后发布，也可在多个授权阶段之间发布进度；当前不会在长命令运行中自动扫描报告，不引入模型轮询。执行时缺失报告、字段校验失败或组件未绑定作业会使作业失败，已完成的前序实验副作用保留，展示快照不被无效数据替换。失败、中断与未通过状态保持可见；已有组件结论时省略同一作业的重复助手结论，内部反思和记忆继续保存。
+
+组件快照与所属任务检查点一同持久化；暂停、继续、重连和重启读取原快照，不重放组件步骤或实验命令。服务重启时未知作业的对应展示标记为中断。组件只读项目报告，不要求扩大命令或文件写入权限，计划内其他动作仍逐项授权。没有新 HTTP 更新端点、Tauri 权限、依赖或跨任务共享存储。
 
 ## 错误码
 
@@ -173,3 +199,6 @@ Pi plan 示例（验收当前选中的节点）：
 | 2026-10-15 | 0.1.0 | 修复 | 科研任务项目目录识别与模型失败诊断 | 无字段变更；错误原因仅公开固定诊断与状态码 |
 | 2026-10-15 | 0.1.0 | 修复 | 项目环境配置、模型结构纠正与滚动节点身份 | 无持久化字段变更；显式任务模型继续优先 |
 | 2026-10-15 | 0.1.0 | 修复 | 科研过程消息按工具记录过滤，反思面向用户 | 沿用已有消息角色；历史事件不改写，兼容旧快照与补发 |
+| 2026-10-16 | 0.1.0 | 兼容扩展 | execute 发布任务专属科研组件，展示报告进度、指标和结论 | 新增可选 autonomy.component 与计划步骤；旧检查点无需迁移 |
+
+2026-10-16 验证：Server 构建与前端 TypeScript 通过，18 项服务端核心测试和 5 项 React 核心测试通过。macOS 开发应用中，真实 Pi 按 execute 计划发布基线报告（实验 1/2），暂停并重启后快照保留；继续后执行一次优化并发布实验 2/2，压缩体积从 8686 降至 7736 字节（减少 10.94%），解压一致且 completed==1。日志仅有 baseline、optimize 各一次，最终结论由胶囊与报告摘要展示，对话未重复输出同轮反思。原生展开详情、Enter 收起通过；重载时仍存在既有 HTTP 502，需要一次手动重连。其他桌面平台和长命令内的实时报告刷新尚未验收。

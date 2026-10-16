@@ -1,5 +1,5 @@
 /* 四阶段核心：真实观察、目标树选点与 Pi 规划、受控作业、候选知识沉淀。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import type { TaskState } from "../task/types.js";
@@ -14,6 +14,7 @@ import type { JobExecutor } from "./executor.js";
 import { createDecision, decide } from "./decision/engine.js";
 import { parseProposal } from "./decision/proposal.js";
 import type { DecisionState } from "./decision/types.js";
+import type { ResearchPatch } from "./components.js";
 
 export async function planAuthorized(task: TaskState, plan: Plan): Promise<boolean> {
   const config = task.autonomy!;
@@ -23,7 +24,8 @@ export async function planAuthorized(task: TaskState, plan: Plan): Promise<boole
       const target = await projectPath(task.cwd, step.path);
       const roots = await Promise.all(config.permissions.writeRoots.map((root) => projectPath(task.cwd, root)));
       if (!roots.some((root) => { const rel = relative(root, target); return rel && !rel.startsWith("..") && !rel.startsWith("/"); })) allowed = false;
-    } else if (!config.permissions.commands.some((cmd) => cmd.program === step.program && JSON.stringify(cmd.args) === JSON.stringify(step.args))) allowed = false;
+    } else if (step.action === "update_component") await projectPath(task.cwd, step.patch.source);
+    else if (!config.permissions.commands.some((cmd) => cmd.program === step.program && JSON.stringify(cmd.args) === JSON.stringify(step.args))) allowed = false;
   }
   return allowed || config.authorizedPlan === JSON.stringify(plan);
 }
@@ -32,7 +34,8 @@ export class ProjectCore implements AgentCore {
   decision?: DecisionState;
   constructor(private readonly task: () => TaskState, private readonly reason: Reasoner, private readonly memory: MemoryService,
     private readonly jobs: JobExecutor, private readonly signal: AbortSignal, private readonly completed: (result: Result) => Promise<void>,
-    private readonly strategy: Reasoner = reason) {}
+    private readonly strategy: Reasoner = reason,
+    private readonly updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>) {}
   async observe(): Promise<State> {
     const task = this.task();
     return buildContext(task, this.memory.retrieve({ projectKey: task.cwd, limit: 8 }));
@@ -66,7 +69,7 @@ export class ProjectCore implements AgentCore {
     const task = this.task();
     if (!await planAuthorized(task, plan)) throw new Error("实验计划尚未授权");
     this.signal.throwIfAborted();
-    return this.jobs.start(task.autonomy!.jobId!, task.cwd, plan, this.completed);
+    return this.jobs.start(task.autonomy!.jobId!, task.cwd, plan, this.completed, this.updateComponent);
   }
   async reflect(result: Result) {
     const task = this.task();

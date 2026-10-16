@@ -1,11 +1,12 @@
 /* 科研自治核心契约与可恢复检查点。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 export interface Fact { key: string; value: unknown; timestamp: string; source: string }
 export interface State { facts: Fact[]; events: unknown[]; constraints: string[]; memory: unknown[] }
 export type Step = { action: "write_file"; path: string; content: string }
-  | { action: "run_command"; program: string; args: string[] };
+  | { action: "run_command"; program: string; args: string[] }
+  | { action: "update_component"; component: "research"; patch: import("./components.js").ResearchPatch };
 export type Condition = { kind: "file_exists"; path: string }
   | { kind: "metric"; path: string; key: string; operator: ">" | ">=" | "<" | "<=" | "=="; value: number };
 export interface Plan {
@@ -52,6 +53,7 @@ export interface ResearchCheckpoint {
   lastResult?: Result;
   learning?: Learning;
   jobId?: string;
+  component?: import("./components.js").ResearchSnapshot;
   approvalId?: string;
   authorizedPlan?: string;
   decision?: import("./decision/types.js").DecisionState;

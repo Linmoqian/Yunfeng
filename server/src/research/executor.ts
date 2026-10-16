@@ -1,5 +1,5 @@
 /* 有界实验作业执行器：无 shell，完成事件、超时与退出回收。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import { spawn } from "node:child_process";
@@ -8,6 +8,7 @@ import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { projectPath, evaluate } from "./project.js";
 import type { Plan, Result, Step } from "./types.js";
+import type { ResearchPatch } from "./components.js";
 
 function runCommand(step: Extract<Step, { action: "run_command" }>, cwd: string, signal: AbortSignal): Promise<string> {
   signal.throwIfAborted();
@@ -41,7 +42,7 @@ function runCommand(step: Extract<Step, { action: "run_command" }>, cwd: string,
 export class JobExecutor {
   private readonly jobs = new Map<string, { controller: AbortController; done: Promise<void> }>();
   private closed = false;
-  start(id: string, cwd: string, plan: Plan, completed: (result: Result) => Promise<void>): Result {
+  start(id: string, cwd: string, plan: Plan, completed: (result: Result) => Promise<void>, updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>): Result {
     if (this.closed || this.jobs.size >= 4 || this.jobs.has(id)) throw new Error("实验作业容量已满或作业重复");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30 * 60_000);
@@ -53,7 +54,11 @@ export class JobExecutor {
         for (const step of plan.steps) {
           controller.signal.throwIfAborted();
           if (step.action === "run_command") output = (output + await runCommand(step, cwd, controller.signal)).slice(-65536);
-          else {
+          else if (step.action === "update_component") {
+            if (!updateComponent) throw new Error("科研组件未连接当前作业");
+            await updateComponent(step.patch, controller.signal);
+            output = (output + `\n已更新科研组件：${step.patch.source}`).slice(-65536);
+          } else {
             const target = await projectPath(cwd, step.path);
             await mkdir(dirname(target), { recursive: true });
             await projectPath(cwd, step.path);

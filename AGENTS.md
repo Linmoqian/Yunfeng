@@ -122,3 +122,5 @@ npm create tauri-app@latest
 ## Agent 与程序自动化
 
 优先复用应用已有自动化接口，让 Agent 或程序通过少量、直观的调用更新权威状态、触发现有组件渲染及操作组件。保持 API 简约、易调用，沿用现有权限与校验；新增组件能力同步维护调用类型、核心测试与接口文档。组件交互入口见 [组件 API](docs/api/2026-10-14-component-sharing.md)：开发 Agent 使用 `app_component`，受信程序使用 `server/src/agent/component-client.ts`。
+
+科研 Agent 通过 execute 的 `update_component` 步骤发布当前任务的报告进度、指标和结论，见[科研组件更新](docs/api/2026-10-15-research-runtime.md#科研组件更新)。字段从真实项目报告读取，验收由 Runtime 附加；展示快照沿用既有 TaskStore 与 SSE，不建立独立科研状态源。

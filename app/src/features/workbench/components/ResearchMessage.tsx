@@ -46,7 +46,8 @@ export function ResearchMessage({ text }: { text: string }) {
   </section>;
 }
 
-type Step = { action: "write_file"; path: string; content: string } | { action: "run_command"; program: string; args: string[] };
+type Step = { action: "write_file"; path: string; content: string } | { action: "run_command"; program: string; args: string[] }
+  | { action: "update_component"; component: "research"; patch: { source: string } };
 type Condition = { kind: "file_exists"; path: string } | { kind: "metric"; path: string; key: string; operator: string; value: number };
 
 function parseApproval(message: string): { reason: string; steps: Step[]; condition: Condition } | null {
@@ -56,6 +57,7 @@ function parseApproval(message: string): { reason: string; steps: Step[]; condit
     const data = JSON.parse(message.slice(start + 2));
     if (!Array.isArray(data.steps) || !data.steps.every((s: Step) => s && (s.action === "write_file"
       ? typeof s.path === "string" && typeof s.content === "string"
+      : s.action === "update_component" ? s.component === "research" && typeof s.patch?.source === "string"
       : s.action === "run_command" && typeof s.program === "string" && Array.isArray(s.args) && s.args.every((arg) => typeof arg === "string")))) return null;
     const c = data.success_condition;
     if (!c || typeof c.path !== "string" || !(c.kind === "file_exists" || (c.kind === "metric" && typeof c.key === "string" && [">", ">=", "<", "<=", "=="].includes(c.operator) && typeof c.value === "number"))) return null;
@@ -73,6 +75,7 @@ export function ResearchApprovalPlan({ message }: { message: string }) {
     <div className={styles.body}><Markdown text={plan.reason} /></div>
     <ol className={styles.steps}>{plan.steps.map((step, index) => <li key={index}>{step.action === "write_file"
       ? <><span>写入 <code>{step.path}</code></span><pre>{step.content}</pre></>
+      : step.action === "update_component" ? <><span>更新科研组件</span><pre>{JSON.stringify(step.patch, null, 2)}</pre></>
       : <><span>运行</span><pre>{[step.program, ...step.args.map((arg) => JSON.stringify(arg))].join(" ")}</pre></>}
     </li>)}</ol>
     <div className={styles.acceptance}><span>验收</span><code>{c.kind === "file_exists" ? `${c.path} 存在` : `${c.path} · ${c.key} ${c.operator} ${c.value}`}</code></div>

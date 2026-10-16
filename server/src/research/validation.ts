@@ -1,18 +1,17 @@
 /* 校验模型提交的计划和反思，未知形状不会进入执行器。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import type { Condition, Learning, Plan, Step } from "./types.js";
-export function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("需要结构化对象");
-  return value as Record<string, unknown>;
-}
-export function text(value: unknown, max = 4000): string {
-  if (typeof value !== "string" || !value.trim() || value.length > max || value.includes("\0")) throw new Error("文本字段无效或过长");
-  return value;
-}
+import { parseResearchPatch } from "./components.js";
+import { record, text } from "./values.js";
+export { record, text } from "./values.js";
 export function step(value: unknown): Step {
   const item = record(value);
+  if (item.action === "update_component") {
+    if (item.component !== "research" || Object.keys(item).some((key) => !["action", "component", "patch"].includes(key))) throw new Error("仅允许更新当前科研组件");
+    return { action: "update_component", component: "research", patch: parseResearchPatch(item.patch) };
+  }
   if (item.action === "write_file") {
     if (typeof item.content !== "string") throw new Error("write_file.content 必须是文本字符串，JSON 对象须先序列化");
     if (Buffer.byteLength(item.content, "utf8") > 65536) throw new Error("文件内容超过 64 KiB 限制");
@@ -21,7 +20,7 @@ export function step(value: unknown): Step {
   if (item.action === "run_command" && Array.isArray(item.args) && item.args.length <= 32 && item.args.every((arg) => typeof arg === "string" && arg.length <= 2000 && !arg.includes("\0"))) {
     return { action: "run_command", program: text(item.program, 500), args: item.args as string[] };
   }
-  throw new Error("计划只支持受控文件写入和无 shell 的命令执行");
+  throw new Error("计划只支持受控文件写入、无 shell 命令和科研组件更新");
 }
 export function condition(value: unknown): Condition {
   const item = record(value);

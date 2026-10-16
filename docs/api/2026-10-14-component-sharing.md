@@ -91,7 +91,9 @@ URL、窗口标签和配置由 Rust 固定，不允许调用方提供远程页�
 
 ### Agent 与程序入口
 
-开发会话注册单个 `app_component` 工具，参数为 `component`、`action` 和按需 `patch`。沿用当前会话的工具启用规则；空工具列表仍禁用全部工具。科研决策节点保持只读与计划职责，当前不注册此工具，后续渲染能力应从受控 execute 接入。
+开发会话注册单个 `app_component` 工具，参数为 `component`、`action` 和按需 `patch`。沿用当前会话的工具启用规则；空工具列表仍禁用全部工具。科研决策节点不直接调用工具，通过受控 execute 的 `update_component` 步骤更新当前任务的 `research` 组件，见[科研 Runtime API](2026-10-15-research-runtime.md#科研组件更新)。
+
+组件调用器 `componentClient` 复用 read/patch/open/close 的调用形状和快照契约，支持适配不同事实来源。桌面 `writing`、`resources` 仍由 Rust 管理；任务专属的 `research` 由既有 TaskStore 检查点管理，随 task_updated 同步，不建立全局科研状态。科研适配器只实现 read/patch，不提供独立窗口，也不向桌面通道注册 research ID。程序更新科研展示需提交受控科研计划，不能借开发工具绕过 execute。
 
 | 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -152,6 +154,7 @@ await components.close("resources");
 | 日期 | 版本 | 变更类型 | 内容 | 迁移说明 |
 | --- | --- | --- | --- | --- |
 | 2026-10-16 | 0.1.0 | 兼容扩展 | 复用私有通道提供 app_component 与程序 SDK | 原 IPC 与前端 SDK 不变 |
+| 2026-10-16 | 0.1.0 | 兼容扩展 | 科研 execute 复用组件调用器与快照契约 | 研究报告绑定当前任务；原桌面组件契约不变 |
 | 2026-10-14 | 0.1.0 | 新增 | 文稿与资源状态、独立窗口、SDK | 文稿从标签局部状态改为进程内状态 |
 | 2026-10-14 | 0.1.0 | 兼容 | 文稿保存到 SQLite，read/patch 改为异步 | IPC 名称与字段不变；资源清单不持久化 |
 | 2026-10-15 | 0.1.0 | 兼容扩展 | 四工具文稿、文献和摘录，输入合并 700 ms 保存 | 旧快照直接读取，name/body 保留 |

@@ -1,5 +1,5 @@
 /* 科研任务编排：复用 TaskStore、审批和 SSE，管理停止、恢复与文件事件。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import { randomUUID } from "node:crypto";
@@ -17,6 +17,7 @@ import { HookLayer } from "./hooks/layer.js";
 import { FileHooks } from "./hooks/files.js";
 import { researchEvent } from "./hooks/types.js";
 import { researchMessageRole } from "./messages.js";
+import { researchComponents, settleResearchComponent } from "./components.js";
 import type { Plan } from "./types.js";
 import type { TaskCommand, TaskModelRef, TaskState } from "../task/types.js";
 
@@ -77,7 +78,20 @@ export class ResearchService {
     });
     const core = new ProjectCore(() => this.context.store.get(id)!, this.reasoner(task.cwd, task.model), this.memory, this.jobs, controller.signal, async (result) => {
       if (await runtime.receive(result)) hooks.publish(researchEvent({ kind: "job_completed", jobId: result.job_id, status: result.status }));
-    }, this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model));
+    }, this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model), async (patch, signal) => {
+      const jobId = task.autonomy!.jobId!;
+      const components = researchComponents(task.cwd, jobId, () => task.autonomy!.component, async (view) => {
+        signal.throwIfAborted(); controller.signal.throwIfAborted();
+        if (task.autonomy!.jobId !== jobId) throw new Error("科研组件作业已失效");
+        const previous = task.autonomy!.component;
+        if (previous && JSON.stringify({ ...previous.state, updatedAt: undefined }) === JSON.stringify({ ...view, updatedAt: undefined })) return previous;
+        const snapshot = { component: "research" as const, revision: (previous?.revision ?? 0) + 1, state: view };
+        this.context.store.update(id, (s) => { s.autonomy!.component = snapshot; });
+        await this.context.hub.emit(id, "task_updated", publicResearchTask(task));
+        return snapshot;
+      }, signal);
+      await components.patch("research", patch);
+    });
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {
@@ -159,7 +173,7 @@ export class ResearchService {
     await stopping;
     await fileStopping;
     if (task.autonomy?.jobId && !task.autonomy.result) {
-      this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; });
+      this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; settleResearchComponent(s.autonomy!.component, s.autonomy!.result); });
     }
     this.instances.delete(id);
   }
@@ -173,7 +187,7 @@ export class ResearchService {
     for (const task of this.context.store.findAll().filter((s) => s.mode === "research" && s.autonomy?.schemaVersion === 1)) {
       const state = task.autonomy!;
       if (state.jobId && !state.result) {
-        this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; });
+        this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; settleResearchComponent(s.autonomy!.component, s.autonomy!.result); s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; });
       } else if (state.approvalId) {
         this.context.store.update(task.id, (s) => { delete s.autonomy!.approvalId; delete s.autonomy!.authorizedPlan; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "重启后授权已失效"; });
       } else if (!["PAUSED", "FAILED", "COMPLETED"].includes(state.phase) && task.status !== "archived") this.start(task.id, "recovered");

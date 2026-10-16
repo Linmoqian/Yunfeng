@@ -21,6 +21,7 @@ import { parsePlan } from "../src/research/validation.js";
 import type { Reasoner } from "../src/research/reasoner.js";
 import type { Condition, Plan, ResearchPhase, Result } from "../src/research/types.js";
 import type { TaskState } from "../src/task/types.js";
+import { researchComponents, type ResearchPatch, type ResearchSnapshot } from "../src/research/components.js";
 
 const condition = { kind: "metric" as const, path: ".lin/experiments/metrics.json", key: "accuracy", operator: ">=" as const, value: 0.93 };
 const learning = { summary: "指标已通过实测条件，原因仍需后续实验验证", knowledge_update: [{ key: "accuracy", value: "本轮观测到 0.934" }], next_question: "独立数据是否可复现？" };
@@ -47,6 +48,72 @@ async function fixture(reasoner: Reasoner, missionCondition: Condition = conditi
   });
   return { root, cwd, context, memory, service, phase, selectedModels, close: async () => { await service.close(); await rm(root, { recursive: true, force: true }); } };
 }
+
+test("execute 读取真实报告发布科研组件，完成与暂停恢复保留验收且不重复播报结论", { timeout: 10000 }, async () => {
+  const patch: ResearchPatch = { source: condition.path, progress: { label: "实验", current: "done", total: "total" }, metrics: [{ label: "准确率", key: "accuracy" }], conclusion: { summary: "summary", details: "details" } };
+  const report = { accuracy: 0.934, done: 2, total: 2, summary: "本轮达到目标，泛化能力仍待验证。", details: "本机真实命令产物" };
+  const program = process.execPath;
+  const args = ["-e", `require('node:fs').writeFileSync('${condition.path}', ${JSON.stringify(JSON.stringify(report))})`];
+  let plans = 0;
+  const ctx = await fixture(async (phase) => {
+    if (phase === "reflect") return learning;
+    plans += 1;
+    return { decision: "act", reason: "运行后发布报告", steps: [{ action: "run_command", program, args }, { action: "update_component", component: "research", patch }, { action: "update_component", component: "research", patch }], success_condition: condition };
+  });
+  try {
+    const completed = ctx.phase("COMPLETED");
+    const task = await ctx.service.create(ctx.cwd, "核验并展示实验", undefined, { permissions: { commands: [{ program, args }] } });
+    await completed;
+    const snapshot = structuredClone(task.autonomy!.component!);
+    assert.equal(snapshot.revision, 2); // 相同报告只发布一次，实际验收再递增一次。
+    assert.equal(snapshot.state.progress!.current, 2);
+    assert.equal(snapshot.state.metrics[0]!.value, report.accuracy);
+    assert.equal(snapshot.state.conclusion!.summary, report.summary);
+    assert.equal(snapshot.result!.job_id, snapshot.state.jobId);
+    assert.equal(snapshot.result!.evaluation!.passed, true);
+    assert.notEqual(task.autonomy!.lastResult!.job_id, snapshot.state.jobId);
+    assert.ok(!ctx.service.conversation(task.id).context.messages.some((m) => m!.role === "assistant" && m!.content.startsWith("实验结论：")));
+    assert.equal(task.autonomy!.learning!.summary, learning.summary);
+    const persisted = JSON.parse(await readFile(join(ctx.root, "data/tasks", task.id, "state.json"), "utf8"));
+    assert.deepEqual(persisted.autonomy.component, snapshot);
+    await ctx.service.pause(task.id, "测试暂停");
+    const resumed = ctx.phase("COMPLETED");
+    await ctx.service.resume(task.id); await resumed;
+    assert.equal(plans, 1);
+    assert.deepEqual(task.autonomy!.component, snapshot);
+    const other = await ctx.service.create(ctx.cwd, "另一独立科研任务", undefined, {});
+    assert.equal(other.autonomy!.component, undefined);
+  } finally { await ctx.close(); }
+});
+
+test("科研组件原子拒绝伪造数值、非法报告与身份字段；组件步骤不扩大命令权限", { timeout: 10000 }, async () => {
+  const ctx = await fixture(async () => ({ decision: "wait", reason: "等待", steps: [] }));
+  let snapshot: ResearchSnapshot | undefined;
+  const controller = new AbortController();
+  const patch: ResearchPatch = { source: condition.path, metrics: [{ label: "准确率", key: "accuracy" }] };
+  const client = researchComponents(ctx.cwd, "job-a", () => snapshot, async (state) => snapshot = { component: "research", revision: (snapshot?.revision ?? 0) + 1, state }, controller.signal);
+  try {
+    await writeFile(join(ctx.cwd, condition.path), '{"accuracy":0.934}');
+    await client.patch("research", patch);
+    const before = structuredClone(snapshot);
+    await writeFile(join(ctx.cwd, condition.path), '{"accuracy":"0.99"}');
+    await assert.rejects(client.patch("research", patch), /有限数值/);
+    await assert.rejects(client.patch("research", { ...patch, source: "../outside.json" }), /越界/);
+    await assert.rejects(client.patch("research", { ...patch, source: ".env" }), /敏感/);
+    await assert.rejects(client.patch("research", { ...patch, taskId: "other" } as ResearchPatch), /未知字段/);
+    await assert.rejects(client.patch("research", { ...patch, evaluation: { passed: true } } as ResearchPatch), /未知字段/);
+    await assert.rejects(client.patch("research", { source: condition.path, metrics: [{ label: "伪造", key: 0.99 }] } as unknown as ResearchPatch), /文本字段/);
+    await assert.rejects(client.open("research"), /仅支持/);
+    assert.deepEqual(snapshot, before);
+    const task = await ctx.service.create(ctx.cwd, "权限验证", undefined, {});
+    const step = { action: "update_component" as const, component: "research" as const, patch };
+    assert.equal(await planAuthorized(task, { decision: "act", reason: "展示", steps: [step], success_condition: condition }), true);
+    assert.equal(await planAuthorized(task, { decision: "act", reason: "未授权命令", steps: [step, { action: "run_command", program: "node", args: ["unknown.mjs"] }], success_condition: condition }), false);
+    controller.abort();
+    await assert.rejects(client.patch("research", patch), /aborted/);
+    assert.deepEqual(snapshot, before);
+  } finally { await ctx.close(); }
+});
 
 test("真实实验完成事件驱动反思、候选记忆和下一轮实测验收", { timeout: 10000 }, async () => {
   let decisions = 0;
@@ -172,15 +239,19 @@ test("重启后未知作业暂停，继续时反思中断结果而不重放命�
   });
   try {
     const state = ctx.context.store.create({ sessionId: "research-restart", cwd: ctx.cwd, title: "恢复", source: "task" });
-    ctx.context.store.update(state.id, (s) => { s.mode = "research"; s.autonomy = { schemaVersion: 1, goal: "恢复实验", phase: "WAITING", cycle: 1, maxCycles: 20, reason: "执行中", jobId: "old-job", permissions: { commands: [], writeRoots: [".lin/experiments"] } }; });
+    ctx.context.store.update(state.id, (s) => { s.mode = "research"; s.autonomy = { schemaVersion: 1, goal: "恢复实验", phase: "WAITING", cycle: 1, maxCycles: 20, reason: "执行中", jobId: "old-job", permissions: { commands: [], writeRoots: [".lin/experiments"] }, component: { component: "research", revision: 1, state: { jobId: "old-job", source: "report.json", updatedAt: "2026-10-16T00:00:00Z", metrics: [{ label: "进度", value: 1 }] } } }; });
     ctx.service.recover();
     assert.equal(state.autonomy?.phase, "PAUSED");
     assert.equal(state.autonomy?.result?.status, "interrupted");
+    assert.equal(state.autonomy?.component?.result?.status, "interrupted");
+    assert.equal(state.autonomy?.component?.revision, 2);
     const waiting = ctx.phase("WAITING");
     await ctx.service.command(state.id, { type: "retry" });
     await waiting;
     assert.equal(reflections, 1);
     assert.equal(state.autonomy?.jobId, undefined);
+    assert.equal(state.autonomy?.component?.state.metrics[0]!.value, 1);
+    assert.equal(state.autonomy?.component?.result?.status, "interrupted");
   } finally { await ctx.close(); }
 });
 

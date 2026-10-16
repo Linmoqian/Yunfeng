@@ -21,3 +21,6 @@
 .acceptance { display: flex; flex-wrap: wrap; gap: 6px 10px; padding-top: 10px; border-top: 1px solid var(--yf-border-divider); font-size: 12px; overflow-wrap: anywhere; }
 .acceptance > span { align-self: flex-start; padding: 1px 7px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-secondary); }
 .acceptance code { -webkit-user-select: text; user-select: text; }
+.reportText { white-space: pre-wrap; }
+.reportDetails { max-height: min(300px, 30vh); overflow: auto; }
+.reportOutput { margin: 8px 0 0; max-height: 260px; overflow: auto; white-space: pre-wrap; font: 12px/1.7 var(--font-mono); }

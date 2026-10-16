@@ -1,5 +1,5 @@
 /* 科研任务阶段与暂停恢复控制，以服务端检查点为准。
- * Created on 2026-10-15
+ * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { Ellipsis, Pause, Play } from "lucide-react";
 import { sendTaskCommand, type TaskState } from "../../../services/taskService";
 import { researchProgress } from "../researchPresentation";
 import { ProgressCapsule } from "./ProgressCapsule";
+import { ResearchReport } from "./ResearchReport";
 import styles from "./ResearchRuntimeCard.module.css";
 const labels = { OBSERVING: "查看进展", PLANNING: "分析中", EXECUTING: "实验中", WAITING: "等待中", REFLECTING: "整理结果", PAUSED: "已暂停", COMPLETED: "已完成", FAILED: "需要处理" };
 export function ResearchRuntimeCard({ task }: { task: TaskState }) {
@@ -30,7 +31,8 @@ export function ResearchRuntimeCard({ task }: { task: TaskState }) {
         <Button type="text" size="small" aria-label="运行详情" title="运行详情" icon={<Ellipsis size={16} />} />
       </Popover>
     </div>
-    {nodes.length > 0 && <div className={styles.progress}><ProgressCapsule label="任务节点" current={nodes.filter((node) => node.status === "succeeded").length} total={nodes.length} title="当前目标树中已验收的任务节点；任务树调整时总数会变化" /></div>}
+    {nodes.length > 0 && !state.component?.state.progress && <div className={styles.progress}><ProgressCapsule label="任务节点" current={nodes.filter((node) => node.status === "succeeded").length} total={nodes.length} title="当前目标树中已验收的任务节点；任务树调整时总数会变化" /></div>}
+    {state.component && <div className={styles.report}><ResearchReport key={state.component.state.jobId} snapshot={state.component} /></div>}
     {(paused || state.approvalId) && <p aria-live="polite">{researchProgress(state)}</p>}
     {error && <p role="alert">{error}</p>}
   </aside>;
