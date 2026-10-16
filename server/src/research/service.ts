@@ -95,6 +95,8 @@ export class ResearchService {
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {
+        const previousResult = this.context.store.get(id)!.autonomy!.result;
+        const previousJob = this.context.store.get(id)!.autonomy!.jobId;
         this.context.store.update(id, (s) => {
           change(s.autonomy!);
           const phase = s.autonomy!.phase;
@@ -102,6 +104,9 @@ export class ResearchService {
           s.phase = phase === "COMPLETED" ? "done" : phase === "REFLECTING" ? "verifying" : phase === "PLANNING" ? "planning" : "implementing";
           s.currentAction = `${phaseLabels[phase]}：${s.autonomy!.reason}`;
         });
+        const current = this.context.store.get(id)!.autonomy!;
+        if (current.phase === "EXECUTING" && current.jobId !== previousJob) await this.context.runtime.beginChanges(id);
+        if ((previousJob && !current.jobId) || (current.result && current.result !== previousResult && current.result.status !== "running")) await this.context.runtime.finishChanges(id);
         await this.context.hub.emit(id, "task_updated", publicResearchTask(this.context.store.get(id)!));
       },
       message: (value) => this.message(id, value),

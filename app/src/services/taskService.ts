@@ -1,6 +1,6 @@
 // 任务领域 API 客户端：/api/tasks 系列 + 兼容旧 /api/sessions 浏览。
 // 工作台以服务端真实任务状态为准，科研模式复用任务接口。
-// Created on 2026-10-15
+// Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 
 export interface TaskModelRef {
@@ -339,6 +339,14 @@ export async function resolveIntervention(
 // ---------------------------------------------------------------------------
 
 export interface TaskGitSummary {
+  round?: {
+    id: string;
+    startedAt: string;
+    completedAt?: string;
+    interrupted?: boolean;
+    root: string;
+    files: Array<{ filePath: string; status: string; additions: number | null; deletions: number | null }>;
+  } | null;
   isGitRepository: boolean;
   repositoryRoot: string | null;
   files: Array<{ filePath: string; status: string }>;

@@ -63,6 +63,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     toolCalls,
     approvals,
     queueRevision,
+    changesRevision,
     setMessageStatus,
     removeApproval,
     beginOptimisticSend,
@@ -230,7 +231,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         </section>
 
         <Composer
-          changes={activeTask ? <ChangeSummary key={activeTask.id} taskId={activeTask.id} revision={`${streamStatus}:${conversation.length}:${toolCalls.length}`} /> : undefined}
+          changes={activeTask ? <ChangeSummary key={activeTask.id} taskId={activeTask.id} revision={`${changesRevision}:${streamStatus}:${conversation.length}:${toolCalls.length}`} /> : undefined}
           queued={activeTask && activeTask.mode !== "research" ? <QueuedMessages key={activeTask.id} taskId={activeTask.id} revision={`${queueRevision}:${streamStatus}`} /> : undefined}
           status={activeTask?.mode === "research" ? <ResearchRuntimeCard task={activeTask} /> : undefined}
           modelLabel={composerModelLabel}

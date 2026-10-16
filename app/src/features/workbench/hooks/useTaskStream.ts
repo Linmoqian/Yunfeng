@@ -1,6 +1,6 @@
 // 任务聚焦面板的事件流 Hook：聚合会话输出、工具调用、审批与任务状态变更。
 // 按服务端消息身份合并快照和增量；Server TaskStore 是任务事实来源。
-// Created on 2026-10-15
+// Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -49,6 +49,7 @@ export interface StreamResult {
   toolCalls: ToolCallInfo[];
   approvals: ApprovalInfo[];
   queueRevision: number;
+  changesRevision: number;
   /** 更新某条消息的发送状态。 */
   setMessageStatus: (id: string, status: NonNullable<ConversationItem["status"]>) => void;
   /** 移除一条待审批。 */
@@ -65,6 +66,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
   const [toolActivity, setToolActivity] = useState<string | null>(null);
   const [toolCalls, setToolCalls] = useState<ToolCallInfo[]>([]);
   const [approvals, setApprovals] = useState<ApprovalInfo[]>([]);
+  const [changesRevision, setChangesRevision] = useState(0);
   const [queueRevision, setQueueRevision] = useState(0);
   const [localTask, setLocalTask] = useState<TaskState | null>(task ?? null);
 
@@ -88,6 +90,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
   }, []);
 
   const handleStreamEvent = useCallback((event: TaskStreamEvent) => {
+    if (event.type === "git_changed") setChangesRevision((value) => value + 1);
     if (event.type === "queue_updated") setQueueRevision((value) => value + 1);
     const currentTask = activeTaskRef.current;
     if (event.type === "task_updated") {
@@ -317,6 +320,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
     toolCalls,
     approvals,
     queueRevision,
+    changesRevision,
     setMessageStatus: (id: string, status: NonNullable<ConversationItem["status"]>) => {
       setConversation((current) => current.map((item) => item.id === id ? { ...item, status } : item));
     },

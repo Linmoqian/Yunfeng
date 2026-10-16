@@ -1,7 +1,7 @@
 // TaskStore：任务领域状态的持久化与事件日志。
 // 保存到全局用户目录 ~/.lin/tasks/<task-id>/ 下。
 // state.json 采用临时文件加原子重命名；events.jsonl 使用任务内递增 seq 支持断线重放。
-// Created on 2026-10-15
+// Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
@@ -201,6 +201,27 @@ export class TaskStore {
     state.updatedAt = this.now();
     this.persist(state);
     return state;
+  }
+
+  /** 本轮变更独立保存，文件正文基线不会进入公开任务快照或 SSE。 */
+  readRoundChanges(taskId: string): import("./round-changes.js").RoundChanges | null {
+    if (!this.get(taskId)) return null;
+    const file = path.join(taskDirPath(this.dataDir, taskId), "round-changes.json");
+    if (!existsSync(file)) return null;
+    const value = JSON.parse(readFileSync(file, "utf8"));
+    if (value === null) return null;
+    if (value.schemaVersion !== 1) throw new Error("不支持的单轮变更记录版本");
+    return value;
+  }
+
+  writeRoundChanges(taskId: string, round: import("./round-changes.js").RoundChanges | null): void {
+    if (!this.get(taskId)) throw new Error("任务不存在");
+    const target = path.join(taskDirPath(this.dataDir, taskId), "round-changes.json");
+    const temp = `${target}.${randomUUID()}.tmp`;
+    try {
+      writeFileSync(temp, JSON.stringify(round), { encoding: "utf8", mode: 0o600 });
+      renameSync(temp, target);
+    } finally { if (existsSync(temp)) unlinkSync(temp); }
   }
 
   /** 返回下一事件 seq（任务内递增，序列读取时自增）。 */

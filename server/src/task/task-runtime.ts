@@ -1,6 +1,9 @@
 // TaskRuntime：把 pi 运行时会话适配到任务领域。
 // 负责状态机、命令执行、事件映射与审批。不直接依赖前端实现。
+// Created on 2026-10-16
+// @author: https://github.com/Linmoqian
 
+import { beginRound, measureRound, roundSummary } from "./round-changes.js";
 import { randomUUID } from "node:crypto";
 import type { AgentSessionWrapper } from "../rpc-manager.js";
 import { getPluginRegistry } from "../plugin/instance.js";
@@ -87,6 +90,7 @@ function summarizeArgs(value: unknown, truncate?: boolean): unknown {
 }
 
 export class TaskRuntime {
+  private readonly changeWork = new Map<string, Promise<unknown>>();
   private readonly store: TaskStore;
   private readonly hub: TaskEventHub;
   private readonly runWrappers = new Map<string, AgentSessionWrapper>();
@@ -99,10 +103,55 @@ export class TaskRuntime {
     this.hub = init.hub;
     // 服务重启：未决 UI 审批全部标记失效，绝不自动放行
     for (const task of this.store.findAll()) {
+      try {
+        const round = this.store.readRoundChanges(task.id);
+        if (round && !round.completedAt) this.store.writeRoundChanges(task.id, { ...round, completedAt: new Date().toISOString(), interrupted: true, baseline: {}, head: "" });
+      } catch (error) { console.error("[yf] 本轮变更记录恢复失败", (error as Error).message); }
       if (task.pendingApprovalIds.length > 0 || this.store.listInterventions(task.id).some((item) => item.status === "pending")) {
         this.invalidateInterventionsForTask(task.id);
       }
     }
+  }
+
+  private changes<T>(id: string, action: () => Promise<T>): Promise<T> {
+    const work = (this.changeWork.get(id) ?? Promise.resolve()).catch(() => {}).then(action);
+    this.changeWork.set(id, work);
+    void work.finally(() => { if (this.changeWork.get(id) === work) this.changeWork.delete(id); }).catch(() => {});
+    return work;
+  }
+
+  /** 必须在本轮副作用前等待基线落盘；失败时隐藏旧轮统计，不阻断 Agent。 */
+  async beginChanges(id: string): Promise<void> {
+    await this.changes(id, async () => {
+      this.store.writeRoundChanges(id, null);
+      try { this.store.writeRoundChanges(id, await beginRound(this.store.get(id)!.cwd)); }
+      catch (error) { console.error("[yf] 本轮变更基线读取失败", (error as Error).message); }
+    });
+    await this.hub.emit(id, "git_changed", { scope: "round" });
+  }
+
+  async finishChanges(id: string): Promise<void> {
+    await this.changes(id, async () => {
+      const round = this.store.readRoundChanges(id);
+      if (round && !round.completedAt) {
+        try { this.store.writeRoundChanges(id, await measureRound(round, true)); }
+        catch (error) {
+          console.error("[yf] 本轮变更统计中断", (error as Error).message);
+          this.store.writeRoundChanges(id, { ...round, completedAt: new Date().toISOString(), interrupted: true, baseline: {}, head: "" });
+        }
+      }
+    });
+    await this.hub.emit(id, "git_changed", { scope: "round" });
+  }
+
+  async readChanges(id: string) {
+    return this.changes(id, async () => {
+      const round = this.store.readRoundChanges(id);
+      if (!round) return null;
+      const measured = await measureRound(round);
+      if (!round.completedAt) this.store.writeRoundChanges(id, measured);
+      return roundSummary(measured);
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -168,6 +217,7 @@ export class TaskRuntime {
     switch (command.type) {
       case "complete": {
         if (state.status === "completed") return { ok: true, already: true };
+        await this.finishChanges(state.id);
         this.transition(state, "completed");
         state.phase = "done";
         state.currentAction = "";
@@ -183,6 +233,7 @@ export class TaskRuntime {
         return { ok: true };
       }
       case "archive": {
+        await this.finishChanges(state.id);
         this.transition(state, "archived");
         await this.hub.emit(taskId, "task_updated", { status: state.status, archived: true });
         return { ok: true };
@@ -192,7 +243,7 @@ export class TaskRuntime {
         try {
           await wrapper.send({ type: "abort" });
         } finally {
-          this.toWaitingInput(state, "abort", "已中止当前运行");
+          await this.toWaitingInput(state, "abort", "已中止当前运行");
         }
         return { ok: true };
       }
@@ -213,7 +264,10 @@ export class TaskRuntime {
 
     switch (command.type) {
       case "prompt": {
+        const continuing = RUNNING_STATUSES.has(state.status);
         this.transition(state, "running");
+        if (!continuing) await this.beginChanges(state.id);
+        else await this.changeWork.get(state.id);
         state.phase = "planning";
         await this.hub.emit(state.id, "task_updated", { status: state.status, phase: state.phase, currentAction: "接收你的指令" });
         // 插件注入：before_agent_start（第一版：聚合返回的 message 拼接到 prompt 文本前）。
@@ -310,6 +364,7 @@ export class TaskRuntime {
 
   private async toWaitingInput(state: TaskState, reason: string, action: string, failed = false): Promise<void> {
     if (state.status === "archived" || state.status === "completed") return;
+    try { await this.finishChanges(state.id); } catch (error) { console.error("[yf] 本轮变更统计失败", (error as Error).message); }
     this.transition(state, failed ? "failed" : "waiting_input");
     state.attentionReason = action;
     await this.hub.emit(state.id, failed ? "run_failed" : "run_settled", { reason, action });
@@ -350,7 +405,8 @@ export class TaskRuntime {
         case "agent_settled": // pi 运行已稳定结束 → 等待输入，不推断完成
           this.toWaitingInput(state, "agent_settled", "本段回答结束，等待继续", false);
           break;
-        case "agent_end": // 兼容：pi 结束只意味着“等待输入”
+        case "agent_end": // 新版 Pi 可能继续重试或排队运行，以 agent_settled 为最终边界。
+          if (typeof event.willRetry === "boolean") break;
           this.toWaitingInput(state, "agent_end", "本段回答结束，等待继续", false);
           break;
         case "prompt_error": {

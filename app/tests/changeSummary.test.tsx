@@ -1,4 +1,4 @@
-/* 变更摘要核心回归：真实 hunk 统计、未知行数与文件作用域提示。
+/* 单轮摘要回归：服务端行数、历史隔离、完整总计及键盘关闭。
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
@@ -6,42 +6,40 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChangeSummary } from "../src/features/workbench/components/ChangeSummary";
-import { countPatchLines } from "../src/features/workbench/hooks/useChangeSummary";
-import { loadTaskGit, loadTaskGitDiff } from "../src/services/taskService";
+import { loadTaskGit } from "../src/services/taskService";
 
-vi.mock("../src/services/taskService", () => ({ loadTaskGit: vi.fn(), loadTaskGitDiff: vi.fn() }));
+vi.mock("../src/services/taskService", () => ({ loadTaskGit: vi.fn() }));
 vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
-const summary = { isGitRepository: true, repositoryRoot: "/project", files: [{ filePath: "/project/source.ts", status: "modified" }], taskFiles: [], baselineFiles: [{ filePath: "/project/source.ts", status: "modified" }], baseline: ["/project/source.ts"] };
-const patch = "diff --git a/source.ts b/source.ts\n--- a/source.ts\n+++ b/source.ts\n@@ -1,1 +1,2 @@\n-old\n+++literal\n+new\n\\ No newline at end of file";
+const oldFile = { filePath: "/project/preexisting.ts", status: "modified" };
+const file = { filePath: "/project/source.ts", status: "modified", additions: 2, deletions: 1 };
+const summary = { isGitRepository: true, repositoryRoot: "/project", files: [oldFile, file], taskFiles: [], baselineFiles: [oldFile], baseline: [oldFile.filePath], round: { id: "round-1", startedAt: "2026-10-16", root: "/project", files: [file] } };
 
-test("展开才读取 diff，准确统计内容行并保留原有改动提示，Escape 归还焦点", async () => {
-  expect(countPatchLines(patch)).toEqual({ additions: 2, deletions: 1 });
-  expect(countPatchLines("Binary files differ")).toBeNull();
+test("只显示本轮文件和服务端行数，Escape 归还焦点，旧记录不混入", async () => {
   vi.mocked(loadTaskGit).mockResolvedValue(summary);
-  vi.mocked(loadTaskGitDiff).mockResolvedValue({ supported: true, patch });
-  render(<ChangeSummary taskId="task-1" revision="idle" />);
-  const button = await screen.findByRole("button", { name: "1 个文件已更改" });
-  expect(loadTaskGitDiff).not.toHaveBeenCalled();
+  const view = render(<ChangeSummary taskId="task-1" revision="idle" />);
+  const button = await screen.findByRole("button", { name: /1 个文件已更改 · 本轮/ });
+  expect(screen.getByLabelText("增加 2 行")).toBeTruthy();
   await userEvent.click(button);
-  expect((await screen.findAllByLabelText("增加 2 行")).length).toBeGreaterThan(0);
-  expect(screen.getByText(/含 1 个任务前已有文件/)).toBeTruthy();
-  expect(screen.getByText("source.ts")).toBeTruthy();
+  expect(await screen.findByText("source.ts")).toBeTruthy();
+  expect(screen.queryByText("preexisting.ts")).toBeNull();
   await userEvent.keyboard("{Escape}");
   await waitFor(() => expect(button.getAttribute("aria-expanded")).toBe("false"));
   expect(document.activeElement).toBe(button);
+  vi.mocked(loadTaskGit).mockResolvedValue({ ...summary, round: null });
+  view.rerender(<ChangeSummary taskId="task-1" revision="next" />);
+  await waitFor(() => expect(screen.queryByRole("button")).toBeNull());
 });
 
-test("不支持的 diff 不伪造零行，非 Git 目录不显示变更胶囊", async () => {
-  vi.mocked(loadTaskGit).mockResolvedValue(summary);
-  vi.mocked(loadTaskGitDiff).mockResolvedValue({ supported: false });
-  render(<ChangeSummary taskId="task-2" revision="idle" />);
-  await userEvent.click(await screen.findByRole("button", { name: "1 个文件已更改" }));
-  expect(await screen.findByText("部分文件不支持行数统计")).toBeTruthy();
+test("总计包含折叠清单外的文件，二进制保留未知统计", async () => {
+  const files = Array.from({ length: 21 }, (_, i) => ({ ...file, filePath: `/project/file-${i}.ts` }));
+  vi.mocked(loadTaskGit).mockResolvedValue({ ...summary, round: { ...summary.round, files } });
+  const view = render(<ChangeSummary taskId="task-2" revision="idle" />);
+  expect(await screen.findByLabelText("增加 42 行")).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: /21 个文件已更改/ }));
+  expect(await screen.findByText(/展示前 20 项/)).toBeTruthy();
+  vi.mocked(loadTaskGit).mockResolvedValue({ ...summary, round: { ...summary.round, files: [{ ...file, additions: null, deletions: null }] } });
+  view.rerender(<ChangeSummary taskId="task-2" revision="done" />);
+  expect(await screen.findByText("不支持统计")).toBeTruthy();
   expect(screen.queryByLabelText("增加 0 行")).toBeNull();
-  cleanup();
-  vi.mocked(loadTaskGit).mockResolvedValue({ ...summary, isGitRepository: false, files: [] });
-  render(<ChangeSummary taskId="task-3" revision="idle" />);
-  await waitFor(() => expect(loadTaskGit).toHaveBeenLastCalledWith("task-3", expect.any(AbortSignal)));
-  expect(screen.queryByRole("button")).toBeNull();
 });

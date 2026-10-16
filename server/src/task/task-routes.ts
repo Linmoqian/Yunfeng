@@ -1,6 +1,6 @@
 // 任务领域 API 路由：/api/tasks/... 系列。
 // 保留 /api/agent 与 /api/sessions 供兼容使用，本模块为 Agent 工作台的真实状态来源。
-// Created on 2026-10-15
+// Created on 2026-10-16
 // @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
@@ -321,7 +321,7 @@ export async function handleTaskInterventionResolve(id: string, requestId: strin
 
 /** 任务 Git 状态：基线、当前改动、可提交候选。 */
 export async function handleTaskGit(id: string): Promise<RouteResult> {
-  const { store } = getTaskContext();
+  const { store, runtime } = getTaskContext();
   const state = store.get(id);
   if (!state) return jsonApi(json({ error: apiError("task_not_found", "任务不存在", { status: 404 }) }), null);
   const { repoRoot, files } = await getTaskChanges(state.cwd);
@@ -336,6 +336,7 @@ export async function handleTaskGit(id: string): Promise<RouteResult> {
       taskFiles,
       baselineFiles,
       baseline: state.gitBaseline ?? [],
+      round: await runtime.readChanges(id),
     },
   });
 }
