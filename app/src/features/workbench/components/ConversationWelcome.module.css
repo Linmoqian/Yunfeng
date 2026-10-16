@@ -10,4 +10,19 @@
 .modeSelector :global(.ant-segmented-item), .modeSelector :global(.ant-segmented-thumb) { border-radius: 999px; }
 .modeSelector :global(.ant-segmented-item-selected) { color: var(--yf-brand-primary); background: var(--yf-bg-canvas); box-shadow: 0 1px 4px rgb(0 0 0 / 5%); }
 .modeLabel { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 76px; min-height: 44px; }
+.descriptions { display: grid; max-width: 100%; }
+.descriptions > p { grid-area: 1 / 1; line-height: 1.6; pointer-events: none; }
+.modeSelector:global(.ant-segmented) { transition: border-color 140ms ease; }
+.modeSelector:global(.ant-segmented) :global(.ant-segmented-thumb-motion-appear-active) { transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), width 180ms cubic-bezier(0.23, 1, 0.32, 1); }
+.modeLabel { transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1); }
+.modeSelector:global(.ant-segmented):not([data-instant="true"]) :global(.ant-segmented-item:active) .modeLabel { transform: scale(0.97); }
+.modeSelector[data-instant="true"] :global(.ant-segmented-thumb-motion-appear-active),
+.modeSelector[data-instant="true"] :global(.ant-segmented-item),
+.modeSelector[data-instant="true"] :global(.ant-segmented-item)::after,
+.modeSelector[data-instant="true"] .modeLabel { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .modeSelector:global(.ant-segmented) :global(.ant-segmented-thumb-motion-appear-active),
+  .modeSelector :global(.ant-segmented-item), .modeSelector :global(.ant-segmented-item)::after,
+  .modeSelector:global(.ant-segmented):not([data-instant="true"]) :global(.ant-segmented-item:active) .modeLabel { transition: none; transform: none; }
+}
 @media (max-height: 540px) { .welcome { gap: 8px; padding: 12px; } .welcome img { width: 64px; height: 64px; } }

@@ -10,6 +10,7 @@ import { ProgressCapsule } from "../src/features/workbench/components/ProgressCa
 import { sendTaskCommand } from "../src/services/taskService";
 
 vi.mock("../src/services/taskService", () => ({ sendTaskCommand: vi.fn() }));
+vi.stubGlobal("scrollTo", () => undefined);
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
 test("队列读取服务端内容，清空失败保留消息，成功后重新核对", async () => {
@@ -27,6 +28,25 @@ test("队列读取服务端内容，清空失败保留消息，成功后重新�
   await userEvent.click(screen.getByRole("button", { name: "清空所有排队消息" }));
   await waitFor(() => expect(screen.queryByRole("region", { name: "等待处理的消息" })).toBeNull());
   expect(sendTaskCommand).toHaveBeenCalledWith("task-queue", { type: "clearQueue" });
+});
+
+test("重复同步与前项出队保留其余消息节点，支持相同文本的多条消息", async () => {
+  let messages = ["先核对数据", "再检查报告", "重复任务", "重复任务"];
+  vi.mocked(sendTaskCommand).mockImplementation(async () => ({ steering: [], followUp: [...messages] }));
+  const { rerender } = render(<QueuedMessages taskId="task-stable" revision="1" />);
+  const report = await screen.findByText("再检查报告");
+  const row = report.closest("li");
+  const duplicates = screen.getAllByText("重复任务");
+  rerender(<QueuedMessages taskId="task-stable" revision="2" />);
+  await waitFor(() => expect(sendTaskCommand).toHaveBeenCalledTimes(2));
+  expect(screen.getByText("再检查报告")).toBe(report);
+  expect(screen.getAllByText("重复任务")).toEqual(duplicates);
+  messages = messages.slice(1);
+  rerender(<QueuedMessages taskId="task-stable" revision="3" />);
+  await screen.findByText("3 条待处理");
+  expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  expect(screen.getByText("再检查报告").closest("li")).toBe(row);
+  expect(screen.getAllByText("重复任务")).toEqual(duplicates);
 });
 
 test("有明确总量才显示进度刻度，未知总量只显示当前计数", () => {
