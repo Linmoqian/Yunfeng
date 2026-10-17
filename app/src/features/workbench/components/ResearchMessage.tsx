@@ -2,13 +2,11 @@
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
-import { Collapse } from "antd";
 import { CircleCheck, ClipboardList, FlaskConical, Info, TriangleAlert } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { summarizeConclusion } from "../researchConclusion";
-import { Capsule } from "./Capsule";
-import interaction from "./CapsuleInteraction.module.css";
+import { Capsule, Details } from "../../../components/common";
 import styles from "./ResearchMessage.module.css";
 
 const kinds = {
@@ -42,9 +40,7 @@ export function ResearchMessage({ text }: { text: string }) {
       <div className={styles.metrics} aria-label="关键指标">{summary!.metrics.map((metric) => <Capsule key={metric.text} className={styles.metric} status={metric.status}>{metric.text}</Capsule>)}</div>
       {summary!.notices.map((notice, index) => <div className={styles.body} key={index}><Markdown text={notice} /></div>)}
     </> : <div className={styles.body}><Markdown text={separateMethod ? body.slice(marker!.index) : body} /></div>}
-    {(compact || separateMethod) && <Collapse ghost size="small" className={`${styles.method} ${interaction.disclosure}`} items={[{
-      key: "method", label: compact ? "详细过程" : "方式", children: <div className={styles.body}><Markdown text={compact ? body : prefix} /></div>,
-    }]} />}
+    {(compact || separateMethod) && <Details className={styles.method} label={compact ? "详细过程" : "方式"}><div className={styles.body}><Markdown text={compact ? body : prefix} /></div></Details>}
   </section>;
 }
 

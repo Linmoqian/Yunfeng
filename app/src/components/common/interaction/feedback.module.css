@@ -1,0 +1,33 @@
+/* 胶囊入口轻抬与按压；键盘即时响应，减少动态效果时移除过渡。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.pressable,
+.disclosure :global(.ant-collapse-header) {
+  transition: transform var(--yf-motion-fast, 140ms) var(--yf-motion-ease, cubic-bezier(0.23, 1, 0.32, 1)), background-color var(--yf-motion-fast, 140ms) ease, border-color var(--yf-motion-fast, 140ms) ease;
+}
+.pressable[aria-expanded="true"],
+.disclosure :global(.ant-collapse-header[aria-expanded="true"]) {
+  background: color-mix(in srgb, var(--yf-brand-primary) 5%, var(--yf-bg-canvas));
+  border-color: color-mix(in srgb, var(--yf-brand-primary) 22%, var(--yf-border-divider));
+}
+.disclosure :global(.ant-collapse-header:focus-visible) { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover,
+  .disclosure :global(.ant-collapse-header:hover) {
+    transform: translateY(-1px);
+    background: color-mix(in srgb, var(--yf-brand-primary) 4%, var(--yf-bg-canvas));
+  }
+}
+.pressable:active:not(:focus-visible),
+.disclosure :global(.ant-collapse-header:active:not(:focus-visible)) { transform: scale(0.97); }
+.pressable:focus-visible,
+.disclosure :global(.ant-collapse-header:focus-visible) { transition: none; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pressable,
+  .pressable:hover,
+  .pressable:active:not(:focus-visible),
+  .disclosure :global(.ant-collapse-header),
+  .disclosure :global(.ant-collapse-header:hover),
+  .disclosure :global(.ant-collapse-header:active:not(:focus-visible)) { transition: none; transform: none; }
+}

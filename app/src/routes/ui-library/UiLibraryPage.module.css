@@ -1,0 +1,23 @@
+/* 开发目录采用现有字体与低对比边界，样例不进入正式业务导航。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.page { height: 100%; overflow: auto; padding: 36px clamp(20px, 5vw, 72px); background: var(--yf-bg-surface); }
+.header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; max-width: 1040px; margin: 0 auto 32px; }
+.header > a { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--yf-radius-sm); color: var(--yf-text-secondary); }
+.header strong { font: 24px var(--font-display); }
+.header > span:last-child { margin-left: auto; color: var(--yf-text-tertiary); font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 1040px; margin: auto; }
+.sample { min-width: 0; padding: 22px 24px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-canvas); }
+.sample h2 { margin: 0 0 18px; font-size: 13px; font-weight: 500; }
+.sample p { margin: 16px 0 0; font-size: 12px; line-height: 1.7; color: var(--yf-text-tertiary); }
+.sample > :global(.ant-collapse) { margin-top: 16px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--yf-text-secondary); }
+.sample button { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-pill); background: var(--yf-bg-canvas); padding: 4px 9px; color: var(--yf-text-secondary); font: 12px var(--font-body); cursor: pointer; }
+.sample button:focus-visible, .header > a:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 3px; }
+.wide { grid-column: 1 / -1; }
+.dragStates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.dragStates small { display: block; margin-bottom: 16px; color: var(--yf-text-tertiary); font-size: 11px; }
+.block { position: relative; display: flex; align-items: center; gap: 7px; min-height: 52px; padding: 12px; border: 1px solid var(--yf-border-divider); border-radius: 13px; background: var(--yf-bg-canvas); font-size: 12px; }
+.footer { max-width: 1040px; margin: 24px auto; color: var(--yf-text-tertiary); font-size: 11px; }
+@media (max-width: 700px) { .grid, .dragStates { grid-template-columns: minmax(0, 1fr); } .header > span:last-child { display: none; } }

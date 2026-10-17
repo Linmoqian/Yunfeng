@@ -1,0 +1,6 @@
+/* 详情以胶囊入口呈现，展开正文不额外套卡片。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.details :global(.ant-collapse-header) { width: fit-content; max-width: 100%; min-height: 28px; padding: 3px 9px !important; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-pill) !important; background: var(--yf-bg-canvas); font-size: 12px; color: var(--yf-text-secondary) !important; }
+.details :global(.ant-collapse-content-box) { padding: 10px 0 0 !important; }

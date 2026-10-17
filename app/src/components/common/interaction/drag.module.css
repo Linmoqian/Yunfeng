@@ -1,0 +1,18 @@
+/* 积木式拖放反馈：原位虚影、浮起阴影、候选和吸附提示，不判断业务权限。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.slot { position: relative; min-width: 0; border-radius: 13px; }
+.floating { position: relative; border-radius: inherit; }
+.handle { display: grid; place-items: center; align-self: stretch; flex: none; width: 18px; padding-left: 3px; color: var(--yf-text-tertiary); opacity: .35; cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; transition: opacity var(--yf-motion-fast, 140ms) ease; }
+.slot:hover .handle { opacity: .85; }
+.handle[data-locked="true"] { cursor: default; opacity: .2; }
+.slot[data-source="true"]::before { content: ""; position: absolute; inset: 0; border: 1px dashed color-mix(in srgb, var(--yf-brand-primary) 30%, transparent); border-radius: inherit; background: color-mix(in srgb, var(--yf-brand-primary) 4%, transparent); }
+.slot[data-source="true"] > .floating { filter: drop-shadow(0 9px 12px color-mix(in srgb, var(--yf-brand-primary) 15%, transparent)); }
+.target[data-candidate="true"] { outline: 1px dashed color-mix(in srgb, var(--yf-brand-primary) 30%, transparent); outline-offset: 2px; }
+.target[data-over="true"] { outline: 1px solid var(--yf-brand-primary); background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-canvas)); }
+.hint { position: absolute; z-index: 6; pointer-events: none; right: 10px; bottom: -9px; padding: 1px 7px; border: 1px solid color-mix(in srgb, var(--yf-brand-primary) 30%, var(--yf-border-divider)); border-radius: var(--yf-radius-pill); background: var(--yf-bg-canvas); color: var(--yf-brand-primary); font-size: 10px; line-height: 16px; box-shadow: 0 2px 8px #00000006; animation: dropHint var(--yf-motion-fast, 140ms) ease-out both; }
+@keyframes dropHint { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }
+.dropChip { padding: 2px 8px; border-style: dashed !important; color: var(--yf-brand-primary); }
+.dropChip[data-over="true"] { border-style: solid !important; background: color-mix(in srgb, var(--yf-brand-primary) 8%, transparent); }
+@media (prefers-reduced-motion: reduce) { .hint { animation: none; } .handle { transition: none; } }

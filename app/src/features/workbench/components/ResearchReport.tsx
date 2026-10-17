@@ -2,12 +2,9 @@
  * Created on 2026-10-16
  * @author: https://github.com/Linmoqian
  */
-import { Collapse } from "antd";
 import { FlaskConical } from "lucide-react";
 import type { ResearchComponentSnapshot } from "../../../services/researchComponent";
-import { ProgressCapsule } from "./ProgressCapsule";
-import { Capsule } from "./Capsule";
-import interaction from "./CapsuleInteraction.module.css";
+import { Capsule, Details, ProgressCapsule } from "../../../components/common";
 import styles from "./ResearchMessage.module.css";
 
 export function ResearchReport({ snapshot }: { snapshot: ResearchComponentSnapshot }) {
@@ -24,11 +21,11 @@ export function ResearchReport({ snapshot }: { snapshot: ResearchComponentSnapsh
       {!evaluation && interrupted && <Capsule className={styles.metric} status="failed">{currentResult.status === "failed" ? "执行失败" : "执行中断"}</Capsule>}
     </div>
     {view.conclusion && <p className={styles.body}>{view.conclusion.summary}</p>}
-    <Collapse ghost size="small" className={`${styles.method} ${interaction.disclosure}`} items={[{ key: "report", label: "详细过程", children: <div className={`${styles.body} ${styles.reportDetails}`}>
+    <Details className={styles.method}><div className={`${styles.body} ${styles.reportDetails}`}>
       {view.conclusion?.details && <p className={styles.reportText}>{view.conclusion.details}</p>}
       <p>来源：<code>{view.source}</code></p>
       {evaluation && <p>验收：{evaluation.reason}</p>}
       {currentResult?.output && <pre className={styles.reportOutput}>{currentResult.output}</pre>}
-    </div> }]} />
+    </div></Details>
   </section>;
 }

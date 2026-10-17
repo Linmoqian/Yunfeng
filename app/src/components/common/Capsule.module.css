@@ -1,0 +1,9 @@
+/* 轻量胶囊基底：低对比边界、紧凑字距、真实语义色。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.capsule { display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; padding: 3px 9px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-pill); background: var(--yf-bg-canvas); color: var(--yf-text-secondary); font: 12px/1.6 var(--font-body); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; -webkit-user-select: none; user-select: none; }
+.capsule[data-tone="accent"] { color: var(--yf-brand-primary); border-color: color-mix(in srgb, var(--yf-brand-primary) 18%, var(--yf-border-divider)); }
+.capsule[data-tone="success"] { color: var(--yf-semantic-success); }
+.capsule[data-tone="warning"] { color: var(--yf-semantic-warning); }
+.capsule[data-tone="danger"] { color: var(--yf-semantic-error); }

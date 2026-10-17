@@ -16,10 +16,12 @@ import { ComponentWindow } from "./features/workbench/components/ComponentWindow
 const TaskboardPage = lazy(() => import("./routes/taskboard/TaskboardPage").then((module) => ({
   default: module.TaskboardPage,
 })));
+const UiLibraryPage = import.meta.env.DEV ? lazy(() => import("./routes/ui-library/UiLibraryPage").then((module) => ({ default: module.UiLibraryPage }))) : null;
 
 // 路由：工作台为单一页面，task/session 深链接通过 URL query 承载（见 syncUrl）。
 // 引入 React Router 以建立可扩展的路由边界，后续如新增独立页面直接在 children 扩展。
 const router = createBrowserRouter([
+  ...(UiLibraryPage ? [{ path: "/dev/ui", element: <Suspense fallback={null}><UiLibraryPage /></Suspense> }] : []),
   { path: "/component/:component", element: <ComponentWindow /> },
   {
     path: "/",

@@ -1,8 +1,6 @@
-/* 固定动画占位避免跳动；紧凑形态可直接放入状态胶囊。
- * Created on 2026-10-16
+/* 兼容旧样式入口，共用库维护实际外观。
+ * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
-.scene { display: inline-flex; flex: none; width: 160px; height: 94px; color: var(--yf-text-tertiary); pointer-events: none; user-select: none; }
-.scene svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.scene[data-compact="true"] { width: 44px; height: 26px; margin: -5px -3px; }
-.wind { color: var(--yf-text-tertiary); }
+.scene { composes: scene from "../../../components/common/MapleCloudLoading.module.css"; }
+.wind { composes: wind from "../../../components/common/MapleCloudLoading.module.css"; }
