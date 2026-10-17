@@ -22,6 +22,16 @@ export interface MemberTransport {
   /** 使用当前成员的凭据调用节点；认证、授权、超时和业务失败均拒绝 Promise。 */
   call<T>(input: Record<string, unknown>): Promise<T>;
 }
+/** 成员直接依赖的业务边界；实现方只返回结果，不持有或回调上层成员。 */
+export interface MemberService {
+  identity(): Promise<MemberCard>;
+  observe<T = unknown>(): Promise<T>;
+  sendMessage(text: string, id: string): Promise<unknown>;
+  publishAnnouncement(announcement: string, links: { title: string; url: string }[]): Promise<unknown>;
+  shareFile(name: string, bytes: Uint8Array): Promise<unknown>;
+  readFile(id: string): Promise<unknown>;
+  authorizeRobot(operation: string): Promise<void>;
+}
 export interface RobotTelemetry {
   connected: boolean;
   timestamp: string;

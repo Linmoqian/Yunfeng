@@ -20,14 +20,29 @@ TeamMember
 本模块无运行依赖，以 TypeScript 源码导出，适合支持类型剥离的 Node 或现有 TS 构建工具。管理员先通过节点控制接口登记 `member`，再 `grant` 获得该成员专用令牌。令牌从本机受保护配置读取，不能写入源码、日志或前端资料。
 
 ```ts
-import { AgentMember, memberTransport } from "./src/index.ts";
+import { AgentMember, connectMember } from "./src/index.ts";
 // memberId、address、memberToken 由调用方的受保护配置提供。
-const assistant = new AgentMember(memberId, memberTransport(address, memberToken));
+const assistant = new AgentMember(memberId, connectMember(address, memberToken));
 await assistant.identity();
 await assistant.sendMessage("实验结果已整理");
 ```
 
-`memberTransport` 仅访问回环 HTTP 的 `/v1/member`，20 秒超时，不跟随重定向。只读身份不能发送消息或分享文件；协作身份可以发送与分享；编辑身份可另行保存公告和链接。`enabled=false` 立即拒绝成员请求。角色变更、停用与令牌轮换都在下一次请求生效。完整字段、限制和错误见 [节点接口](../../docs/api/2026-10-17-team-node.md)。
+`connectMember` 组装业务服务与传输；底层 `memberTransport` 仅访问回环 HTTP 的 `/v1/member`，20 秒超时，不跟随重定向。只读身份不能发送消息或分享文件；协作身份可以发送与分享；编辑身份可另行保存公告和链接。`enabled=false` 立即拒绝成员请求。角色变更、停用与令牌轮换都在下一次请求生效。完整字段、限制和错误见 [节点接口](../../docs/api/2026-10-17-team-node.md)。
+
+## 单向分层
+
+每层只调用直属下层的契约，下层不持有上层对象，也不导入调用它的成员类或界面。继承表达身份和设备能力；调用分层独立遵守以下方向：
+
+```text
+成员行为 → MemberService → MemberTransport → HTTP 节点
+设备子类 → RobotMember → RobotAdapter → 实物驱动
+```
+
+`TeamMember` 只使用 MemberService 的语义方法，不拼 action、不编码文件、不访问 HTTP。机器人子类通过基类的授权与 dispatch 操作设备；基类的服务和硬件适配器使用运行时私有字段，子类无法取出它们越级调用。服务负责请求格式、文件编码和授权回执校验，传输负责 HTTP、凭据与超时。结果经 Promise 返回，不通过持有上层对象来反馈。
+
+`connectMember(address, token)` 是集中组装入口，允许知道服务和 HTTP 的具体实现；普通业务只接收组装后的服务。自定义传输通过 `createMemberService(transport)` 接入，底层传输仅实现 `MemberTransport.call()`，无需知道 HumanMember、AgentMember、ProgramMember 或 RobotMember。调用方可为服务或硬件适配器注入独立实现，不必给下层父成员、页面或调度器引用。
+
+本次实验性 SDK 的成员构造参数从原始 MemberTransport 改为 MemberService；原有 `new AgentMember(id, memberTransport(address, token))` 改为 `new AgentMember(id, connectMember(address, token))`。已有自定义传输外包一层 `createMemberService(transport)` 即可。HTTP JSON 契约与数据库格式不变。依赖回归测试阻止业务类直接导入 HTTP、下层反向导入上层以及动态导入绕过边界。
 
 ## 实体机器人
 
@@ -43,7 +58,7 @@ await assistant.sendMessage("实验结果已整理");
 
 ```sh
 cargo build --manifest-path team-service/Cargo.toml --features node
-node --experimental-strip-types --test team-service/sdk/tests/members.test.ts
+node --experimental-strip-types --test team-service/sdk/tests/*.test.ts
 pnpm --dir app exec tsc -p ../team-service/sdk/tsconfig.json
 ```
 

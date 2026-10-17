@@ -8,3 +8,5 @@ export * from "./members.ts";
 export * from "./RobotMember.ts";
 export * from "./robots.ts";
 export * from "./http.ts";
+export * from "./service.ts";
+export * from "./connect.ts";

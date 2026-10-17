@@ -2,17 +2,17 @@
  * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
-import type { MemberCard, MemberKind, MemberTransport } from "./types.ts";
+import type { MemberCard, MemberKind, MemberService } from "./types.ts";
 
 export abstract class TeamMember {
   readonly id: string;
-  protected readonly transport: MemberTransport;
+  readonly #service: MemberService;
   protected abstract readonly kind: MemberKind;
-  constructor(id: string, transport: MemberTransport) { this.id = id; this.transport = transport; }
+  constructor(id: string, service: MemberService) { this.id = id; this.#service = service; }
 
   /** 返回服务确认的身份；类与身份不一致、成员已停用时失败。 */
   async identity(): Promise<MemberCard> {
-    const member = await this.transport.call<MemberCard>({ action: "identity" });
+    const member = await this.#service.identity();
     if (member.id !== this.id || member.profile.kind !== this.kind || !member.profile.enabled) throw new Error("MEMBER_IDENTITY_MISMATCH");
     return member;
   }
@@ -22,19 +22,18 @@ export abstract class TeamMember {
     return { read: true, message: p.access !== "observer", share: p.access !== "observer", board: p.access === "editor", robotControl: p.robotControl };
   }
   /** 观察团队当前快照；具体响应以节点接口契约为准。 */
-  observe<T = unknown>(): Promise<T> { return this.transport.call<T>({ action: "snapshot" }); }
+  observe<T = unknown>(): Promise<T> { return this.#service.observe<T>(); }
   /** UUID 可由调用方保留以安全重试；服务拒绝同 ID 不同正文。 */
   sendMessage(text: string, id = crypto.randomUUID()): Promise<unknown> {
-    return this.transport.call({ action: "message", id, text });
+    return this.#service.sendMessage(text, id);
   }
   publishAnnouncement(announcement: string, links: { title: string; url: string }[] = []): Promise<unknown> {
-    return this.transport.call({ action: "board", announcement, links });
+    return this.#service.publishAnnouncement(announcement, links);
   }
   shareFile(name: string, bytes: Uint8Array): Promise<unknown> {
-    if (bytes.byteLength > 1024 * 1024) throw new Error("MEMBER_FILE_LIMIT");
-    let binary = "";
-    for (const byte of bytes) binary += String.fromCharCode(byte);
-    return this.transport.call({ action: "share", name, data: btoa(binary) });
+    return this.#service.shareFile(name, bytes);
   }
-  readFile(id: string): Promise<unknown> { return this.transport.call({ action: "file", id }); }
+  readFile(id: string): Promise<unknown> { return this.#service.readFile(id); }
+  /** 仅向直接子类提供授权能力，避免其接触服务或请求协议。 */
+  protected authorizeRobot(operation: string): Promise<void> { return this.#service.authorizeRobot(operation); }
 }
