@@ -2,7 +2,7 @@
  * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
-import type { MemberIdentity, MemberKind, MemberObservation, MemberService } from "./types.ts";
+import type { MemberActivity, MemberIdentity, MemberKind, MemberObservation, MemberService } from "./types.ts";
 
 export abstract class TeamMember {
   readonly id: string;
@@ -25,6 +25,8 @@ export abstract class TeamMember {
   observe<T = MemberObservation>(): Promise<T> { return this.#service.observe<T>(); }
   /** 仅返回直属下级，不含上级、同级或更深层成员。 */
   children(): Promise<MemberIdentity[]> { return this.#service.children(); }
+  /** 上报自己的运行状态；每 20 秒续报，90 秒未续报显示离线，重启后恢复未知。 */
+  reportStatus(status: MemberActivity): Promise<MemberObservation> { return this.#service.reportStatus(status); }
   /** UUID 可由调用方保留以安全重试；服务拒绝同 ID 不同正文。 */
   sendMessage(text: string, id = crypto.randomUUID()): Promise<unknown> {
     return this.#service.sendMessage(text, id);

@@ -71,3 +71,5 @@ pnpm --dir app exec tsc -p ../team-service/sdk/tsconfig.json
 ```
 
 测试启动自己的临时真实节点，验证身份、固定作者、即时权限与令牌轮换；机器人测试使用明确的测试适配器，验证未授权和过期遥测不会到达执行方法，以及离线急停路径。
+
+成员通过 `await member.reportStatus("working")` 自报状态（online/working/idle/offline）。运行时约20秒续报；90秒未续报显示离线，服务重启为未知。`observe().presence` 只含本人和直属成员，状态不改变权限。SDK 不创建后台定时器，首版不跨节点转发心跳。

@@ -83,8 +83,13 @@ impl Node {
         messages.reverse();
         files.reverse();
         boards.reverse();
+        let team = self.team()?;
+        let presence: Vec<_> = visible
+            .iter()
+            .map(|id| self.store.presence.view(&team, id))
+            .collect();
         Ok(
-            json!({"identity":identity(member),"children":children.iter().map(identity).collect::<Vec<_>>(),"messages":messages,"files":files,"boards":boards}),
+            json!({"identity":identity(member),"children":children.iter().map(identity).collect::<Vec<_>>(),"messages":messages,"files":files,"boards":boards,"presence":presence}),
         )
     }
 }

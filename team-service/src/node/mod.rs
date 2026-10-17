@@ -8,6 +8,7 @@ mod member_api;
 mod member_view;
 mod organization;
 mod peers;
+mod transactions;
 pub mod types;
 use crate::{
     model::{self, Action, Error, Result},

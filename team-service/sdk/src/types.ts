@@ -5,6 +5,8 @@
 export type MemberKind = "human" | "agent" | "program" | "robot";
 export type MemberAccess = "observer" | "contributor" | "editor";
 export type RobotKind = "vehicle" | "drone" | "arm" | "other";
+export type MemberActivity = "online" | "working" | "idle" | "offline";
+export interface MemberPresence { memberId: string; status: MemberActivity | "unknown"; observedAt: number | null; expiresAt: number | null }
 export interface AssistantInfo { model: string; provider: string; skills: string[] }
 export interface RobotInfo { kind: RobotKind; model: string; capabilities: string[] }
 export interface MemberProfile {
@@ -20,6 +22,7 @@ export interface MemberProfile {
 export interface MemberCard { id: string; nodeId: string; profile: MemberProfile }
 export type MemberIdentity = Omit<MemberCard, "nodeId">;
 export interface MemberObservation {
+  presence: MemberPresence[];
   identity: MemberIdentity;
   children: MemberIdentity[];
   messages: { id: string; memberId: string; name: string; text: string; createdAt: number }[];
@@ -32,6 +35,7 @@ export interface MemberTransport {
 }
 /** 成员直接依赖的业务边界；实现方只返回结果，不持有或回调上层成员。 */
 export interface MemberService {
+  reportStatus(status: MemberActivity): Promise<MemberObservation>;
   identity(): Promise<MemberIdentity>;
   observe<T = MemberObservation>(): Promise<T>;
   children(): Promise<MemberIdentity[]>;

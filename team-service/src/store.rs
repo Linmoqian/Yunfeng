@@ -11,6 +11,7 @@ use std::{
 /// SQLite 团队存储；业务数据与节点事件共用同一连接。
 pub struct Store {
     pub(super) db: Connection,
+    pub(crate) presence: crate::presence::Registry,
 }
 const SCHEMA: &str = "
 CREATE TABLE installations (singleton INTEGER PRIMARY KEY CHECK(singleton=1), id TEXT NOT NULL, active_team TEXT);
@@ -76,7 +77,10 @@ impl Store {
             crate::relations::initialize(&tx)?;
             tx.commit().map_err(Error::storage)?;
         }
-        Ok(Self { db })
+        Ok(Self {
+            db,
+            presence: Default::default(),
+        })
     }
     fn active(&self) -> Result<String> {
         self.db
@@ -92,6 +96,16 @@ impl Store {
     pub fn action(&mut self, action: Action) -> Result<Snapshot> {
         match action {
             Action::Snapshot {} => {}
+            Action::Presence { status } => {
+                let snapshot = self.snapshot()?;
+                let team = self.active()?;
+                let member = crate::members::find(&self.db, &team, &snapshot.installation_id)?
+                    .ok_or_else(crate::members::forbidden)?;
+                if !member.profile.enabled {
+                    return Err(crate::members::forbidden());
+                }
+                self.presence.report(&team, &member.id, status);
+            }
             Action::Relation { relation } => {
                 let snapshot = self.snapshot()?;
                 let team = self.active()?;
@@ -357,6 +371,13 @@ impl Store {
             .transpose()?
             .unwrap_or_default();
         Ok(Snapshot {
+            presence: participants
+                .iter()
+                .map(|member| {
+                    self.presence
+                        .view(active.as_deref().unwrap_or_default(), &member.id)
+                })
+                .collect(),
             relations,
             participants,
             installation_id,
@@ -368,32 +389,5 @@ impl Store {
             links,
             network_available: false,
         })
-    }
-}
-
-impl Store {
-    /// 在同一数据库事务中提交业务记录与节点事件；失败整批回滚。
-    #[cfg(feature = "node")]
-    pub(crate) fn atomic<T>(
-        &mut self,
-        operation: impl FnOnce(&mut Self) -> Result<T>,
-    ) -> Result<T> {
-        self.db
-            .execute_batch("SAVEPOINT team_node;")
-            .map_err(Error::storage)?;
-        match operation(self) {
-            Ok(value) => {
-                self.db
-                    .execute_batch("RELEASE team_node;")
-                    .map_err(Error::storage)?;
-                Ok(value)
-            }
-            Err(error) => {
-                self.db
-                    .execute_batch("ROLLBACK TO team_node; RELEASE team_node;")
-                    .map_err(Error::storage)?;
-                Err(error)
-            }
-        }
     }
 }

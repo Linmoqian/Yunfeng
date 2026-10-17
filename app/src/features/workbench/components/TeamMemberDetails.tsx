@@ -9,6 +9,7 @@ import type { TeamWorkspace } from "../hooks/useTeamWorkspace";
 import type { MemberCard } from "../services/collaborationService";
 import { kindLabels, accessLabels, robotLabels } from "./MemberEditor";
 import { Capsule } from "./Capsule";
+import { MemberStatus } from "./MemberStatus";
 import styles from "./TeamMembers.module.css";
 
 function RelationEditor({ member, state }: { member: MemberCard; state: TeamWorkspace }) {
@@ -47,7 +48,7 @@ export function TeamMemberDetails({ member, state, edit, close }: { member: Memb
   return <div ref={panel} tabIndex={-1} role="dialog" aria-label={`成员详情：${p.name}`} className={styles.info} onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.stopPropagation(); close(); } }}>
     <div className={styles.detailHeading}><strong>{p.name}</strong>{local && <Button type="text" size="small" aria-label={`编辑成员：${p.name}`} title="编辑资料" disabled={state.busy || !state.available} icon={<Pencil size={12} />} onClick={edit} />}<Button type="text" size="small" aria-label="关闭成员详情" title="关闭" icon={<X size={12} />} onClick={close} /></div>
     {p.summary && <p>{p.summary}</p>}
-    <div className={styles.chips}><Capsule>{kindLabels[p.kind]}</Capsule><Capsule>{accessLabels[p.access]}</Capsule>{!p.enabled && <Capsule>已停用</Capsule>}</div>
+    <div className={styles.chips}><Capsule>{kindLabels[p.kind]}</Capsule><Capsule>{accessLabels[p.access]}</Capsule><MemberStatus enabled={p.enabled} presence={state.presence?.find((item) => item.memberId === member.id)} /></div>
     {p.assistant && <><dl><dt>模型</dt><dd>{p.assistant.model || "未登记"}</dd><dt>提供方</dt><dd>{p.assistant.provider || "未登记"}</dd></dl><div className={styles.chips}>{p.assistant.skills.map((skill) => <Capsule key={skill}>{skill}</Capsule>)}</div></>}
     {p.robot && <><dl><dt>设备</dt><dd>{robotLabels[p.robot.kind]}{p.robot.model ? ` · ${p.robot.model}` : ""}</dd><dt>控制授权</dt><dd>{p.robotControl ? "已允许" : "未授予"}</dd></dl><div className={styles.chips}>{p.robot.capabilities.map((capability) => <Capsule key={capability}>{capability}</Capsule>)}</div></>}
     {local ? <RelationEditor member={member} state={state} /> : <p className={styles.remote}>直属关系由所属节点管理</p>}

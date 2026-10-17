@@ -29,6 +29,9 @@ pub struct Link {
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Action {
     Snapshot {},
+    Presence {
+        status: crate::presence::Activity,
+    },
     Relation {
         relation: crate::relations::Relation,
     },
@@ -81,6 +84,7 @@ pub struct Snapshot {
     pub network_available: bool,
     pub participants: Vec<crate::members::Member>,
     pub relations: Vec<crate::relations::Relation>,
+    pub presence: Vec<crate::presence::Presence>,
 }
 
 pub fn name(value: &str) -> Result<String> {

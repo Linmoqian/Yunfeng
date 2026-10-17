@@ -3,6 +3,7 @@
 //! @author: https://github.com/Linmoqian
 pub mod members;
 pub mod model;
+pub mod presence;
 pub mod relations;
 mod store;
 pub use store::Store;

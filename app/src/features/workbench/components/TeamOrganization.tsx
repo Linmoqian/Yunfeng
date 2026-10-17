@@ -11,6 +11,7 @@ import type { MemberCard } from "../services/collaborationService";
 import { Capsule } from "./Capsule";
 import { kindLabels, robotLabels } from "./MemberEditor";
 import { TeamMemberDetails } from "./TeamMemberDetails";
+import { MemberStatus } from "./MemberStatus";
 import styles from "./TeamMembers.module.css";
 const icons = { human: UserRound, agent: Bot, program: Cpu, robot: Workflow };
 
@@ -24,7 +25,7 @@ function Nameplate({ member, state, edit, focus, root = false }: { member: Membe
     <Popover open={open} onOpenChange={setOpen} destroyOnHidden trigger="click" placement="rightTop" content={<TeamMemberDetails key={member.id} member={member} state={state} edit={() => { setOpen(false); edit(member); }} close={close} />}>
       <button ref={trigger} type="button" className={styles.card} title={member.profile.name} aria-label={`查看成员：${member.profile.name}`} aria-expanded={open}>
         <span className={styles.avatar}><Icon size={16} /></span><span className={styles.copy}><strong>{member.profile.name}</strong><small>{member.profile.summary || (member.profile.robot ? robotLabels[member.profile.robot.kind] : kindLabels[member.profile.kind])}</small></span>
-        <span className={styles.badges}><Capsule animateOnMount={false}>{member.profile.enabled ? kindLabels[member.profile.kind] : "停用"}</Capsule></span>
+        <MemberStatus enabled={member.profile.enabled} presence={state.presence?.find((item) => item.memberId === member.id)} />
       </button>
     </Popover>
     {!root && <Button type="text" size="small" className={styles.focusButton} aria-label={`查看直属成员：${member.profile.name}`} title={`直属成员 ${count}`} icon={<ArrowDownRight size={13} />} onClick={() => focus(member.id)} />}

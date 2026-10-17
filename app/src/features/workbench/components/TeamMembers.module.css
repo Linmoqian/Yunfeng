@@ -61,6 +61,15 @@
 .info .saved { margin: 6px 0 0; color: var(--yf-brand-primary); font-size: 11px; }
 .info .error { color: var(--yf-semantic-error); font-size: 11px; }
 .info .remote { margin: 12px 0 0; color: var(--yf-text-tertiary); font-size: 11px; }
-@container (max-width: 230px) { .branches .badges { display: none; } }
+.memberStatus { display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: none; min-width: 43px; padding: 1px 5px; margin-right: 5px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-tertiary); font-size: 10px; line-height: 16px; white-space: nowrap; }
+.memberStatus[data-status="online"] { color: var(--yf-semantic-success); }
+.memberStatus[data-status="working"] { color: var(--yf-brand-primary); background: color-mix(in srgb, var(--yf-brand-primary) 5%, transparent); }
+.statusSignal { display: inline-flex; align-items: center; justify-content: center; gap: 1px; width: 10px; height: 10px; }
+.statusSignal i { display: block; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.memberStatus[data-status="offline"] .statusSignal i, .memberStatus[data-status="unknown"] .statusSignal i { background: transparent; border: 1px solid currentColor; }
+.memberStatus[data-status="working"] .statusSignal i { width: 2px; height: 7px; border-radius: 1px; }
+.memberStatus[data-status="working"] .statusSignal i:nth-child(2) { height: 10px; }
+.memberStatus[data-status="idle"] .statusSignal i { opacity: .5; }
+@container (max-width: 230px) { .branches .memberStatus { min-width: 0; width: 16px; padding-inline: 1px; border-color: transparent; } .branches .memberStatus > span:last-child { display: none; } }
 @media (pointer: coarse) { .card, .editButton:global(.ant-btn), .heading button, .focusButton:global(.ant-btn), .relationControls > :global(.ant-btn), .detailHeading :global(.ant-btn) { min-height: 44px; min-width: 44px; } }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }

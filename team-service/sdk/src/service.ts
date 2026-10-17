@@ -7,6 +7,7 @@ import type { MemberIdentity, MemberService, MemberTransport } from "./types.ts"
 /** 包装请求端口；权限与业务失败原样拒绝，服务不缓存成员状态或持有上层引用。 */
 export function createMemberService(transport: MemberTransport): MemberService {
   return {
+    reportStatus: (status) => transport.call({ action: "presence", status }),
     identity: () => transport.call<MemberIdentity>({ action: "identity" }),
     observe: <T>() => transport.call<T>({ action: "snapshot" }),
     children: () => transport.call<MemberIdentity[]>({ action: "children" }),

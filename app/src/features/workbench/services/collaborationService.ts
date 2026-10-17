@@ -4,11 +4,14 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import type { MemberCard, MemberProfile } from "../../../../../team-service/sdk/src/types";
+import type { MemberActivity, MemberPresence } from "../../../../../team-service/sdk/src/types";
+export type { MemberActivity, MemberPresence } from "../../../../../team-service/sdk/src/types";
 export type { MemberCard, MemberProfile, MemberKind, MemberAccess } from "../../../../../team-service/sdk/src/types";
 
 export interface CollaborationLink { title: string; url: string }
 export interface LocalTeam { id: string; name: string; owner: string; members: string[] }
 export interface CollaborationSnapshot {
+  presence?: MemberPresence[];
   installationId: string;
   mode: "empty" | "local";
   team: LocalTeam | null;
@@ -21,6 +24,7 @@ export interface CollaborationSnapshot {
   relations: { memberId: string; parentId: string | null }[];
 }
 export type CollaborationAction =
+  | { action: "presence"; status: MemberActivity }
   | { action: "relation"; relation: { memberId: string; parentId: string | null } }
   | { action: "snapshot" | "leave" }
   | { action: "create"; name: string; owner: string }

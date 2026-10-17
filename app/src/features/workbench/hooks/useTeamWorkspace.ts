@@ -5,6 +5,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getRuntimeWindowPlatform } from "../../../components/titlebar/windowPlatform";
 import { collaborationAction, collaborationError, type CollaborationAction, type CollaborationLink, type CollaborationSnapshot, type MemberProfile } from "../services/collaborationService";
+import type { MemberActivity } from "../services/collaborationService";
+import { useTeamPresence } from "./useTeamPresence";
 
 export function useTeamWorkspace(active: boolean) {
   const available = getRuntimeWindowPlatform() !== "browser";
@@ -13,11 +15,13 @@ export function useTeamWorkspace(active: boolean) {
   const [notice, setNotice] = useState("");
   const [files, setFiles] = useState<{ name: string; size: number }[]>([]);
   const inFlight = useRef(false);
+  const background = useRef<Promise<boolean> | null>(null);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const run = useCallback(async (input: CollaborationAction, success = ""): Promise<boolean> => {
     if (!available) { setNotice("团队功能需要在 Yunfeng 原生桌面应用中运行"); return false; }
+    if (background.current) await background.current;
     if (inFlight.current) return false;
     inFlight.current = true; setBusy(true); setNotice("");
     try {
@@ -36,6 +40,21 @@ export function useTeamWorkspace(active: boolean) {
   const reload = () => run({ action: "snapshot" });
   const saveBoard = (announcement: string, links: CollaborationLink[]) => run({ action: "board", announcement, links }, "公告与链接已保存到本机");
   const self = snapshot?.participants?.find((member) => member.id === snapshot.installationId)?.profile;
+  const teamId = snapshot?.team?.id;
+  const report = useCallback((status: MemberActivity) => {
+    if (!available || !teamId || inFlight.current) return Promise.resolve(false);
+    inFlight.current = true;
+    const request = (async () => { try {
+      const next = await collaborationAction({ action: "presence", status });
+      if (mounted.current) setSnapshot((current) => current?.team?.id === next.team?.id ? next : current);
+      return true;
+    } catch { return false; }
+    finally { inFlight.current = false; } })();
+    background.current = request;
+    void request.finally(() => { if (background.current === request) background.current = null; });
+    return request;
+  }, [available, teamId]);
+  useTeamPresence(available && !!teamId && self?.kind === "human" && self.enabled, report);
   return {
     canSend: !self || (self.enabled && self.access !== "observer"),
     canEditBoard: !self || (self.enabled && self.access === "editor"),
@@ -43,6 +62,7 @@ export function useTeamWorkspace(active: boolean) {
     team: snapshot?.team ?? null, messages: snapshot?.messages ?? [],
     participants: snapshot?.participants ?? [],
     relations: snapshot?.relations ?? [],
+    presence: snapshot?.presence ?? [],
     saveRelation: (memberId: string, parentId: string | null) => run({ action: "relation", relation: { memberId, parentId } }, "直属关系已保存"),
     saveMember: (id: string, profile: MemberProfile) => run({ action: "member", member: { id, profile } }, "成员资料已保存"),
     board: snapshot?.board ?? "", links: snapshot?.links ?? [],

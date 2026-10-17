@@ -48,6 +48,11 @@ test("组织关系仅向下暴露一级，写入响应、报告和文件不泄�
     const member = (actor: typeof root) => new AgentMember(actor.id, connectMember(address, actor.token));
     const attach = (id: string, parentId: string | null) => call({ action: "relation", relation: { memberId: id, parentId } });
     await attach(middle.id, root.id); await attach(leaf.id, middle.id); await attach(sibling.id, root.id);
+    await member(root).reportStatus("online");
+    await member(leaf).reportStatus("working");
+    const activity = await member(middle).reportStatus("idle");
+    assert.deepEqual(activity.presence.map((p) => [p.memberId, p.status]).sort(), [[middle.id, "idle"], [leaf.id, "working"]].sort());
+    await assert.rejects(memberTransport(address, middle.token).call({ action: "presence", status: "working", memberId: root.id }), /COLLAB_INPUT/);
     await assert.rejects(attach(root.id, leaf.id), /COLLAB_INPUT/);
     await assert.rejects(attach(middle.id, middle.id), /COLLAB_INPUT/);
     assert.deepEqual((await member(root).children()).map((m) => m.id).sort(), [middle.id, sibling.id].sort());
@@ -64,7 +69,7 @@ test("组织关系仅向下暴露一级，写入响应、报告和文件不泄�
     await member(leaf).publishAnnouncement("末级实验结论");
     await member(leaf).sendMessage("末级实验进展");
     const updated = await member(middle).sendMessage("本层更新返回的也只能是下行快照") as any;
-    assert.deepEqual(Object.keys(updated).sort(), ["identity", "children", "messages", "files", "boards"].sort());
+    assert.deepEqual(Object.keys(updated).sort(), ["identity", "children", "messages", "files", "boards", "presence"].sort());
     assert(!JSON.stringify(updated).includes(root.id));
     assert(!JSON.stringify(updated).includes(sibling.id));
     assert(!JSON.stringify(updated).includes("根成员的内部"));
@@ -85,6 +90,7 @@ test("组织关系仅向下暴露一级，写入响应、报告和文件不泄�
     assert.deepEqual(await member(sibling).children(), []);
     await attach(leaf.id, middle.id);
     await stop(); await start();
+    assert((await member(middle).observe()).presence.every((p) => p.status === "unknown"));
     assert.deepEqual((await member(middle).children()).map((m) => m.id), [leaf.id]);
     assert.equal((await member(middle).observe()).boards[0].announcement, "末级实验结论");
     assert(!JSON.stringify(await member(leaf).observe()).includes(root.id));

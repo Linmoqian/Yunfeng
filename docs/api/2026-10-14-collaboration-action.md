@@ -30,6 +30,7 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 | links | input | Link[] | board | — | 最多 16 条 | 整体替换链接集合 |
 | links[].title | input | string | 是 | — | 1–80 字符，无控制字符 | 标题 |
 | relation | input | {memberId:UUID,parentId:UUID/null} | relation | parentId 可省略为 null | 本机托管的成员，同队父成员，不得自指成环 | 管理员设置直属上级，null 表示解除 |
+| presence | input | status:string | status | 必填 | online/working/idle/offline | 仅续报当前安装成员的状态；须启用，不允许指定其他成员 |
 | member | input | MemberInput | member | — | {id:UUID,profile:MemberProfile} | 创建或整体更新本机托管成员，完整字段见[成员契约](2026-10-17-team-node.md#成员接口与资料) |
 | links[].url | input | string | 是 | — | 规范化后最多 2048 字节，HTTP/HTTPS、有主机、无登录凭据 | 链接 |
 
@@ -47,6 +48,7 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 | savedTeams | Team[] | 是 | 最多 32 个 | 可恢复的本地团队 |
 | messages | Message[] | 是 | 当前团队最近 200 条，按存储序号升序 | 每条含 id/name/text/createdAt |
 | relations | {memberId:string,parentId:string/null}[] | 是 | 当前团队显式关系，空团队[] | 管理员组织视图，未出现的成员为根 |
+| presence | Presence[] | 是 | 当前团队每个成员一条，空团队[] | 状态租约，不持久化；旧服务可能省略，前端按未知处理 |
 | participants | MemberCard[] | 是 | 当前团队最多128个，空团队为[] | 身份铭牌、权限与助手/机器人资料 |
 | messages[].memberId | string/null | 是 | 新消息绑定本机成员 UUID；历史消息可空 | 作者身份 |
 | messages[].createdAt | number | 是 | Unix 毫秒，非负 | 本机入库时间，不作为跨设备排序依据 |
@@ -88,6 +90,9 @@ capability 仅匹配本地 main 窗口，不授权远程页面。command 再次�
 - 缓存：前端只展示 Rust 快照；打开团队面板及手动刷新重新查询。
 - 组织界面：通讯录以独立成员为入口，每次仅展开所选成员与直属下级。铭牌点击展示身份、权限、助手或设备资料，箭头切换直属视角，顶部选择器可定位成员。主窗口是管理员视图；成员 API 仍按自身与直属范围过滤，不因此扩大访问范围。
 - 关系编辑：本机托管成员的铭牌中选择直属上级并显式保存；选择“独立成员”提交 parentId=null。前端排除自身和后代候选，Rust 再校验同队、宿主和循环。保存中冻结选择与重复提交，失败保留选择；成功用完整返回快照更新图。远端成员只读，资料及关系需在所属节点维护。
+- 在线状态：Presence 为 `{memberId,status,observedAt,expiresAt}`。status 为 online/working/idle/offline/unknown；后两时间为服务接收时的 Unix 毫秒与90秒后到期时刻，未上报均为 null。续报覆盖同一成员的内存租约，不写 SQLite/事件日志；单调时钟判过期，服务重启恢复 unknown。重复请求仅刷新有效期。权限不从状态推导。
+- 本机人类成员：界面就绪后约20秒续报；交互时在线，输入后15秒内为工作中，60秒无操作或窗口失焦/隐藏为空闲。仅发送状态枚举，不发送输入内容。心跳串行、有界，临时失败静默等待下一次，前台操作等当前心跳结束后优先执行。铭牌在租约过期时转离线；停用铭牌覆盖租约显示停用。助手、程序和机器人需主动上报，不把资料登记或邻居可达解释成在线。
+- 状态展示：工作中仅使用固定尺寸细条的缓慢明暗动画；状态切换使用胶囊原有淡入，不按心跳重播；减少动态效果时保持静态。空闲、离线和未知不循环动画。
 - 事件或 channel：不适用，本批没有网络或推送订阅。
 - Webhook 或 WebSocket：不适用。
 

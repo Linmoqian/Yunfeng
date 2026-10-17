@@ -15,6 +15,9 @@ use serde_json::{json, Value};
 enum MemberAction {
     Identity {},
     Snapshot {},
+    Presence {
+        status: crate::presence::Activity,
+    },
     Children {},
     Message {
         id: String,
@@ -87,6 +90,11 @@ impl Node {
         let (permission, command) = match action {
             MemberAction::Identity {} => return Ok(super::member_view::identity(&member)),
             MemberAction::Snapshot {} => return self.member_snapshot(&member),
+            MemberAction::Presence { status } => {
+                let team = self.team()?;
+                self.store.presence.report(&team, &member.id, status);
+                return self.member_snapshot(&member);
+            }
             MemberAction::Children {} => {
                 return Ok(Value::Array(
                     self.member_children(&member)?
