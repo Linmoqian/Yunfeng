@@ -1,12 +1,12 @@
 /* 开发目录采用现有字体与低对比边界，样例不进入正式业务导航。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 .page { height: 100%; overflow: auto; padding: 36px clamp(20px, 5vw, 72px); background: var(--yf-bg-surface); }
 .header { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; max-width: 1040px; margin: 0 auto 32px; }
 .header > a { display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--yf-radius-sm); color: var(--yf-text-secondary); }
 .header strong { font: 24px var(--font-display); }
-.header > span:last-child { margin-left: auto; color: var(--yf-text-tertiary); font-size: 12px; }
+.header > button { margin-left: auto; padding: 4px 10px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-pill); background: transparent; color: var(--yf-text-secondary); font: 12px var(--font-body); cursor: pointer; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 1040px; margin: auto; }
 .sample { min-width: 0; padding: 22px 24px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-canvas); }
 .sample h2 { margin: 0 0 18px; font-size: 13px; font-weight: 500; }
@@ -21,3 +21,9 @@
 .block { position: relative; display: flex; align-items: center; gap: 7px; min-height: 52px; padding: 12px; border: 1px solid var(--yf-border-divider); border-radius: 13px; background: var(--yf-bg-canvas); font-size: 12px; }
 .footer { max-width: 1040px; margin: 24px auto; color: var(--yf-text-tertiary); font-size: 11px; }
 @media (max-width: 700px) { .grid, .dragStates { grid-template-columns: minmax(0, 1fr); } .header > span:last-child { display: none; } }
+
+.navigation { display: flex; gap: 8px; flex-wrap: wrap; max-width: 1040px; margin: -12px auto 20px; }
+.navigation a { padding: 4px 11px; border-radius: var(--yf-radius-pill); color: var(--yf-text-secondary); font-size: 12px; text-decoration: none; background: var(--yf-bg-canvas); }
+.navigation a:hover { color: var(--yf-brand-primary); }
+.navigation a:focus-visible, .header > button:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 3px; }
+.sample { scroll-margin-top: 20px; }

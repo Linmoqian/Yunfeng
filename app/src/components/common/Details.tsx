@@ -1,8 +1,9 @@
 /* 紧凑详情入口复用 Ant Design 的折叠、键盘和焦点行为。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { Collapse, ConfigProvider } from "antd";
+import { Ellipsis } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { motionTiming } from "./motion/presets";
 import { useYunfengMotion } from "./motion/useYunfengMotion";
@@ -16,5 +17,5 @@ export function Details({ label = "详细过程", children, className, defaultOp
   const theme = useMemo(() => ({ token: { motion: !reduced, motionDurationSlow: `${motionTiming.enter}s` } }), [reduced]);
   return <ConfigProvider theme={theme}><Collapse ghost size="small" defaultActiveKey={defaultOpen ? ["details"] : []}
     className={`${styles.details} ${interaction.disclosure} ${className ?? ""}`} onChange={(keys) => onOpenChange?.(keys.includes("details"))}
-    items={[{ key: "details", label, children }]} /></ConfigProvider>;
+    items={[{ key: "details", showArrow: false, label: <span className={styles.trigger} title={typeof label === "string" ? label : undefined}><Ellipsis size={16} aria-hidden="true" /><span className={styles.accessibleLabel}>{label}</span></span>, children }]} /></ConfigProvider>;
 }

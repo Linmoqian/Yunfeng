@@ -1,6 +1,6 @@
 # 云枫 UI 使用规范
 
-云枫的动画库、组件库与交互库位于 `app/src/components/common/`，共用入口为 `index.ts`。这是项目内部模块，使用已有依赖；组件在科研、团队和会话功能中实际复用。开发环境 `/dev/ui` 提供可操作样例，生产构建不注册此路由。
+云枫的动画库、组件库与交互库位于 `app/src/components/common/`，共用入口为 `index.ts`。这是项目内部模块，使用已有依赖；组件在科研、团队和会话功能中实际复用。开发环境 [/dev/ui](http://localhost:5173/dev/ui) 是专门的 UI 审阅页，提供胶囊、进度、详情、加载与拖放分区导航，以及计数和反馈样例重置。生产构建不注册此路由。
 
 ## 视觉与动效
 
@@ -33,7 +33,7 @@ const { reduced, transition } = useYunfengMotion();
 
 - `Capsule` 默认是浅边框胶囊；`tone` 为 neutral / accent / success / warning / danger，由业务选择。`status` 仅保留业务标识，不推断通过与失败。`value` 是触发反馈的事实键，相同值不重播；数字与正文不插值。`appearance="plain"` 供已有布局兼容，`animateOnMount={false}` 关闭初次出现反馈。
 - `ProgressCapsule` 仅接受有限、非负计数；总量必须大于 0，且当前值不大于总量。无总量只显示计数，无效输入不渲染。进度来自权威业务事实。
-- `Details` 复用 Ant Design Collapse 的键盘与焦点行为，默认折叠，事实更新保留展开状态；支持 `defaultOpen` 和 `onOpenChange`。需确认的副作用不能藏在详情内。
+- `Details` 复用 Ant Design Collapse 的键盘与焦点行为，默认折叠，以省略号显示入口，`label` 保留可访问名称与悬停提示，事实更新保留展开状态；支持 `defaultOpen` 和 `onOpenChange`。需确认的副作用不能藏在详情内。
 - `MapleCloudLoading` 是装饰动画，`compact` 用于状态胶囊。调用方提供 `role="status"` 及等待文字；工作区仍只保留一个统一加载入口。
 
 ## 交互契约
@@ -44,7 +44,7 @@ const { reduced, transition } = useYunfengMotion();
 
 `useGestureCancellation(active, onCancel)` 只在手势期间监听 Escape 和窗口失焦；忽略中文组字中的 Escape，回调始终为最新值，退出与卸载移除监听。组件的 pointercancel 仍应调用同一取消逻辑。
 
-`dragStyles` 导出 slot / floating / handle / target / hint / dropChip。样式通过 data-source、data-candidate、data-over 和 data-locked 表达反馈，均为 `"true"` 时激活。候选与落点由业务验证；视觉样式不会变更关系或授予权限。
+`dragStyles` 导出 slot / floating / handle / target / hint / dropChip。样式通过 data-source、data-candidate、data-over 和 data-locked 表达反馈，均为 `"true"` 时激活。候选、原位虚影与落点以半透明底色呈现，不使用虚线；候选与落点由业务验证；视觉样式不会变更关系或授予权限。
 
 ```tsx
 import { dragStyles, useGestureCancellation } from "../../components/common";
