@@ -4888,9 +4888,13 @@ dependencies = [
 name = "yunfeng-team"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
+ "httparse",
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
+ "socket2",
  "url",
  "uuid",
 ]

@@ -11,6 +11,9 @@ import styles from "./TeamWorkspace.module.css";
 import { Capsule } from "./Capsule";
 
 export function TeamNoticeBoard({ state }: { state: TeamWorkspace }) {
+  return <NoticeBoard key={`${state.snapshot?.installationId}:${state.team?.id}`} state={state} />;
+}
+function NoticeBoard({ state }: { state: TeamWorkspace }) {
   const [editing, setEditing] = useState(false), [draft, setDraft] = useState("");
   const [failed, setFailed] = useState(false), [saving, setSaving] = useState(false), [saved, setSaved] = useState(false);
   const inFlight = useRef(false);
@@ -35,6 +38,6 @@ export function TeamNoticeBoard({ state }: { state: TeamWorkspace }) {
         {failed && <p className={styles.saveError} role="alert">保存未完成，草稿已保留。请重试。</p>}<div className={styles.boardActions}><Button type="text" size="small" icon={<X size={13} />} disabled={state.busy || saving} onClick={() => setEditing(false)}>取消</Button><Button type="primary" size="small" htmlType="submit" icon={<Check size={13} />} disabled={!dirty || state.busy} loading={saving}>保存</Button></div>
       </form> : state.board ? <p className={styles.boardText}>{state.board}</p> : <div className={styles.boardEmpty}><strong>暂无公告</strong><p>{state.team ? "发布通知、约定或本周重点。" : "创建团队后，可在此发布公告。"}</p></div>}
     </motion.div></AnimatePresence>
-    <footer className={styles.boardFooter}><span />仅本地可见</footer>
+    <footer className={styles.boardFooter}><span />{state.connection ? "通过节点同步" : "仅本地可见"}</footer>
   </section>;
 }

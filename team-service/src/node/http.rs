@@ -32,7 +32,7 @@ fn receive(
         .map_err(|_| input())?;
         if let httparse::Status::Complete(offset) = parsed {
             if offset > HEADER_LIMIT
-                || (response && reply.code != Some(200))
+                || (response && !matches!(reply.code, Some(200 | 400 | 403)))
                 || (!response && request.method != Some("POST"))
             {
                 return Err(input());
@@ -77,7 +77,11 @@ fn receive(
             break (
                 offset,
                 length,
-                request.path.unwrap_or("").to_owned(),
+                if response {
+                    reply.code.unwrap_or_default().to_string()
+                } else {
+                    request.path.unwrap_or("").to_owned()
+                },
                 token.unwrap_or_default(),
             );
         }
@@ -164,7 +168,16 @@ pub fn post(
     token: &str,
     body: &impl serde::Serialize,
 ) -> Result<Value> {
-    let end = Instant::now() + Duration::from_secs(5);
+    post_with_budget(address, route, token, body, Duration::from_secs(5))
+}
+pub(super) fn post_with_budget(
+    address: &str,
+    route: &str,
+    token: &str,
+    body: &impl serde::Serialize,
+    budget: Duration,
+) -> Result<Value> {
+    let end = Instant::now() + budget;
     let address = super::types::address(address)?;
     secret(token)?;
     let socket: SocketAddr = address
@@ -181,8 +194,19 @@ pub fn post(
     let header = format!("POST {route} HTTP/1.1\r\nHost: {socket}\r\nAuthorization: Bearer {token}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", data.len());
     write_before(&mut stream, header.as_bytes(), end)?;
     write_before(&mut stream, &data, end)?;
-    let (_, _, bytes) = receive(&mut stream, true, end).map_err(network)?;
-    serde_json::from_slice(&bytes).map_err(|_| network("json"))
+    let (status, _, bytes) = receive(&mut stream, true, end).map_err(network)?;
+    let value: Value = serde_json::from_slice(&bytes).map_err(|_| network("json"))?;
+    if status == "200" {
+        return Ok(value);
+    }
+    Err(match value["error"]["code"].as_str() {
+        Some("NODE_FORBIDDEN" | "COLLAB_FORBIDDEN") => denied(),
+        Some("COLLAB_LIMIT") => Error::new("COLLAB_LIMIT", "节点达到操作限额"),
+        Some("COLLAB_INPUT") => input(),
+        Some("COLLAB_NO_TEAM") => Error::new("COLLAB_NO_TEAM", "节点尚未创建或加入团队"),
+        Some("NODE_CONFLICT") => Error::new("NODE_CONFLICT", "节点记录与本次操作冲突"),
+        _ => network("remote failure"),
+    })
 }
 pub fn listener(address: SocketAddr) -> Result<TcpListener> {
     if !address.ip().is_loopback() {

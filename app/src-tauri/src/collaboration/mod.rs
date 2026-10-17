@@ -1,11 +1,34 @@
 //! 协作 IPC 边界：数据库工作交给现有阻塞池，一次只接纳一个操作。
 //! Created on 2026-10-13
 //! @author: https://github.com/Linmoqian
+mod backend;
 pub mod model;
-use yunfeng_team as store;
+mod node;
 #[cfg(test)]
 mod tests;
-use model::{Action, Error, Result, Snapshot};
+use model::{Action, Error, Result};
+use serde::Deserialize;
+use serde_json::Value;
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum Input {
+    Node(NodeInput),
+    Local(Action),
+}
+#[derive(Deserialize)]
+#[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
+pub enum NodeInput {
+    #[serde(rename = "nodeConnect")]
+    Connect {
+        address: String,
+        #[serde(default)]
+        directory: Option<String>,
+    },
+    #[serde(rename = "nodeDisconnect")]
+    Disconnect {},
+    #[serde(rename = "nodeRefresh")]
+    Refresh {},
+}
 use std::{
     path::PathBuf,
     sync::{
@@ -13,10 +36,11 @@ use std::{
         Arc, Mutex,
     },
 };
+use tauri::Manager;
 
 pub struct Runtime {
     path: PathBuf,
-    store: Arc<Mutex<Option<store::Store>>>,
+    backend: Arc<Mutex<backend::Backend>>,
     busy: Arc<AtomicBool>,
 }
 struct Permit(Arc<AtomicBool>);
@@ -35,7 +59,7 @@ impl Runtime {
     pub fn new(path: PathBuf) -> Self {
         Self {
             path,
-            store: Arc::new(Mutex::new(None)),
+            backend: Arc::new(Mutex::new(backend::Backend::default())),
             busy: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -49,24 +73,36 @@ impl Runtime {
 
 #[tauri::command]
 pub async fn collaboration_action(
-    input: Action,
+    mut input: Input,
     window: tauri::WebviewWindow,
     state: tauri::State<'_, Runtime>,
-) -> Result<Snapshot> {
+) -> Result<Value> {
     authorize(window.label())?;
     let permit = state.admit()?;
-    let store = state.store.clone();
+    let backend = state.backend.clone();
+    let app = window.app_handle().clone();
     let path = state.path.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
-        let mut guard = store.lock().map_err(Error::storage)?;
-        if guard.is_none() {
-            *guard = Some(store::Store::open(&path)?);
+        if let Input::Node(NodeInput::Connect { directory, .. }) = &mut input {
+            if directory.is_none() {
+                use tauri_plugin_dialog::DialogExt;
+                let selected = app
+                    .dialog()
+                    .file()
+                    .set_title("选择团队节点数据目录")
+                    .blocking_pick_folder()
+                    .ok_or_else(|| Error::new("COLLAB_CANCELLED", "已取消连接"))?;
+                *directory = Some(
+                    selected
+                        .into_path()
+                        .map_err(Error::storage)?
+                        .to_string_lossy()
+                        .into_owned(),
+                );
+            }
         }
-        guard
-            .as_mut()
-            .ok_or_else(|| Error::new("COLLAB_STORAGE", "协作存储未就绪"))?
-            .action(input)
+        backend.lock().map_err(Error::storage)?.apply(input, &path)
     })
     .await
     .map_err(Error::storage)?

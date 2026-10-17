@@ -11,6 +11,7 @@ export type { MemberCard, MemberProfile, MemberKind, MemberAccess } from "../../
 export interface CollaborationLink { title: string; url: string }
 export interface LocalTeam { id: string; name: string; owner: string; members: string[] }
 export interface CollaborationSnapshot {
+  connection?: { id: string; name: string; address: string; peerFailures: number };
   presence?: MemberPresence[];
   installationId: string;
   mode: "empty" | "local";
@@ -24,6 +25,8 @@ export interface CollaborationSnapshot {
   relations: { memberId: string; parentId: string | null }[];
 }
 export type CollaborationAction =
+  | { action: "nodeConnect"; address: string; directory?: string }
+  | { action: "nodeDisconnect" | "nodeRefresh" }
   | { action: "presence"; status: MemberActivity }
   | { action: "relation"; relation: { memberId: string; parentId: string | null } }
   | { action: "snapshot" | "leave" }
@@ -38,6 +41,6 @@ export function collaborationAction(input: CollaborationAction): Promise<Collabo
   return invoke<CollaborationSnapshot>("collaboration_action", { input });
 }
 export function collaborationError(error: unknown): string {
-  if (error && typeof error === "object" && "code" in error && typeof error.code === "string" && error.code.startsWith("COLLAB_") && "message" in error && typeof error.message === "string") return error.message;
+  if (error && typeof error === "object" && "code" in error && typeof error.code === "string" && (error.code.startsWith("COLLAB_") || error.code.startsWith("NODE_")) && "message" in error && typeof error.message === "string") return error.code === "COLLAB_CANCELLED" ? "" : error.message;
   return "协作服务调用失败，请在桌面应用中重试";
 }

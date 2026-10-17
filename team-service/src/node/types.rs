@@ -24,6 +24,9 @@ pub struct Invitation {
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Command {
+    Presence {
+        status: crate::presence::Activity,
+    },
     Snapshot {},
     Relation {
         relation: crate::relations::Relation,

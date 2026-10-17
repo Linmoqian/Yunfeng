@@ -231,3 +231,26 @@ fn presence_batch_validates_host_and_limits_before_committing_any_events() {
     assert!(presence::merge(&mut node.store, &member, &batch, std::time::Duration::ZERO).is_err());
     assert!(node.store.snapshot().unwrap().messages.is_empty());
 }
+
+#[test]
+fn control_presence_targets_only_host_member_without_growing_events() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut node = node(dir.path());
+    command(&mut node, json!({"action":"create","name":"桌面状态"}));
+    let team = node.team().unwrap();
+    let count = log::events(&node.store, &team).unwrap().len();
+    let view = command(&mut node, json!({"action":"presence","status":"working"}));
+    assert_eq!(view["snapshot"]["presence"][0]["status"], "working");
+    assert_eq!(
+        view["snapshot"]["presence"][0]["memberId"],
+        node.identity.id
+    );
+    assert_eq!(log::events(&node.store, &team).unwrap().len(), count);
+    assert!(node
+        .handle(
+            "/v1/local",
+            &node.control.clone(),
+            json!({"action":"presence","status":"online","memberId":uuid::Uuid::new_v4().to_string()})
+        )
+        .is_err());
+}

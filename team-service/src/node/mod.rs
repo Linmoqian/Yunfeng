@@ -1,6 +1,7 @@
 //! 可单独启动的本机节点；每个实例拥有自己的数据库和对等连接，无中心服务。
 //! Created on 2026-10-17
 //! @author: https://github.com/Linmoqian
+pub mod client;
 mod commands;
 mod http;
 mod log;

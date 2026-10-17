@@ -15,6 +15,15 @@ impl Node {
     }
     pub(super) fn command_as(&mut self, command: Command, sender: Option<Member>) -> Result<Value> {
         match command {
+            Command::Presence { status } => {
+                let team = self.team()?;
+                let member =
+                    members::find(&self.store.db, &team, &self.identity.id)?.ok_or_else(denied)?;
+                if !member.profile.enabled {
+                    return Err(denied());
+                }
+                super::presence::report(&mut self.store, &team, &member, status)?;
+            }
             Command::Shutdown {} => {
                 self.stopped = true;
                 return Ok(json!({"stopping":true}));

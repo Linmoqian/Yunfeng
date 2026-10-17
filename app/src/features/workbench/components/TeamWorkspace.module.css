@@ -73,3 +73,17 @@
 @media (max-width: 650px) { .toolbar { padding-left: 12px; gap: 6px; } .localStatus { font-size: 10px; padding-inline: 6px; } .chatLog { padding-inline: 14px; } }
 @media (pointer: coarse) { .sectionToggle { min-height: 44px; } .boardHeader > button, .actions :global(.ant-btn), .boardActions :global(.ant-btn), .createButton:global(.ant-btn) { min-height: 44px; min-width: 44px; } }
 @media (prefers-reduced-motion: reduce) { .sectionToggle, .chevron { transition: none; } }
+
+.nodeConnection { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.nodeConnection strong { font-weight: 500; font-size: 13px; }
+.nodeConnection small { font-family: var(--font-mono); color: var(--yf-text-tertiary); font-size: 11px; overflow-wrap: anywhere; }
+.nodeConnection :global(.ant-btn) { font-size: 12px; border-radius: 999px; }
+.viewToggle { display: inline-flex; align-items: center; flex: none; gap: 5px; margin-left: auto; padding: 4px 8px; border: 0; border-radius: 999px; font: inherit; font-size: 11px; color: var(--yf-text-secondary); background: transparent; cursor: pointer; transition: background 160ms ease, color 160ms ease; }
+.viewToggle:hover, .viewToggle[aria-pressed="true"] { color: var(--yf-brand-primary); background: var(--yf-bg-surface); }
+.viewToggle:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
+.viewToggle + .localStatus { margin-left: 0; }
+.organizationCanvas { display: flex; flex: 1; min-height: 0; overflow: auto; padding: 36px 24px; }
+.organizationContent { width: 100%; max-width: 620px; margin: auto; }
+.organizationContent > .hint { margin: 16px 0 0; text-align: center; }
+@media (max-width: 650px) { .viewToggle > span { display: none; } .organizationCanvas { padding: 20px 14px; } }
+@media (prefers-reduced-motion: reduce) { .viewToggle { transition: none; } }
