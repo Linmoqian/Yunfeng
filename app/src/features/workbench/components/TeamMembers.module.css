@@ -73,3 +73,18 @@
 @container (max-width: 230px) { .branches .memberStatus { min-width: 0; width: 16px; padding-inline: 1px; border-color: transparent; } .branches .memberStatus > span:last-child { display: none; } }
 @media (pointer: coarse) { .card, .editButton:global(.ant-btn), .heading button, .focusButton:global(.ant-btn), .relationControls > :global(.ant-btn), .detailHeading :global(.ant-btn) { min-height: 44px; min-width: 44px; } }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+.dragSlot { position: relative; min-width: 0; border-radius: 13px; }
+.dragMember { position: relative; border-radius: inherit; }
+.dragHandle { display: grid; place-items: center; align-self: stretch; flex: none; width: 18px; padding-left: 3px; color: var(--yf-text-tertiary); opacity: .35; cursor: grab; touch-action: none; user-select: none; transition: opacity 140ms ease; }
+.member:hover .dragHandle { opacity: .85; }
+.dragHandle[data-locked="true"] { cursor: default; opacity: .2; }
+.dragSlot[data-source="true"]::before { content: ""; position: absolute; inset: 0; border: 1px dashed color-mix(in srgb, var(--yf-brand-primary) 30%, transparent); border-radius: inherit; background: color-mix(in srgb, var(--yf-brand-primary) 4%, transparent); }
+.dragSlot[data-source="true"] > .dragMember { filter: drop-shadow(0 9px 12px color-mix(in srgb, var(--yf-brand-primary) 15%, transparent)); }
+.organization[data-dragging="true"] { user-select: none; }
+.dragSlot[data-candidate="true"] > .dragMember > .member, .graphOrigin[data-candidate="true"] { outline: 1px dashed color-mix(in srgb, var(--yf-brand-primary) 30%, transparent); outline-offset: 2px; }
+.dragSlot[data-over="true"] > .dragMember > .member, .graphOrigin[data-over="true"] { outline: 1px solid var(--yf-brand-primary); background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-canvas)); }
+.dropPreview { position: absolute; z-index: 6; pointer-events: none; right: 10px; bottom: -9px; padding: 1px 7px; border: 1px solid color-mix(in srgb, var(--yf-brand-primary) 30%, var(--yf-border-divider)); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-brand-primary); font-size: 10px; line-height: 16px; box-shadow: 0 2px 8px #00000006; animation: dropHint 140ms ease-out both; }
+@keyframes dropHint { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .dropPreview { animation: none; } .dragHandle { transition: none; } }
+.rootDrop { padding: 2px 8px; border-style: dashed !important; color: var(--yf-brand-primary); }
+.rootDrop[data-over="true"] { border-style: solid !important; background: color-mix(in srgb, var(--yf-brand-primary) 8%, transparent); }

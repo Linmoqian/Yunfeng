@@ -2,39 +2,21 @@
  * Created on 2026-10-17
  * @author: https://github.com/Linmoqian
  */
-import { Button, Popover, Select } from "antd";
-import { ArrowDownRight, Bot, Cpu, Network, UserRound, Workflow } from "lucide-react";
+import { Select } from "antd";
+import { Network } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { TeamWorkspace } from "../hooks/useTeamWorkspace";
 import type { MemberCard } from "../services/collaborationService";
+import { useOrganizationDrag } from "../hooks/useOrganizationDrag";
 import { Capsule } from "./Capsule";
-import { kindLabels, robotLabels } from "./MemberEditor";
-import { TeamMemberDetails } from "./TeamMemberDetails";
-import { MemberStatus } from "./MemberStatus";
+import { DraggableMember } from "./DraggableMember";
 import styles from "./TeamMembers.module.css";
-const icons = { human: UserRound, agent: Bot, program: Cpu, robot: Workflow };
-
-function Nameplate({ member, state, edit, focus, root = false }: { member: MemberCard; state: TeamWorkspace; edit: (member: MemberCard) => void; focus: (id: string) => void; root?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const close = () => { setOpen(false); trigger.current?.focus(); };
-  const Icon = icons[member.profile.kind];
-  const count = (state.relations ?? []).filter((edge) => edge.parentId === member.id).length;
-  return <div className={styles.member} data-disabled={!member.profile.enabled} data-root={root}>
-    <Popover open={open} onOpenChange={setOpen} destroyOnHidden trigger="click" placement="rightTop" content={<TeamMemberDetails key={member.id} member={member} state={state} edit={() => { setOpen(false); edit(member); }} close={close} />}>
-      <button ref={trigger} type="button" className={styles.card} title={member.profile.name} aria-label={`查看成员：${member.profile.name}`} aria-expanded={open}>
-        <span className={styles.avatar}><Icon size={16} /></span><span className={styles.copy}><strong>{member.profile.name}</strong><small>{member.profile.summary || (member.profile.robot ? robotLabels[member.profile.robot.kind] : kindLabels[member.profile.kind])}</small></span>
-        <MemberStatus enabled={member.profile.enabled} presence={state.presence?.find((item) => item.memberId === member.id)} />
-      </button>
-    </Popover>
-    {!root && <Button type="text" size="small" className={styles.focusButton} aria-label={`查看直属成员：${member.profile.name}`} title={`直属成员 ${count}`} icon={<ArrowDownRight size={13} />} onClick={() => focus(member.id)} />}
-  </div>;
-}
 
 export function TeamOrganization({ state, edit }: { state: TeamWorkspace; edit: (member: MemberCard) => void }) {
   const [selected, setSelected] = useState("");
   const reduced = useReducedMotion();
+  const drag = useOrganizationDrag(state);
   const members = state.participants ?? [], relations = state.relations ?? [];
   const current = members.find((member) => member.id === selected);
   const children = members.filter((member) => {
@@ -42,19 +24,20 @@ export function TeamOrganization({ state, edit }: { state: TeamWorkspace; edit: 
     return current ? parent === current.id : !parent;
   });
   const transition = { duration: reduced ? 0 : 0.16, ease: "easeOut" as const };
-  return <section className={styles.organization} aria-label="直属成员关系图">
+  return <section ref={drag.scope} className={styles.organization} aria-label="直属成员关系图" data-dragging={!!drag.active}>
     <div className={styles.graphToolbar}>
-      <Select virtual={false} aria-label="组织视角" size="small" variant="borderless" value={current?.id ?? ""} onChange={setSelected} popupMatchSelectWidth={230} showSearch optionFilterProp="label" options={[{ value: "", label: "独立成员" }, ...members.map((member) => ({ value: member.id, label: member.profile.name }))]} />
-      <span className={styles.chips}><Capsule value={children.length}>{current ? "直属 " : "成员 "}{children.length}</Capsule></span>
+      <Select virtual={false} aria-label="组织视角" size="small" variant="borderless" value={current?.id ?? ""} disabled={!!drag.active || drag.saving} onChange={setSelected} popupMatchSelectWidth={230} showSearch optionFilterProp="label" options={[{ value: "", label: "独立成员" }, ...members.map((member) => ({ value: member.id, label: member.profile.name }))]} />
+      <span className={styles.chips}>{drag.active && drag.candidates.has("") ? <span className={styles.rootDrop} data-drop-member="" data-over={drag.target === ""}>独立成员</span> : <Capsule value={children.length}>{current ? "直属 " : "成员 "}{children.length}</Capsule>}</span>
     </div>
     <AnimatePresence mode="wait" initial={false}>
       <motion.div key={current?.id ?? "roots"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={transition}>
-        {current ? <Nameplate member={current} root state={state} edit={edit} focus={setSelected} /> : <div className={styles.graphOrigin}><Network size={14} /><span>{state.team?.name ?? "团队"}</span></div>}
+        {current ? <DraggableMember member={current} root state={state} edit={edit} focus={setSelected} drag={drag} /> : <div className={styles.graphOrigin} data-drop-member="" data-candidate={!!drag.active && drag.candidates.has("")} data-over={drag.target === ""}><Network size={14} /><span>{drag.target === "" ? "设为独立成员" : state.team?.name ?? "团队"}</span></div>}
         <ul className={styles.branches} aria-label={current ? `${current.profile.name}的直属成员` : "独立成员"}>
-          {children.map((member) => <li key={member.id}><Nameplate member={member} state={state} edit={edit} focus={setSelected} /></li>)}
+          <AnimatePresence initial={false}>{children.map((member) => <motion.li layout="position" key={member.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: reduced ? 1 : 0.98 }} transition={transition}><DraggableMember member={member} state={state} edit={edit} focus={setSelected} drag={drag} /></motion.li>)}</AnimatePresence>
         </ul>
         {!children.length && <p className={styles.graphEmpty}>{current ? "暂无直属成员" : "暂无独立成员"}</p>}
       </motion.div>
     </AnimatePresence>
+    {drag.error && <p role="alert" className={styles.error}>{drag.error}</p>}
   </section>;
 }
