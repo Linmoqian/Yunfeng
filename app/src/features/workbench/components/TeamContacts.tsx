@@ -8,6 +8,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useId, useState, type ReactNode } from "react";
 import type { TeamWorkspace } from "../hooks/useTeamWorkspace";
 import styles from "./TeamWorkspace.module.css";
+import { TeamMemberList } from "./TeamMemberList";
 import shell from "./WorkspaceShell.module.css";
 
 function TeamSection({ title, icon, initialOpen = false, children }: { title: string; icon: ReactNode; initialOpen?: boolean; children: ReactNode }) {
@@ -35,8 +36,8 @@ export function TeamContacts({ state, onBack }: { state: TeamWorkspace; onBack: 
       </form></TeamSection>
       {!!state.snapshot?.savedTeams.length && <TeamSection title="本地团队" icon={<Users size={15} />} initialOpen>{state.snapshot.savedTeams.map((team) => <Button key={team.id} type="text" block disabled={unavailable} className={styles.savedTeam} onClick={() => void state.activate(team.id)}>{team.name}<ChevronRight size={13} /></Button>)}</TeamSection>}
     </> : <>
-      <div className={styles.teamName}><span className={styles.avatar}><Users size={17} /></span><strong>{state.team.name}</strong><span className={styles.count}>{state.team.members.length}</span></div>
-      {state.team.members.map((member) => <div key={member} className={styles.member}><span className={styles.memberDot} /><span>{member}</span><small>你</small></div>)}
+      <div className={styles.teamName}><span className={styles.avatar}><Users size={17} /></span><strong>{state.team.name}</strong><span className={styles.count}>{state.participants?.length ?? state.team.members.length}</span></div>
+      <TeamMemberList state={state} />
       <div className={styles.actions}><Button type="text" size="small" disabled={unavailable} icon={<RotateCw size={14} />} onClick={() => void state.reload()}>刷新</Button>
         <Button type="text" size="small" disabled={unavailable} icon={<LogOut size={14} />} onClick={() => modal.confirm({ title: "关闭本地团队？", content: "消息和公告会保留，可以从本地团队列表恢复。", okText: "关闭团队", cancelText: "取消", onOk: async () => { if (!await state.leave()) throw new Error("关闭失败，请查看行内提示"); } })}>关闭团队</Button>
       </div>

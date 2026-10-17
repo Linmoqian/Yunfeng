@@ -126,7 +126,7 @@ pub fn respond(stream: &mut TcpStream, result: Result<Value>) -> Result<()> {
     let (status, body) = match result {
         Ok(value) => (200, value),
         Err(error) => (
-            if error.code == "NODE_FORBIDDEN" {
+            if matches!(error.code, "NODE_FORBIDDEN" | "COLLAB_FORBIDDEN") {
                 403
             } else {
                 400

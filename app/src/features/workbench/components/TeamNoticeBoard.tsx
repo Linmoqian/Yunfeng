@@ -19,7 +19,7 @@ export function TeamNoticeBoard({ state }: { state: TeamWorkspace }) {
   const reduced = useReducedMotion();
   useEffect(() => { if (wasEditing.current && !editing) editButton.current?.focus(); wasEditing.current = editing; }, [editing]);
   async function save() {
-    if (!state.team || state.busy || inFlight.current || !dirty) return;
+    if (state.canEditBoard === false || !state.team || state.busy || inFlight.current || !dirty) return;
     inFlight.current = true; setSaving(true); setFailed(false); setSaved(false);
     try {
       if (await state.saveBoard(draft, state.links)) { setEditing(false); setSaved(true); } else setFailed(true);
@@ -28,7 +28,7 @@ export function TeamNoticeBoard({ state }: { state: TeamWorkspace }) {
   }
   return <section className={styles.noticeBoard} aria-label="团队告示牌">
     <header className={styles.boardHeader}><span className={styles.boardIcon}><Megaphone size={16} /></span><h3>团队公告</h3><span className={styles.boardTag}>告示牌</span><span className={styles.boardFeedback} role="status" aria-live="polite">{saving ? "保存中…" : editing && dirty ? "未保存" : saved && !editing ? <Capsule className={styles.savedBadge}><Check size={11} />已保存</Capsule> : ""}</span>
-      {!editing && <Button ref={editButton} type="text" size="small" title="编辑公告" aria-label="编辑团队公告" icon={<Pencil size={14} />} disabled={!state.team || state.busy} onClick={() => { setDraft(state.board); setFailed(false); setSaved(false); setEditing(true); }} />}
+      {!editing && <Button ref={editButton} type="text" size="small" title="编辑公告" aria-label="编辑团队公告" icon={<Pencil size={14} />} disabled={!state.team || state.busy || state.canEditBoard === false} onClick={() => { setDraft(state.board); setFailed(false); setSaved(false); setEditing(true); }} />}
     </header>
     <AnimatePresence mode="wait" initial={false}><motion.div key={editing ? "editing" : "reading"} initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.12 }}>
       {editing ? <form className={styles.boardEditor} onKeyDown={(event) => { if (event.key === "Escape" && !event.nativeEvent.isComposing && !state.busy && !saving) { event.stopPropagation(); setEditing(false); } if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void save(); } }} onSubmit={(event) => { event.preventDefault(); void save(); }}><Input.TextArea disabled={saving} autoFocus aria-label="团队公告" autoSize={{ minRows: 4, maxRows: 10 }} maxLength={4000} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="写下团队需要知道的事…" />

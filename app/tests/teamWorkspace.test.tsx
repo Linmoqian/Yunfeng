@@ -10,6 +10,7 @@ import type { TeamWorkspace } from "../src/features/workbench/hooks/useTeamWorks
 import { TeamChat } from "../src/features/workbench/components/TeamChat";
 import { TeamContacts } from "../src/features/workbench/components/TeamContacts";
 import { TeamNoticeBoard } from "../src/features/workbench/components/TeamNoticeBoard";
+import { MemberEditor } from "../src/features/workbench/components/MemberEditor";
 vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 vi.stubGlobal("matchMedia", () => ({ matches: true, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
 afterAll(() => vi.unstubAllGlobals());
@@ -91,4 +92,19 @@ test("告示牌只提交一次，保存中冻结编辑，成功后明确反馈�
   view.rerender(<TeamNoticeBoard state={{ ...state, board: "新的团队约定" }} />);
   await waitFor(() => expect(screen.getByRole("status").textContent).toContain("已保存"));
   expect(screen.getByText("新的团队约定")).toBeTruthy();
+});
+
+test("成员切换为实体机器人时清除助手字段，保存失败保留设备草稿", async () => {
+  const save = vi.fn().mockResolvedValue(false);
+  const member = { id: "actor", nodeId: "node", profile: { name: "助手", kind: "agent" as const, access: "observer" as const, summary: "", enabled: true, robotControl: false, assistant: { model: "model", provider: "local", skills: ["记录"] }, robot: null } };
+  render(<MemberEditor member={member} save={save} close={vi.fn()} />);
+  await userEvent.click(screen.getByRole("combobox", { name: "成员身份" }));
+  await userEvent.click(screen.getByText("机器人", { exact: true }));
+  expect(screen.queryByLabelText("助手模型")).toBeNull();
+  expect(screen.getByRole("switch", { name: "允许设备控制" }).getAttribute("aria-checked")).toBe("false");
+  await userEvent.type(screen.getByLabelText("机器人型号"), "vehicle-test");
+  await userEvent.click(screen.getByRole("button", { name: "保存成员" }));
+  await screen.findByRole("alert");
+  expect(save).toHaveBeenCalledWith("actor", expect.objectContaining({ kind: "robot", assistant: null, robotControl: false, robot: expect.objectContaining({ kind: "vehicle", model: "vehicle-test" }) }));
+  expect((screen.getByLabelText("机器人型号") as HTMLInputElement).value).toBe("vehicle-test");
 });

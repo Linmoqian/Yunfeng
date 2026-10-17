@@ -54,6 +54,14 @@ pub fn validate(event: &Event) -> Result<()> {
         return Err(input());
     }
     match &event.change {
+        Mutation::Member { member } => {
+            member.profile.validate()?;
+            crate::model::uuid(&member.id)?;
+            crate::model::uuid(&member.node_id)?;
+            if member.node_id != event.origin {
+                return Err(denied());
+            }
+        }
         Mutation::Team { name, owner } => {
             model::name(name)?;
             model::name(owner)?;
@@ -61,7 +69,15 @@ pub fn validate(event: &Event) -> Result<()> {
                 return Err(input());
             }
         }
-        Mutation::Message { name, text, time } => {
+        Mutation::Message {
+            name,
+            text,
+            time,
+            member_id,
+        } => {
+            if let Some(id) = member_id {
+                model::uuid(id)?;
+            }
             model::name(name)?;
             model::body(text, false)?;
             if *time > i64::MAX as u64 {
@@ -121,6 +137,7 @@ fn insert(store: &mut Store, event: &Event) -> Result<()> {
         return Err(Error::new("COLLAB_LIMIT", "本机实验节点同步日志达到上限"));
     }
     match &event.change {
+        Mutation::Member { .. } => {}
         Mutation::Team { name, owner } => {
             let old: Option<(String, String)> = store
                 .db
@@ -152,9 +169,14 @@ fn insert(store: &mut Store, event: &Event) -> Result<()> {
                     .map_err(Error::storage)?;
             }
         }
-        Mutation::Message { name, text, time } => {
+        Mutation::Message {
+            name,
+            text,
+            time,
+            member_id,
+        } => {
             // 消息事件使用业务消息 ID，重复同步不会生成第二条消息。
-            store.db.execute("INSERT INTO messages(id,team_id,text,created_at,author) VALUES (?1,?2,?3,?4,?5)", params![event.id, event.team, text.trim(), *time as i64, name]).map_err(Error::storage)?;
+            store.db.execute("INSERT INTO messages(id,team_id,text,created_at,author,member_id) VALUES (?1,?2,?3,?4,?5,?6)", params![event.id, event.team, text.trim(), *time as i64, name, member_id]).map_err(Error::storage)?;
         }
         Mutation::Board { .. } | Mutation::File { .. } => {}
     }
@@ -185,6 +207,14 @@ pub fn merge(store: &mut Store, team: &str, incoming: &[Event]) -> Result<()> {
             insert(store, event)?;
         }
         let saved = events(store, team)?;
+        let mut updated = std::collections::HashSet::new();
+        for event in saved.iter().rev() {
+            if let Mutation::Member { member } = &event.change {
+                if updated.insert(&member.id) {
+                    crate::members::save(&store.db, team, member)?;
+                }
+            }
+        }
         if let Some(Event {
             change:
                 Mutation::Board {

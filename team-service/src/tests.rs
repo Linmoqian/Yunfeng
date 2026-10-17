@@ -178,7 +178,7 @@ fn database_reopen_keeps_installation_and_team() {
 #[test]
 fn future_schema_is_rejected() {
     let db = Connection::open_in_memory().unwrap();
-    db.execute_batch("PRAGMA user_version=3;").unwrap();
+    db.execute_batch("PRAGMA user_version=4;").unwrap();
     assert!(matches!(Store::initialize(db), Err(error) if error.code == "COLLAB_SCHEMA"));
 }
 
@@ -187,14 +187,59 @@ fn version_one_upgrades_without_losing_board_or_messages() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("store.sqlite3");
     let db = Connection::open(&path).unwrap();
-    db.execute_batch("CREATE TABLE installations(singleton INTEGER PRIMARY KEY,id TEXT NOT NULL,active_team TEXT); CREATE TABLE teams(id TEXT PRIMARY KEY,name TEXT NOT NULL,owner TEXT NOT NULL,board TEXT NOT NULL,links TEXT NOT NULL); CREATE TABLE messages(sequence INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT UNIQUE,team_id TEXT NOT NULL,text TEXT NOT NULL,created_at INTEGER NOT NULL); INSERT INTO installations VALUES(1,'old-install','old-team'); INSERT INTO teams VALUES('old-team','旧团队','旧成员','旧公告','[]'); INSERT INTO messages(id,team_id,text,created_at) VALUES('old-message','old-team','旧消息',1); PRAGMA user_version=1;").unwrap();
+    db.execute_batch("CREATE TABLE installations(singleton INTEGER PRIMARY KEY,id TEXT NOT NULL,active_team TEXT); CREATE TABLE teams(id TEXT PRIMARY KEY,name TEXT NOT NULL,owner TEXT NOT NULL,board TEXT NOT NULL,links TEXT NOT NULL); CREATE TABLE messages(sequence INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT UNIQUE,team_id TEXT NOT NULL,text TEXT NOT NULL,created_at INTEGER NOT NULL); INSERT INTO installations VALUES(1,'00000000-0000-4000-8000-000000000001','old-team'); INSERT INTO teams VALUES('old-team','旧团队','旧成员','旧公告','[]'); INSERT INTO messages(id,team_id,text,created_at) VALUES('old-message','old-team','旧消息',1); PRAGMA user_version=1;").unwrap();
     drop(db);
     for _ in 0..2 {
         let reopened = Store::open(&path).unwrap().snapshot().unwrap();
-        assert_eq!(reopened.installation_id, "old-install");
+        assert_eq!(
+            reopened.installation_id,
+            "00000000-0000-4000-8000-000000000001"
+        );
         assert_eq!(reopened.board, "旧公告");
         assert_eq!(reopened.messages[0].text, "旧消息");
         assert_eq!(reopened.messages[0].name, "旧成员");
         assert_eq!(reopened.team.unwrap().id, "old-team");
     }
+}
+
+#[test]
+fn local_permissions_are_enforced_and_member_records_survive_reopen() {
+    use crate::members::Access;
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("store.sqlite3");
+    let mut store = Store::open(&path).unwrap();
+    let snapshot = create(&mut store);
+    let mut member = snapshot.participants[0].clone();
+    member.profile.access = Access::Observer;
+    let update = Action::Member {
+        member: crate::members::MemberInput {
+            id: member.id.clone(),
+            profile: member.profile.clone(),
+        },
+    };
+    store.action(update).unwrap();
+    assert_eq!(
+        store
+            .action(Action::Message {
+                id: uuid::Uuid::new_v4().to_string(),
+                text: "越权".into()
+            })
+            .unwrap_err()
+            .code,
+        "COLLAB_FORBIDDEN"
+    );
+    assert_eq!(
+        store
+            .action(Action::Board {
+                announcement: "越权".into(),
+                links: vec![]
+            })
+            .unwrap_err()
+            .code,
+        "COLLAB_FORBIDDEN"
+    );
+    drop(store);
+    let reopened = Store::open(&path).unwrap().snapshot().unwrap();
+    assert_eq!(reopened.participants[0], member);
+    assert!(reopened.messages.is_empty());
 }

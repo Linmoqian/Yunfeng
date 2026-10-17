@@ -29,6 +29,9 @@ pub struct Link {
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Action {
     Snapshot {},
+    Member {
+        member: crate::members::MemberInput,
+    },
     Create {
         name: String,
         owner: String,
@@ -58,6 +61,7 @@ pub struct Team {
 pub struct Message {
     pub id: String,
     pub name: String,
+    pub member_id: Option<String>,
     pub text: String,
     pub created_at: u64,
 }
@@ -72,6 +76,7 @@ pub struct Snapshot {
     pub board: String,
     pub links: Vec<Link>,
     pub network_available: bool,
+    pub participants: Vec<crate::members::Member>,
 }
 
 pub fn name(value: &str) -> Result<String> {

@@ -22,13 +22,14 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 
 | 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
-| action | input | string | 是 | — | snapshot/create/message/board/activate/leave | 操作 |
+| action | input | string | 是 | — | snapshot/create/message/board/member/activate/leave | 操作 |
 | name、owner | input | string | create | — | 各 1–80 Unicode 字符，无控制字符 | 团队名称、本地显示名 |
 | id | input | string | message/activate | — | UUID | 客户端消息幂等键或已存团队 ID |
 | text | input | string | message | — | 去首尾空白后 1–4000 字符 | 消息正文 |
 | announcement | input | string | board | — | 去首尾空白后 0–4000 字符 | 公告 |
 | links | input | Link[] | board | — | 最多 16 条 | 整体替换链接集合 |
 | links[].title | input | string | 是 | — | 1–80 字符，无控制字符 | 标题 |
+| member | input | MemberInput | member | — | {id:UUID,profile:MemberProfile} | 创建或整体更新本机托管成员，完整字段见[成员契约](2026-10-17-team-node.md#成员接口与资料) |
 | links[].url | input | string | 是 | — | 规范化后最多 2048 字节，HTTP/HTTPS、有主机、无登录凭据 | 链接 |
 
 正文允许换行和制表符，拒绝其他控制字符。名称和内容均由 Rust 校验。
@@ -44,6 +45,8 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 | team | Team/null | 是 | id/name/owner/members | members 目前只有本地 owner |
 | savedTeams | Team[] | 是 | 最多 32 个 | 可恢复的本地团队 |
 | messages | Message[] | 是 | 当前团队最近 200 条，按存储序号升序 | 每条含 id/name/text/createdAt |
+| participants | MemberCard[] | 是 | 当前团队最多128个，空团队为[] | 身份铭牌、权限与助手/机器人资料 |
+| messages[].memberId | string/null | 是 | 新消息绑定本机成员 UUID；历史消息可空 | 作者身份 |
 | messages[].createdAt | number | 是 | Unix 毫秒，非负 | 本机入库时间，不作为跨设备排序依据 |
 | board | string | 是 | 最多 4000 字符 | 当前公告 |
 | links | Link[] | 是 | 最多 16 条 | 当前链接 |
@@ -59,7 +62,7 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 | COLLAB_BUSY | 已有协作操作正在执行 | 是 | 当前操作结束后重试 |
 | COLLAB_STORAGE | 数据库、文件、锁或执行任务失败 | 条件满足 | 提示重试，避免展示内部路径 |
 | COLLAB_SCHEMA | 数据库版本比应用支持版本更新 | 否 | 更新应用 |
-| COLLAB_FORBIDDEN | 非 main 窗口 | 否 | 从授权窗口调用 |
+| COLLAB_FORBIDDEN | 非 main 窗口、成员停用或操作权限不足 | 条件满足 | 从授权窗口调用，或由本机管理员调整权限 |
 | COLLAB_NO_TEAM | 没有当前团队 | 条件满足 | 创建或恢复团队 |
 | COLLAB_ACTIVE_TEAM | 已存在不同的活动团队 | 条件满足 | 先关闭当前团队 |
 | COLLAB_LIMIT | 团队或消息数量到达上限 | 否 | 保留数据，后续增加归档策略 |
@@ -70,13 +73,14 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 
 ## 权限与安全
 
-capability 仅匹配本地 main 窗口，不授权远程页面。command 再次检查窗口标签。应用数据目录下 `collaboration/store.sqlite3` 是协作数据事实来源；调用者不能传入路径。本模块不开网络端口。安装 UUID 不能用于证明设备身份。数据库尚未加密，依赖本机账号与文件系统保护；Unix 协作目录权限为 0700。
+capability 仅匹配本地 main 窗口，不授权远程页面。command 再次检查窗口标签。应用数据目录下 `collaboration/store.sqlite3` 是协作数据事实来源；调用者不能传入路径。本模块不开网络端口。本机 main 窗口为成员资料管理员，可维护本宿主的全部身份资料；发送消息要求当前安装成员启用且为 contributor/editor，保存公告及链接要求 editor。权限由 Rust 校验，不能只依赖前端按钮。管理员仍可通过 member 动作恢复自身权限；成员种类不自动赋予控制能力。安装 UUID 不能用于证明设备身份。数据库尚未加密，依赖本机账号与文件系统保护；Unix 协作目录权限为 0700。
 
 ## 行为约束
 
 - 副作用：首次查询创建数据库与安装 UUID；创建、消息使用事务；公告与链接先整体校验再原子更新。关闭团队仅清除活动指针，保留记录供恢复。
 - 幂等性：当前团队相同 name/owner 重复 create 返回原团队。message 的 id、团队和正文均相同则不重复写入；冲突拒绝。board 整体覆盖，activate/leave 可重复。
 - 超时与取消：SQLite 锁等待最多 2 秒。IPC 没有应用层总超时；关闭面板或卸载组件不取消已接纳的写入，重新查询获取结果。
+- 成员更新：同 ID 整体替换资料，每队最多128个；仅允许修改本机 nodeId 的身份。资料写入成功后返回 Rust 快照；失败保留编辑草稿。停用不删除历史记录。
 - 并发、限流与重试：整个模块最多接纳一个操作，忙时立即拒绝，无无限队列；最多 32 团队，每团队 10000 消息。重复发送同一草稿保留消息 UUID。
 - 分页、过滤与排序：当前仅最近 200 消息，历史分页尚未实现。团队按数据库既定顺序返回。
 - 缓存：前端只展示 Rust 快照；打开团队面板及手动刷新重新查询。
@@ -97,7 +101,7 @@ await invoke("collaboration_action", {
 ### 响应示例
 
 ```json
-{"installationId":"00000000-0000-4000-8000-000000000001","mode":"empty","team":null,"savedTeams":[],"messages":[],"board":"","links":[],"networkAvailable":false}
+{"installationId":"00000000-0000-4000-8000-000000000001","mode":"empty","team":null,"savedTeams":[],"messages":[],"participants":[],"board":"","links":[],"networkAvailable":false}
 ```
 
 该示例对应 snapshot/leave 后没有活动团队的状态。
@@ -110,7 +114,7 @@ await invoke("collaboration_action", {
 
 ## 兼容性与变更记录
 
-数据库 user_version=2；从 v1 自动事务升级，仅增加可空消息 author 字段，保留原团队、消息、公告及链接。旧消息继续使用团队 owner 作为显示名称。遇到较新版本在修改数据库配置前拒绝打开。后续认证密钥、配对票据与网络成员须通过版本化迁移引入；本地团队 UUID 尚不具备 LianAgent 签名事件的线协议语义。调用者不能把安装 UUID 当成公钥。
+数据库 user_version=3；v1/v2 在事务中增加成员表和可空消息 member_id，旧团队补齐本机 human/editor。既有 author、历史消息、团队、公告和链接保留；旧消息 memberId=null，新消息 name 使用当前成员显示名。遇到较新版本在修改数据库配置前拒绝打开。原请求结构兼容，响应增加 participants/memberId；消息与公告新增上述权限检查。安装 UUID 不能作为网络认证凭据。
 
 废弃计划：无。
 

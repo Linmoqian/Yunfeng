@@ -25,6 +25,14 @@ pub struct Invitation {
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Command {
     Snapshot {},
+    Member {
+        member: crate::members::MemberInput,
+    },
+    Grant {
+        id: String,
+        #[serde(default)]
+        rotate: bool,
+    },
     Create {
         name: String,
     },
@@ -53,11 +61,16 @@ pub enum Command {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Mutation {
+    Member {
+        member: crate::members::Member,
+    },
     Team {
         name: String,
         owner: String,
     },
     Message {
+        #[serde(default, rename = "memberId", skip_serializing_if = "Option::is_none")]
+        member_id: Option<String>,
         name: String,
         text: String,
         time: u64,

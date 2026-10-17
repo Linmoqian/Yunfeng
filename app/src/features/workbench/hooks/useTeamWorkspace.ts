@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getRuntimeWindowPlatform } from "../../../components/titlebar/windowPlatform";
-import { collaborationAction, collaborationError, type CollaborationAction, type CollaborationLink, type CollaborationSnapshot } from "../services/collaborationService";
+import { collaborationAction, collaborationError, type CollaborationAction, type CollaborationLink, type CollaborationSnapshot, type MemberProfile } from "../services/collaborationService";
 
 export function useTeamWorkspace(active: boolean) {
   const available = getRuntimeWindowPlatform() !== "browser";
@@ -35,9 +35,14 @@ export function useTeamWorkspace(active: boolean) {
   useEffect(() => { if (active) void run({ action: "snapshot" }); }, [active, run]);
   const reload = () => run({ action: "snapshot" });
   const saveBoard = (announcement: string, links: CollaborationLink[]) => run({ action: "board", announcement, links }, "公告与链接已保存到本机");
+  const self = snapshot?.participants?.find((member) => member.id === snapshot.installationId)?.profile;
   return {
+    canSend: !self || (self.enabled && self.access !== "observer"),
+    canEditBoard: !self || (self.enabled && self.access === "editor"),
     available, busy, notice, snapshot,
     team: snapshot?.team ?? null, messages: snapshot?.messages ?? [],
+    participants: snapshot?.participants ?? [],
+    saveMember: (id: string, profile: MemberProfile) => run({ action: "member", member: { id, profile } }, "成员资料已保存"),
     board: snapshot?.board ?? "", links: snapshot?.links ?? [],
     files, setFiles, reload, saveBoard,
     create: (name: string, owner: string) => run({ action: "create", name, owner }, "本地团队已创建，尚未联网"),

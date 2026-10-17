@@ -3,6 +3,8 @@
  * @author: https://github.com/Linmoqian
  */
 import { invoke } from "@tauri-apps/api/core";
+import type { MemberCard, MemberProfile } from "../../../../../team-service/sdk/src/types";
+export type { MemberCard, MemberProfile, MemberKind, MemberAccess } from "../../../../../team-service/sdk/src/types";
 
 export interface CollaborationLink { title: string; url: string }
 export interface LocalTeam { id: string; name: string; owner: string; members: string[] }
@@ -11,17 +13,19 @@ export interface CollaborationSnapshot {
   mode: "empty" | "local";
   team: LocalTeam | null;
   savedTeams: LocalTeam[];
-  messages: { id: string; name: string; text: string; createdAt: number }[];
+  messages: { id: string; name: string; text: string; createdAt: number; memberId?: string | null }[];
   board: string;
   links: CollaborationLink[];
   networkAvailable: boolean;
+  participants: MemberCard[];
 }
 export type CollaborationAction =
   | { action: "snapshot" | "leave" }
   | { action: "create"; name: string; owner: string }
   | { action: "message"; id: string; text: string }
   | { action: "board"; announcement: string; links: CollaborationLink[] }
-  | { action: "activate"; id: string };
+  | { action: "activate"; id: string }
+  | { action: "member"; member: { id: string; profile: MemberProfile } };
 
 /** 调用主窗口的协作能力；失败返回 Rust 稳定错误，不保存前端副本。 */
 export function collaborationAction(input: CollaborationAction): Promise<CollaborationSnapshot> {

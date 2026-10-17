@@ -17,7 +17,7 @@ export function TeamChat({ state, onBack }: { state: TeamWorkspace; onBack: () =
   const [messageId, setMessageId] = useState(() => crypto.randomUUID());
   const sending = useRef(false), reduced = useReducedMotion();
   async function send() {
-    if (!draft.trim() || state.busy || !state.available || !state.team || sending.current) return;
+    if (state.canSend === false || !draft.trim() || state.busy || !state.available || !state.team || sending.current) return;
     const submitted = draft;
     sending.current = true;
     try {
@@ -34,8 +34,8 @@ export function TeamChat({ state, onBack }: { state: TeamWorkspace; onBack: () =
       {state.messages.length ? state.messages.map((message) => <motion.article key={message.id} initial={reduced ? false : { opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16 }}><small>{message.name}</small><p>{message.text}</p></motion.article>) : <motion.div key={state.team?.id ?? "empty"} className={styles.empty} initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}><span className={styles.emptyIcon}><Users size={25} strokeWidth={1.5} /></span><h3>{state.team ? "从一条消息开始" : "开始团队记录"}</h3><p>{state.team ? "记录想法，与团队一起推进。" : "在通讯录创建或恢复一个本地团队。"}</p><small>消息仅保存在本机，尚未联网</small></motion.div>}
     </motion.div></div>
     <div className={composer.dock}><form className={`${composer.composer} ${styles.composer}`} onSubmit={(event) => { event.preventDefault(); void send(); }}>
-      <Input.TextArea aria-label="团队消息" value={draft} onChange={(event) => { setDraft(event.target.value); setMessageId(crypto.randomUUID()); }} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void send(); } }} maxLength={4000} placeholder={state.team ? "与团队分享想法…" : "创建团队后开始记录…"} disabled={!state.available || !state.team} autoSize={{ minRows: 2, maxRows: 5 }} />
-      <div className={composer.footer}><span className={styles.composerHint}><HardDrive size={12} />本地记录</span><Button className={`${composer.submit} ${styles.submit}`} type="primary" shape="circle" htmlType="submit" aria-label="发送团队消息" loading={state.busy} disabled={!state.available || !state.team || !draft.trim() || state.busy} icon={<ArrowUp size={15} />} /></div>
+      <Input.TextArea aria-label="团队消息" value={draft} onChange={(event) => { setDraft(event.target.value); setMessageId(crypto.randomUUID()); }} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) { event.preventDefault(); void send(); } }} maxLength={4000} placeholder={state.team ? "与团队分享想法…" : "创建团队后开始记录…"} disabled={!state.available || !state.team || state.canSend === false} autoSize={{ minRows: 2, maxRows: 5 }} />
+      <div className={composer.footer}><span className={styles.composerHint}><HardDrive size={12} />本地记录</span><Button className={`${composer.submit} ${styles.submit}`} type="primary" shape="circle" htmlType="submit" aria-label="发送团队消息" loading={state.busy} disabled={!state.available || !state.team || !draft.trim() || state.busy || state.canSend === false} icon={<ArrowUp size={15} />} /></div>
     </form></div>
   </section>;
 }

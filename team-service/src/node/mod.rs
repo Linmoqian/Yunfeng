@@ -1,15 +1,16 @@
 //! 可单独启动的本机节点；每个实例拥有自己的数据库和对等连接，无中心服务。
 //! Created on 2026-10-17
 //! @author: https://github.com/Linmoqian
+mod commands;
 mod http;
 mod log;
+mod member_api;
 mod peers;
 pub mod types;
 use crate::{
     model::{self, Action, Error, Result},
     Store,
 };
-use base64::{engine::general_purpose::STANDARD, Engine};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{net::SocketAddr, path::Path};
@@ -27,7 +28,25 @@ impl Node {
         let address = types::address(address)?;
         let mut store = Store::open(path)?;
         let (name, control) = log::initialize(&mut store, name)?;
+        member_api::initialize(&store.db)?;
         let id = store.snapshot()?.installation_id;
+        if let Some(team) = store.snapshot()?.team {
+            if let Some(member) = crate::members::find(&store.db, &team.id, &id)? {
+                let saved = log::events(&store, &team.id)?;
+                if !saved
+                    .iter()
+                    .any(|e| matches!(&e.change, Mutation::Member {member} if member.id == id))
+                {
+                    log::publish(
+                        &mut store,
+                        &id,
+                        &team.id,
+                        uuid::Uuid::new_v4().to_string(),
+                        Mutation::Member { member },
+                    )?;
+                }
+            }
+        }
         Ok(Self {
             store,
             identity: Identity { id, name, address },
@@ -125,6 +144,25 @@ impl Node {
                 },
             )?;
             s.action(Action::Activate { id: welcome.team })?;
+            let member = crate::members::seed(
+                &s.db,
+                &invitation.team,
+                &self.identity.id,
+                &self.identity.name,
+                false,
+            )?;
+            let current = log::events(s, &invitation.team)?;
+            if !current.iter().any(
+            |event| matches!(&event.change, Mutation::Member { member: saved } if saved == &member),
+        ) {
+            log::publish(
+                s,
+                &self.identity.id,
+                &invitation.team,
+                uuid::Uuid::new_v4().to_string(),
+                Mutation::Member { member },
+            )?;
+        }
             Ok(())
         })?;
         self.snapshot()
@@ -162,125 +200,9 @@ impl Node {
         }
         Ok(json!({"results": results, "state": self.snapshot()?}))
     }
-    fn command(&mut self, command: Command) -> Result<Value> {
-        match command {
-            Command::Shutdown {} => {
-                self.stopped = true;
-                return Ok(json!({"stopping":true}));
-            }
-            Command::Snapshot {} => {}
-            Command::Create { name } => {
-                let owner = self.identity.name.clone();
-                let node = self.identity.id.clone();
-                self.store.atomic(|s| {
-                    let snapshot = s.action(Action::Create { name, owner })?;
-                    let team = snapshot.team.ok_or_else(input)?;
-                    if log::events(s, &team.id)?
-                        .iter()
-                        .any(|event| event.id == team.id)
-                    {
-                        return Ok(());
-                    }
-                    log::publish(
-                        s,
-                        &node,
-                        &team.id,
-                        team.id.clone(),
-                        Mutation::Team {
-                            name: team.name,
-                            owner: team.owner,
-                        },
-                    )
-                })?;
-            }
-            Command::Message { id, text } => {
-                let team = self.team()?;
-                let id = model::uuid(&id)?;
-                let text = model::body(&text, false)?;
-                if let Some(old) = log::events(&self.store, &team)?
-                    .into_iter()
-                    .find(|e| e.id == id)
-                {
-                    if old.origin != self.identity.id
-                        || !matches!(old.change, Mutation::Message { text: ref saved, .. } if *saved == text)
-                    {
-                        return Err(Error::new("NODE_CONFLICT", "消息标识与原内容冲突"));
-                    }
-                } else {
-                    log::publish(
-                        &mut self.store,
-                        &self.identity.id,
-                        &team,
-                        id,
-                        Mutation::Message {
-                            name: self.identity.name.clone(),
-                            text,
-                            time: now()? as u64,
-                        },
-                    )?;
-                }
-            }
-            Command::Board {
-                announcement,
-                links,
-            } => {
-                let team = self.team()?;
-                log::publish(
-                    &mut self.store,
-                    &self.identity.id,
-                    &team,
-                    uuid::Uuid::new_v4().to_string(),
-                    Mutation::Board {
-                        announcement: model::body(&announcement, true)?,
-                        links: model::links(links)?,
-                    },
-                )?;
-            }
-            Command::Invite {} => {
-                let team = self.team()?;
-                return serde_json::to_value(peers::invite(
-                    &mut self.store,
-                    &team,
-                    &self.identity.address,
-                )?)
-                .map_err(Error::storage);
-            }
-            Command::Join { invitation } => return self.join(invitation),
-            Command::Sync {} => return self.sync(),
-            Command::Share { name, data } => {
-                let team = self.team()?;
-                if data.len() > MAX_FILE * 4 / 3 + 4 {
-                    return Err(input());
-                }
-                let bytes = STANDARD.decode(&data).map_err(|_| input())?;
-                let hash = format!("{:x}", Sha256::digest(&bytes));
-                log::publish(
-                    &mut self.store,
-                    &self.identity.id,
-                    &team,
-                    uuid::Uuid::new_v4().to_string(),
-                    Mutation::File {
-                        name,
-                        data,
-                        sha256: hash,
-                        size: bytes.len(),
-                    },
-                )?;
-            }
-            Command::File { id } => {
-                let team = self.team()?;
-                model::uuid(&id)?;
-                let event = log::events(&self.store, &team)?
-                    .into_iter()
-                    .find(|e| e.id == id && matches!(e.change, Mutation::File { .. }))
-                    .ok_or_else(|| Error::new("COLLAB_NOT_FOUND", "共享文件不存在"))?;
-                return serde_json::to_value(event.change).map_err(Error::storage);
-            }
-        }
-        self.snapshot()
-    }
     fn handle(&mut self, route: &str, token: &str, value: Value) -> Result<Value> {
         match route {
+            "/v1/member" => self.member_action(token, value),
             "/v1/local" => {
                 if token != self.control {
                     return Err(denied());

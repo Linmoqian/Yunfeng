@@ -26,6 +26,7 @@ fn rejected_batch_rolls_back_business_views_and_log() {
         clock: 2,
         team: team.clone(),
         change: Mutation::Message {
+            member_id: None,
             name: "节点".into(),
             text: "不能部分提交".into(),
             time: 1,
@@ -45,7 +46,7 @@ fn rejected_batch_rolls_back_business_views_and_log() {
     });
     assert!(log::merge(&mut node.store, &team, &events).is_err());
     assert!(node.store.snapshot().unwrap().messages.is_empty());
-    assert_eq!(log::events(&node.store, &team).unwrap().len(), 1);
+    assert_eq!(log::events(&node.store, &team).unwrap().len(), 2);
     events.truncate(1);
     log::merge(&mut node.store, &team, &events).unwrap();
     log::merge(&mut node.store, &team, &events).unwrap();

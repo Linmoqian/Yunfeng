@@ -40,7 +40,7 @@ impl Store {
         let version: u32 = db
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .map_err(Error::storage)?;
-        if version > 2 {
+        if version > 3 {
             return Err(Error::new(
                 "COLLAB_SCHEMA",
                 "协作数据库版本较新，请更新应用",
@@ -66,6 +66,11 @@ impl Store {
                 .map_err(Error::storage)?;
             tx.commit().map_err(Error::storage)?;
         }
+        if version < 3 {
+            let tx = db.transaction().map_err(Error::storage)?;
+            crate::members::initialize(&tx)?;
+            tx.commit().map_err(Error::storage)?;
+        }
         Ok(Self { db })
     }
     fn active(&self) -> Result<String> {
@@ -82,16 +87,27 @@ impl Store {
     pub fn action(&mut self, action: Action) -> Result<Snapshot> {
         match action {
             Action::Snapshot {} => {}
+            Action::Member { member } => {
+                let node = self.snapshot()?.installation_id;
+                let card = crate::members::Member {
+                    id: member.id,
+                    node_id: node,
+                    profile: member.profile,
+                };
+                crate::members::save(&self.db, &self.active()?, &card)?;
+            }
             Action::Create { name, owner } => {
                 self.create(&model::name(&name)?, &model::name(&owner)?)?
             }
             Action::Message { id, text } => {
+                self.require_member("message")?;
                 self.message(&model::uuid(&id)?, &model::body(&text, false)?)?
             }
             Action::Board {
                 announcement,
                 links,
             } => {
+                self.require_member("board")?;
                 let body = model::body(&announcement, true)?;
                 let links = serde_json::to_string(&model::links(links)?).map_err(Error::storage)?;
                 self.db
@@ -131,6 +147,20 @@ impl Store {
             }
         }
         self.snapshot()
+    }
+    fn require_member(&self, operation: &str) -> Result<()> {
+        let node: String = self
+            .db
+            .query_row("SELECT id FROM installations WHERE singleton=1", [], |r| {
+                r.get(0)
+            })
+            .map_err(Error::storage)?;
+        let member = crate::members::find(&self.db, &self.active()?, &node)?
+            .ok_or_else(crate::members::forbidden)?;
+        if !member.profile.allows(operation) {
+            return Err(crate::members::forbidden());
+        }
+        Ok(())
     }
     fn create(&mut self, name: &str, owner: &str) -> Result<()> {
         let tx = self.db.savepoint().map_err(Error::storage)?;
@@ -175,6 +205,12 @@ impl Store {
             [&id],
         )
         .map_err(Error::storage)?;
+        let node: String = tx
+            .query_row("SELECT id FROM installations WHERE singleton=1", [], |r| {
+                r.get(0)
+            })
+            .map_err(Error::storage)?;
+        crate::members::seed(&tx, &id, &node, owner, true)?;
         tx.commit().map_err(Error::storage)
     }
     fn message(&mut self, id: &str, text: &str) -> Result<()> {
@@ -216,9 +252,15 @@ impl Store {
             .map_err(Error::storage)?
             .as_millis();
         let time = i64::try_from(time).map_err(Error::storage)?;
+        let node: String = tx
+            .query_row("SELECT id FROM installations WHERE singleton=1", [], |r| {
+                r.get(0)
+            })
+            .map_err(Error::storage)?;
+        let author = crate::members::find(&tx, &team, &node)?.map(|m| m.profile.name);
         tx.execute(
-            "INSERT INTO messages(id,team_id,text,created_at) VALUES (?1,?2,?3,?4)",
-            params![id, team, text, time],
+            "INSERT INTO messages(id,team_id,text,created_at,member_id,author) VALUES (?1,?2,?3,?4,?5,?6)",
+            params![id, team, text, time, node, author],
         )
         .map_err(Error::storage)?;
         tx.commit().map_err(Error::storage)
@@ -266,11 +308,12 @@ impl Store {
                 .map_err(Error::storage)?;
             board = row.0;
             links = serde_json::from_str(&row.1).map_err(Error::storage)?;
-            let mut statement = self.db.prepare("SELECT id,text,created_at,author FROM (SELECT sequence,id,text,created_at,author FROM messages WHERE team_id=?1 ORDER BY sequence DESC LIMIT 200) ORDER BY sequence ASC").map_err(Error::storage)?;
+            let mut statement = self.db.prepare("SELECT id,text,created_at,author,member_id FROM (SELECT sequence,id,text,created_at,author,member_id FROM messages WHERE team_id=?1 ORDER BY sequence DESC LIMIT 200) ORDER BY sequence ASC").map_err(Error::storage)?;
             messages = statement
                 .query_map([&team.id], |row| {
                     Ok(Message {
                         id: row.get(0)?,
+                        member_id: row.get(4)?,
                         name: row
                             .get::<_, Option<String>>(3)?
                             .unwrap_or_else(|| team.owner.clone()),
@@ -288,7 +331,13 @@ impl Store {
                 .collect::<rusqlite::Result<Vec<_>>>()
                 .map_err(Error::storage)?;
         }
+        let participants = team
+            .as_ref()
+            .map(|t| crate::members::list(&self.db, &t.id))
+            .transpose()?
+            .unwrap_or_default();
         Ok(Snapshot {
+            participants,
             installation_id,
             mode: if team.is_some() { "local" } else { "empty" },
             team,

@@ -35,9 +35,9 @@ def exercise(binary, root):
         node["token"] = (directory / "control.token").read_text()
         return node
 
-    def call(label, command, token=None):
+    def call(label, command, token=None, route="/v1/local"):
         node = nodes[label]
-        request = urllib.request.Request(node["address"] + "/v1/local", data=json.dumps(command).encode(), headers={"Authorization": "Bearer " + (token if token is not None else node["token"]), "Content-Type": "application/json"})
+        request = urllib.request.Request(node["address"] + route, data=json.dumps(command).encode(), headers={"Authorization": "Bearer " + (token if token is not None else node["token"]), "Content-Type": "application/json"})
         with urllib.request.urlopen(request, timeout=20) as response:
             return json.load(response)
 
@@ -104,6 +104,25 @@ def exercise(binary, root):
             raise AssertionError("路径穿越文件名被接受")
         except urllib.error.HTTPError as error:
             assert error.code == 400
+        records = []
+        for label, kind in [("A", "human"), ("B", "agent"), ("C", "program"), ("C", "robot")]:
+            record = {"id": str(uuid.uuid4()), "profile": {"name": kind + " 成员", "kind": kind, "access": "contributor", "summary": "本机成员同步验收", "enabled": True, "robotControl": False, "assistant": {"model": "test-model", "provider": "local", "skills": ["记录"]} if kind == "agent" else None, "robot": {"kind": "arm", "model": "接口验收", "capabilities": ["joints"]} if kind == "robot" else None}}
+            call(label, {"action": "member", "member": record})
+            records.append(record)
+        sync("A", "C", "B", "A", "C")
+        for label in nodes:
+            participants = call(label, {"action": "snapshot"})["snapshot"]["participants"]
+            assert len(participants) == 7
+            assert {m["profile"]["kind"] for m in participants} == {"human", "agent", "program", "robot"}
+        try:
+            call("A", {"action": "member", "member": records[1]})
+            raise AssertionError("节点修改了其他宿主的成员资料")
+        except urllib.error.HTTPError as error:
+            assert error.code == 403
+        actor_token = call("B", {"action": "grant", "id": records[1]["id"]})["token"]
+        records[1]["profile"]["access"] = "observer"
+        call("B", {"action": "member", "member": records[1]})
+        sync("B", "A", "C")
         original = {label: call(label, {"action": "snapshot"}) for label in nodes}
         stop("B")
         result = call("A", {"action": "sync"})
@@ -111,12 +130,19 @@ def exercise(binary, root):
         assert call("A", {"action": "snapshot"})["snapshot"]["messages"] == original["A"]["snapshot"]["messages"]
         start("B", original["B"]["node"]["address"])
         assert call("B", {"action": "snapshot"}) == original["B"]
+        identity = call("B", {"action": "identity"}, token=actor_token, route="/v1/member")
+        assert identity["id"] == records[1]["id"] and identity["profile"]["access"] == "observer"
+        try:
+            call("B", {"action": "message", "id": str(uuid.uuid4()), "text": "重启后越权"}, token=actor_token, route="/v1/member")
+            raise AssertionError("重启后丢失成员权限")
+        except urllib.error.HTTPError as error:
+            assert error.code == 403
         sync("B", "A", "C")
         stop("A")
         start("A", original["A"]["node"]["address"])
         assert call("A", {"action": "snapshot"}) == original["A"]
         sync("A", "B", "C")
-        return {"nodes": 3, "topology": "A—B—C", "directPeerCounts": [1, 2, 1], "messages": 2, "fileBytes": len(content), "sha256": digest, "fileBytesEqual": True, "boardConverged": True, "restartRetained": True, "offlineRecovered": True, "invalidTokenRejected": True, "unsafeFileNameRejected": True, "scope": "loopback-only"}
+        return {"nodes": 3, "topology": "A—B—C", "directPeerCounts": [1, 2, 1], "messages": 2, "members": 7, "memberKinds": ["human", "agent", "program", "robot"], "memberRightsRetained": True, "foreignMemberEditRejected": True, "fileBytes": len(content), "sha256": digest, "fileBytesEqual": True, "boardConverged": True, "restartRetained": True, "offlineRecovered": True, "invalidTokenRejected": True, "unsafeFileNameRejected": True, "scope": "loopback-only"}
     finally:
         for label, node in nodes.items():
             try:

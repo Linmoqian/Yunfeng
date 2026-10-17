@@ -1,0 +1,39 @@
+/* 成员铭牌与资料表单；使用现有字体、浅色边界和轻量胶囊。
+ * Created on 2026-10-17
+ * @author: https://github.com/Linmoqian
+ */
+.list { min-width: 0; }
+.heading { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 4px; color: var(--yf-text-tertiary); font-size: 11px; }
+.heading button, .editButton:global(.ant-btn) { color: var(--yf-text-tertiary); }
+.member { display: flex; align-items: center; min-width: 0; padding: 3px 0; }
+.member[data-disabled="true"] .copy { opacity: .55; }
+.card { display: flex; flex: 1; align-items: center; gap: 9px; min-width: 0; padding: 8px; border: 0; border-radius: 12px; background: transparent; color: var(--yf-text-primary); text-align: left; cursor: pointer; font: inherit; transition: background 140ms ease; }
+.card:hover { background: var(--yf-bg-canvas); }
+.card:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: -2px; }
+.avatar { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 10px; background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-canvas)); color: var(--yf-brand-primary); }
+.copy { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 2px; }
+.copy strong { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy small { color: var(--yf-text-tertiary); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badges, .chips { display: flex; flex-wrap: wrap; gap: 5px; font-size: 10px; color: var(--yf-text-secondary); }
+.badges { flex: none; flex-direction: column; align-items: flex-end; }
+.badges > *, .chips > * { padding: 1px 6px; border: 1px solid var(--yf-border-divider); border-radius: 999px; }
+.info { max-width: 270px; padding: 3px; font-size: 12px; font-family: var(--font-body); }
+.info strong { font-weight: 600; }
+.info p { margin: 6px 0 10px; color: var(--yf-text-secondary); overflow-wrap: anywhere; }
+.info dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 12px 0; }
+.info dt, .info small { color: var(--yf-text-tertiary); font-size: 10px; }
+.info dd { margin: 0; overflow-wrap: anywhere; }
+.info small { display: block; margin-top: 12px; }
+.editor { display: flex; flex-direction: column; gap: 13px; padding-top: 12px; font-family: var(--font-body); }
+.editor label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--yf-text-secondary); }
+.row { display: flex; gap: 12px; }
+.row > label { flex: 1; min-width: 0; }
+.details { display: flex; flex-direction: column; gap: 13px; padding-top: 12px; border-top: 1px solid var(--yf-border-divider); }
+.editor .switch { flex-direction: row; justify-content: space-between; align-items: center; }
+.hint { margin: -5px 0 0; color: var(--yf-text-tertiary); font-size: 11px; }
+.actions { display: flex; justify-content: flex-end; gap: 6px; }
+.actions button { border-radius: 999px; font-size: 12px; }
+.error { margin: 0; font-size: 12px; color: var(--yf-semantic-error); }
+.legacy { display: block; padding: 8px; font-size: 12px; }
+@media (pointer: coarse) { .card, .editButton:global(.ant-btn), .heading button { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
