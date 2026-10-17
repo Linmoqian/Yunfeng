@@ -15,6 +15,7 @@ use serde_json::{json, Value};
 enum MemberAction {
     Identity {},
     Snapshot {},
+    Children {},
     Message {
         id: String,
         text: String,
@@ -84,10 +85,16 @@ impl Node {
         let member = self.authenticate_member(token)?;
         let action: MemberAction = serde_json::from_value(value).map_err(|_| input())?;
         let (permission, command) = match action {
-            MemberAction::Identity {} => {
-                return serde_json::to_value(member).map_err(Error::storage)
+            MemberAction::Identity {} => return Ok(super::member_view::identity(&member)),
+            MemberAction::Snapshot {} => return self.member_snapshot(&member),
+            MemberAction::Children {} => {
+                return Ok(Value::Array(
+                    self.member_children(&member)?
+                        .iter()
+                        .map(super::member_view::identity)
+                        .collect(),
+                ))
             }
-            MemberAction::Snapshot {} => ("read", Command::Snapshot {}),
             MemberAction::Message { id, text } => ("message", Command::Message { id, text }),
             MemberAction::Board {
                 announcement,
@@ -100,7 +107,7 @@ impl Node {
                 },
             ),
             MemberAction::Share { name, data } => ("share", Command::Share { name, data }),
-            MemberAction::File { id } => ("read", Command::File { id }),
+            MemberAction::File { id } => return self.member_file(&member, &id),
             MemberAction::RobotAuthorize { operation } => {
                 return robot_authorization(&member, &operation)
             }
@@ -108,7 +115,8 @@ impl Node {
         if !member.profile.allows(permission) {
             return Err(denied());
         }
-        self.command_as(command, Some(member))
+        self.command_as(command, Some(member.clone()))?;
+        self.member_snapshot(&member)
     }
 }
 fn robot_authorization(member: &Member, operation: &str) -> Result<Value> {

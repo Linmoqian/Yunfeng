@@ -22,13 +22,14 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 
 | 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
-| action | input | string | 是 | — | snapshot/create/message/board/member/activate/leave | 操作 |
+| action | input | string | 是 | — | snapshot/create/message/board/member/relation/activate/leave | 操作 |
 | name、owner | input | string | create | — | 各 1–80 Unicode 字符，无控制字符 | 团队名称、本地显示名 |
 | id | input | string | message/activate | — | UUID | 客户端消息幂等键或已存团队 ID |
 | text | input | string | message | — | 去首尾空白后 1–4000 字符 | 消息正文 |
 | announcement | input | string | board | — | 去首尾空白后 0–4000 字符 | 公告 |
 | links | input | Link[] | board | — | 最多 16 条 | 整体替换链接集合 |
 | links[].title | input | string | 是 | — | 1–80 字符，无控制字符 | 标题 |
+| relation | input | {memberId:UUID,parentId:UUID/null} | relation | parentId 可省略为 null | 本机托管的成员，同队父成员，不得自指成环 | 管理员设置直属上级，null 表示解除 |
 | member | input | MemberInput | member | — | {id:UUID,profile:MemberProfile} | 创建或整体更新本机托管成员，完整字段见[成员契约](2026-10-17-team-node.md#成员接口与资料) |
 | links[].url | input | string | 是 | — | 规范化后最多 2048 字节，HTTP/HTTPS、有主机、无登录凭据 | 链接 |
 
@@ -45,6 +46,7 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 | team | Team/null | 是 | id/name/owner/members | members 目前只有本地 owner |
 | savedTeams | Team[] | 是 | 最多 32 个 | 可恢复的本地团队 |
 | messages | Message[] | 是 | 当前团队最近 200 条，按存储序号升序 | 每条含 id/name/text/createdAt |
+| relations | {memberId:string,parentId:string/null}[] | 是 | 当前团队显式关系，空团队[] | 管理员组织视图，未出现的成员为根 |
 | participants | MemberCard[] | 是 | 当前团队最多128个，空团队为[] | 身份铭牌、权限与助手/机器人资料 |
 | messages[].memberId | string/null | 是 | 新消息绑定本机成员 UUID；历史消息可空 | 作者身份 |
 | messages[].createdAt | number | 是 | Unix 毫秒，非负 | 本机入库时间，不作为跨设备排序依据 |
@@ -73,7 +75,7 @@ IPC 顶层参数为 `input`。未知 action、字段和错误类型由 Tauri/Ser
 
 ## 权限与安全
 
-capability 仅匹配本地 main 窗口，不授权远程页面。command 再次检查窗口标签。应用数据目录下 `collaboration/store.sqlite3` 是协作数据事实来源；调用者不能传入路径。本模块不开网络端口。本机 main 窗口为成员资料管理员，可维护本宿主的全部身份资料；发送消息要求当前安装成员启用且为 contributor/editor，保存公告及链接要求 editor。权限由 Rust 校验，不能只依赖前端按钮。管理员仍可通过 member 动作恢复自身权限；成员种类不自动赋予控制能力。安装 UUID 不能用于证明设备身份。数据库尚未加密，依赖本机账号与文件系统保护；Unix 协作目录权限为 0700。
+capability 仅匹配本地 main 窗口，不授权远程页面。command 再次检查窗口标签。应用数据目录下 `collaboration/store.sqlite3` 是协作数据事实来源；调用者不能传入路径。本模块不开网络端口。本机 main 窗口为成员资料与组织关系管理员，可维护本宿主的全部身份资料；发送消息要求当前安装成员启用且为 contributor/editor，保存公告及链接要求 editor。权限由 Rust 校验，不能只依赖前端按钮。管理员仍可通过 member 动作恢复自身权限；成员种类不自动赋予控制能力。安装 UUID 不能用于证明设备身份。数据库尚未加密，依赖本机账号与文件系统保护；Unix 协作目录权限为 0700。
 
 ## 行为约束
 
@@ -101,7 +103,7 @@ await invoke("collaboration_action", {
 ### 响应示例
 
 ```json
-{"installationId":"00000000-0000-4000-8000-000000000001","mode":"empty","team":null,"savedTeams":[],"messages":[],"participants":[],"board":"","links":[],"networkAvailable":false}
+{"installationId":"00000000-0000-4000-8000-000000000001","mode":"empty","team":null,"savedTeams":[],"messages":[],"participants":[],"relations":[],"board":"","links":[],"networkAvailable":false}
 ```
 
 该示例对应 snapshot/leave 后没有活动团队的状态。
@@ -114,7 +116,7 @@ await invoke("collaboration_action", {
 
 ## 兼容性与变更记录
 
-数据库 user_version=3；v1/v2 在事务中增加成员表和可空消息 member_id，旧团队补齐本机 human/editor。既有 author、历史消息、团队、公告和链接保留；旧消息 memberId=null，新消息 name 使用当前成员显示名。遇到较新版本在修改数据库配置前拒绝打开。原请求结构兼容，响应增加 participants/memberId；消息与公告新增上述权限检查。安装 UUID 不能作为网络认证凭据。
+数据库 user_version=4；v1/v2 在事务中增加成员表和可空消息 member_id，旧团队补齐本机 human/editor。既有 author、历史消息、团队、公告和链接保留；旧消息 memberId=null，新消息 name 使用当前成员显示名。遇到较新版本在修改数据库配置前拒绝打开。v3 事务新增 member_relations，默认空组织关系，不改写既有资料。原请求结构兼容，响应增加 participants/memberId/relations；消息与公告新增上述权限检查。安装 UUID 不能作为网络认证凭据。
 
 废弃计划：无。
 

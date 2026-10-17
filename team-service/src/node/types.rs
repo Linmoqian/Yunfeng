@@ -25,6 +25,9 @@ pub struct Invitation {
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Command {
     Snapshot {},
+    Relation {
+        relation: crate::relations::Relation,
+    },
     Member {
         member: crate::members::MemberInput,
     },
@@ -61,6 +64,15 @@ pub enum Command {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Mutation {
+    Relation {
+        relation: crate::relations::Relation,
+    },
+    MemberBoard {
+        #[serde(rename = "memberId")]
+        member_id: String,
+        announcement: String,
+        links: Vec<Link>,
+    },
     Member {
         member: crate::members::Member,
     },
@@ -80,6 +92,8 @@ pub enum Mutation {
         links: Vec<Link>,
     },
     File {
+        #[serde(default, rename = "memberId", skip_serializing_if = "Option::is_none")]
+        member_id: Option<String>,
         name: String,
         data: String,
         sha256: String,

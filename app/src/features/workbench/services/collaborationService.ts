@@ -18,8 +18,10 @@ export interface CollaborationSnapshot {
   links: CollaborationLink[];
   networkAvailable: boolean;
   participants: MemberCard[];
+  relations: { memberId: string; parentId: string | null }[];
 }
 export type CollaborationAction =
+  | { action: "relation"; relation: { memberId: string; parentId: string | null } }
   | { action: "snapshot" | "leave" }
   | { action: "create"; name: string; owner: string }
   | { action: "message"; id: string; text: string }

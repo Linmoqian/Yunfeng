@@ -54,6 +54,21 @@ pub fn validate(event: &Event) -> Result<()> {
         return Err(input());
     }
     match &event.change {
+        Mutation::Relation { relation } => {
+            model::uuid(&relation.member_id)?;
+            if let Some(parent) = &relation.parent_id {
+                model::uuid(parent)?;
+            }
+        }
+        Mutation::MemberBoard {
+            member_id,
+            announcement,
+            links,
+        } => {
+            model::uuid(member_id)?;
+            model::body(announcement, true)?;
+            model::links(links.clone())?;
+        }
         Mutation::Member { member } => {
             member.profile.validate()?;
             crate::model::uuid(&member.id)?;
@@ -92,11 +107,15 @@ pub fn validate(event: &Event) -> Result<()> {
             model::links(links.clone())?;
         }
         Mutation::File {
+            member_id,
             name,
             data,
             sha256,
             size,
         } => {
+            if let Some(id) = member_id {
+                model::uuid(id)?;
+            }
             model::name(name)?;
             if name.contains(['/', '\\'])
                 || [".", ".."].contains(&name.as_str())
@@ -137,7 +156,7 @@ fn insert(store: &mut Store, event: &Event) -> Result<()> {
         return Err(Error::new("COLLAB_LIMIT", "本机实验节点同步日志达到上限"));
     }
     match &event.change {
-        Mutation::Member { .. } => {}
+        Mutation::Member { .. } | Mutation::Relation { .. } | Mutation::MemberBoard { .. } => {}
         Mutation::Team { name, owner } => {
             let old: Option<(String, String)> = store
                 .db
@@ -215,6 +234,7 @@ pub fn merge(store: &mut Store, team: &str, incoming: &[Event]) -> Result<()> {
                 }
             }
         }
+        super::organization::project(store, team, &saved)?;
         if let Some(Event {
             change:
                 Mutation::Board {

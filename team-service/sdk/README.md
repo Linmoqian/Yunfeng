@@ -13,7 +13,7 @@ TeamMember
     └── RoboticArm
 ```
 
-父类提供 `identity()`、`permissions()`、`observe()`、`sendMessage()`、`publishAnnouncement()`、`shareFile()` 和 `readFile()`。`AgentMember.assistantInfo()` 返回助手模型、提供方与技能资料。身份种类不自动授予权限；每次请求由 Rust 查询数据库中的当前权限。
+父类提供 `identity()`、`permissions()`、`children()`、`observe()`、`sendMessage()`、`publishAnnouncement()`、`shareFile()` 和 `readFile()`。`AgentMember.assistantInfo()` 返回助手模型、提供方与技能资料。身份种类不自动授予权限；每次请求由 Rust 查询数据库中的当前权限。
 
 ## 调用
 
@@ -43,6 +43,14 @@ await assistant.sendMessage("实验结果已整理");
 `connectMember(address, token)` 是集中组装入口，允许知道服务和 HTTP 的具体实现；普通业务只接收组装后的服务。自定义传输通过 `createMemberService(transport)` 接入，底层传输仅实现 `MemberTransport.call()`，无需知道 HumanMember、AgentMember、ProgramMember 或 RobotMember。调用方可为服务或硬件适配器注入独立实现，不必给下层父成员、页面或调度器引用。
 
 本次实验性 SDK 的成员构造参数从原始 MemberTransport 改为 MemberService；原有 `new AgentMember(id, memberTransport(address, token))` 改为 `new AgentMember(id, connectMember(address, token))`。已有自定义传输外包一层 `createMemberService(transport)` 即可。HTTP JSON 契约与数据库格式不变。依赖回归测试阻止业务类直接导入 HTTP、下层反向导入上层以及动态导入绕过边界。
+
+## 组织可见范围
+
+`children()` 只返回直属下级。`observe()` 返回类型 MemberObservation，包含 identity、children，以及本人和直属下级的 messages/files/boards；身份采用 MemberIdentity（id、profile），不返回 nodeId、上级、同级、更深后代、全队名单或宿主邻居。所有成员身份遵守相同规则，editor 不扩大可见层级。文件即使知道 UUID，也要经过相同范围校验。
+
+组织关系由管理员通过 relation 动作维护，保存在 Rust SQLite 并同步到对等节点。成员 SDK 不提供上级查询或组织管理入口。关系解除、改挂后立即按最新关系过滤历史数据，服务重启保留关系与凭据。未登记关系的成员为独立根。桌面 main 窗口及节点控制接口是全队管理员视图，与成员凭据入口分开。
+
+本次成员 observe 和写入响应从 NodeSnapshot 收紧为 MemberObservation；原读取 `.snapshot.participants` 的调用方应改用 `.children` / `.identity`。成员公告通过 boards 数组读取，旧全局公告及无归属文件仅由管理员读取。该变化是实验性 SDK 的契约收紧，须与服务一起升级。
 
 ## 实体机器人
 

@@ -5,6 +5,8 @@ mod commands;
 mod http;
 mod log;
 mod member_api;
+mod member_view;
+mod organization;
 mod peers;
 pub mod types;
 use crate::{

@@ -38,6 +38,7 @@ fn rejected_batch_rolls_back_business_views_and_log() {
         clock: 3,
         team: team.clone(),
         change: Mutation::File {
+            member_id: None,
             name: "file".into(),
             data: "eA==".into(),
             sha256: "forged".into(),
@@ -121,4 +122,61 @@ fn board_converges_by_logical_order_and_control_is_not_a_peer_capability() {
     )
     .unwrap();
     assert_eq!(reopened.store.snapshot().unwrap().board, "新公告");
+}
+
+#[test]
+fn organization_merge_resolves_concurrent_cycles_and_rejects_foreign_authority_atomically() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut node = node(dir.path());
+    command(&mut node, json!({"action":"create","name":"组织"}));
+    let team = node.team().unwrap();
+    let mut card = node.store.snapshot().unwrap().participants[0].clone();
+    let mut ids = vec![];
+    for _ in 0..2 {
+        card.id = uuid::Uuid::new_v4().to_string();
+        ids.push(card.id.clone());
+        log::publish(
+            &mut node.store,
+            &node.identity.id,
+            &team,
+            uuid::Uuid::new_v4().to_string(),
+            Mutation::Member {
+                member: card.clone(),
+            },
+        )
+        .unwrap();
+    }
+    let event = |clock, child: &str, parent: &str| Event {
+        id: uuid::Uuid::new_v4().to_string(),
+        origin: node.identity.id.clone(),
+        team: team.clone(),
+        clock,
+        change: Mutation::Relation {
+            relation: crate::relations::Relation {
+                member_id: child.into(),
+                parent_id: Some(parent.into()),
+            },
+        },
+    };
+    let a = event(20, &ids[0], &ids[1]);
+    let b = event(21, &ids[1], &ids[0]);
+    log::merge(&mut node.store, &team, &[b.clone(), a.clone()]).unwrap();
+    let expected = node.store.snapshot().unwrap().relations;
+    assert_eq!(expected.len(), 1);
+    assert_eq!(expected[0].member_id, ids[1]);
+    log::merge(&mut node.store, &team, &[a.clone(), b]).unwrap();
+    assert_eq!(node.store.snapshot().unwrap().relations, expected);
+    let count = log::events(&node.store, &team).unwrap().len();
+    let mut forged = a;
+    forged.id = uuid::Uuid::new_v4().to_string();
+    forged.origin = uuid::Uuid::new_v4().to_string();
+    forged.clock = 22;
+    assert_eq!(
+        log::merge(&mut node.store, &team, &[forged])
+            .unwrap_err()
+            .code,
+        "NODE_FORBIDDEN"
+    );
+    assert_eq!(log::events(&node.store, &team).unwrap().len(), count);
+    assert_eq!(node.store.snapshot().unwrap().relations, expected);
 }

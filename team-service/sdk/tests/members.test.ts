@@ -66,6 +66,7 @@ test("真实节点为四种身份固定作者并即时执行权限、停用与�
     agent.profile.access = "editor";
     await call({ action: "member", member: { id: agent.id, profile: agent.profile } });
     await assistant.publishAnnouncement("授权后的真实公告");
+    assert.equal((await assistant.observe()).boards[0].announcement, "授权后的真实公告");
     agent.profile.access = "observer";
     await call({ action: "member", member: { id: agent.id, profile: agent.profile } });
     await assert.rejects(assistant.sendMessage("撤权后不可发送"), /NODE_FORBIDDEN/);
@@ -76,7 +77,7 @@ test("真实节点为四种身份固定作者并即时执行权限、停用与�
     await call({ action: "member", member: { id: agent.id, profile: agent.profile } });
     await assert.rejects(memberTransport(address, rotated.token).call({ action: "identity" }), /NODE_FORBIDDEN/);
     state = await call({ action: "snapshot" });
-    assert.equal(state.snapshot.board, "授权后的真实公告");
+    assert.equal(state.snapshot.board, "");
     assert.equal(state.snapshot.participants.length, 5);
   } finally {
     if (address && control) await call({ action: "shutdown" }).catch(() => child.kill());

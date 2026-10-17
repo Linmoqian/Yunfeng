@@ -178,7 +178,7 @@ fn database_reopen_keeps_installation_and_team() {
 #[test]
 fn future_schema_is_rejected() {
     let db = Connection::open_in_memory().unwrap();
-    db.execute_batch("PRAGMA user_version=4;").unwrap();
+    db.execute_batch("PRAGMA user_version=5;").unwrap();
     assert!(matches!(Store::initialize(db), Err(error) if error.code == "COLLAB_SCHEMA"));
 }
 
@@ -242,4 +242,39 @@ fn local_permissions_are_enforced_and_member_records_survive_reopen() {
     let reopened = Store::open(&path).unwrap().snapshot().unwrap();
     assert_eq!(reopened.participants[0], member);
     assert!(reopened.messages.is_empty());
+}
+
+#[test]
+fn version_three_upgrades_with_empty_organization_and_preserves_member_and_board() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("store.sqlite3");
+    let mut store = Store::open(&path).unwrap();
+    let before = create(&mut store);
+    store
+        .action(Action::Board {
+            announcement: "迁移前公告".into(),
+            links: vec![],
+        })
+        .unwrap();
+    // 仅在本测试临时库构造旧版 v3：成员与公告已存在，但尚无关系表。
+    store
+        .db
+        .execute_batch("DROP TABLE member_relations; PRAGMA user_version=3;")
+        .unwrap();
+    drop(store);
+    let mut reopened = Store::open(&path).unwrap();
+    let after = reopened.snapshot().unwrap();
+    assert_eq!(after.participants, before.participants);
+    assert_eq!(after.board, "迁移前公告");
+    assert!(after.relations.is_empty());
+    let member = after.participants[0].id.clone();
+    assert!(reopened
+        .action(Action::Relation {
+            relation: crate::relations::Relation {
+                member_id: member.clone(),
+                parent_id: Some(member)
+            }
+        })
+        .is_err());
+    assert!(reopened.snapshot().unwrap().relations.is_empty());
 }

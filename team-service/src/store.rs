@@ -40,7 +40,7 @@ impl Store {
         let version: u32 = db
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .map_err(Error::storage)?;
-        if version > 3 {
+        if version > 4 {
             return Err(Error::new(
                 "COLLAB_SCHEMA",
                 "协作数据库版本较新，请更新应用",
@@ -71,6 +71,11 @@ impl Store {
             crate::members::initialize(&tx)?;
             tx.commit().map_err(Error::storage)?;
         }
+        if version < 4 {
+            let tx = db.transaction().map_err(Error::storage)?;
+            crate::relations::initialize(&tx)?;
+            tx.commit().map_err(Error::storage)?;
+        }
         Ok(Self { db })
     }
     fn active(&self) -> Result<String> {
@@ -87,6 +92,16 @@ impl Store {
     pub fn action(&mut self, action: Action) -> Result<Snapshot> {
         match action {
             Action::Snapshot {} => {}
+            Action::Relation { relation } => {
+                let snapshot = self.snapshot()?;
+                let team = self.active()?;
+                let child = crate::members::find(&self.db, &team, &relation.member_id)?
+                    .ok_or_else(crate::members::input)?;
+                if child.node_id != snapshot.installation_id {
+                    return Err(crate::members::forbidden());
+                }
+                crate::relations::save(&self.db, &team, &relation)?;
+            }
             Action::Member { member } => {
                 let node = self.snapshot()?.installation_id;
                 let card = crate::members::Member {
@@ -336,7 +351,13 @@ impl Store {
             .map(|t| crate::members::list(&self.db, &t.id))
             .transpose()?
             .unwrap_or_default();
+        let relations = team
+            .as_ref()
+            .map(|t| crate::relations::list(&self.db, &t.id))
+            .transpose()?
+            .unwrap_or_default();
         Ok(Snapshot {
+            relations,
             participants,
             installation_id,
             mode: if team.is_some() { "local" } else { "empty" },

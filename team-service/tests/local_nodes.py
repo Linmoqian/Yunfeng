@@ -120,6 +120,17 @@ def exercise(binary, root):
         except urllib.error.HTTPError as error:
             assert error.code == 403
         actor_token = call("B", {"action": "grant", "id": records[1]["id"]})["token"]
+        for label, child_index, parent_index in [("B", 1, 0), ("C", 2, 1), ("C", 3, 0)]:
+            call(label, {"action": "relation", "relation": {"memberId": records[child_index]["id"], "parentId": records[parent_index]["id"]}})
+        sync("A", "C", "B", "A", "C")
+        view = call("B", {"action": "snapshot"}, token=actor_token, route="/v1/member")
+        assert [child["id"] for child in view["children"]] == [records[2]["id"]]
+        assert records[0]["id"] not in json.dumps(view) and records[3]["id"] not in json.dumps(view)
+        try:
+            call("A", {"action": "relation", "relation": {"memberId": records[0]["id"], "parentId": records[2]["id"]}})
+            raise AssertionError("组织关系形成了环")
+        except urllib.error.HTTPError as error:
+            assert error.code == 400
         records[1]["profile"]["access"] = "observer"
         call("B", {"action": "member", "member": records[1]})
         sync("B", "A", "C")
@@ -137,12 +148,15 @@ def exercise(binary, root):
             raise AssertionError("重启后丢失成员权限")
         except urllib.error.HTTPError as error:
             assert error.code == 403
+        restored_view = call("B", {"action": "snapshot"}, token=actor_token, route="/v1/member")
+        assert restored_view["children"] == view["children"]
+        assert records[0]["id"] not in json.dumps(restored_view)
         sync("B", "A", "C")
         stop("A")
         start("A", original["A"]["node"]["address"])
         assert call("A", {"action": "snapshot"}) == original["A"]
         sync("A", "B", "C")
-        return {"nodes": 3, "topology": "A—B—C", "directPeerCounts": [1, 2, 1], "messages": 2, "members": 7, "memberKinds": ["human", "agent", "program", "robot"], "memberRightsRetained": True, "foreignMemberEditRejected": True, "fileBytes": len(content), "sha256": digest, "fileBytesEqual": True, "boardConverged": True, "restartRetained": True, "offlineRecovered": True, "invalidTokenRejected": True, "unsafeFileNameRejected": True, "scope": "loopback-only"}
+        return {"nodes": 3, "topology": "A—B—C", "directPeerCounts": [1, 2, 1], "messages": 2, "members": 7, "memberKinds": ["human", "agent", "program", "robot"], "memberRightsRetained": True, "organizationIsolation": True, "organizationRestartRetained": True, "foreignMemberEditRejected": True, "fileBytes": len(content), "sha256": digest, "fileBytesEqual": True, "boardConverged": True, "restartRetained": True, "offlineRecovered": True, "invalidTokenRejected": True, "unsafeFileNameRejected": True, "scope": "loopback-only"}
     finally:
         for label, node in nodes.items():
             try:

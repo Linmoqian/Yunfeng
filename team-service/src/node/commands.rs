@@ -20,6 +20,25 @@ impl Node {
                 return Ok(json!({"stopping":true}));
             }
             Command::Snapshot {} => {}
+            Command::Relation { relation } => {
+                let team = self.team()?;
+                let child =
+                    members::find(&self.store.db, &team, &relation.member_id)?.ok_or_else(input)?;
+                if child.node_id != self.identity.id {
+                    return Err(denied());
+                }
+                crate::relations::validate(&self.store.db, &team, &relation)?;
+                if crate::relations::cycle(&self.store.db, &team, &relation)? {
+                    return Err(input());
+                }
+                log::publish(
+                    &mut self.store,
+                    &self.identity.id,
+                    &team,
+                    uuid::Uuid::new_v4().to_string(),
+                    Mutation::Relation { relation },
+                )?;
+            }
             Command::Member { member } => {
                 let team = self.team()?;
                 let member = Member {
@@ -97,9 +116,17 @@ impl Node {
                     &self.identity.id,
                     &team,
                     uuid::Uuid::new_v4().to_string(),
-                    Mutation::Board {
-                        announcement: model::body(&announcement, true)?,
-                        links: model::links(links)?,
+                    if let Some(sender) = sender {
+                        Mutation::MemberBoard {
+                            member_id: sender.id,
+                            announcement: model::body(&announcement, true)?,
+                            links: model::links(links)?,
+                        }
+                    } else {
+                        Mutation::Board {
+                            announcement: model::body(&announcement, true)?,
+                            links: model::links(links)?,
+                        }
                     },
                 )?;
             }
@@ -127,6 +154,7 @@ impl Node {
                     &team,
                     uuid::Uuid::new_v4().to_string(),
                     Mutation::File {
+                        member_id: sender.map(|m| m.id),
                         name,
                         data,
                         sha256: hash,
