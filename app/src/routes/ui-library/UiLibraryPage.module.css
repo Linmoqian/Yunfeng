@@ -16,11 +16,8 @@
 .sample button { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-pill); background: var(--yf-bg-canvas); padding: 4px 9px; color: var(--yf-text-secondary); font: 12px var(--font-body); cursor: pointer; }
 .sample button:focus-visible, .header > a:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 3px; }
 .wide { grid-column: 1 / -1; }
-.dragStates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-.dragStates small { display: block; margin-bottom: 16px; color: var(--yf-text-tertiary); font-size: 11px; }
-.block { position: relative; display: flex; align-items: center; gap: 7px; min-height: 52px; padding: 12px; border: 1px solid var(--yf-border-divider); border-radius: 13px; background: var(--yf-bg-canvas); font-size: 12px; }
 .footer { max-width: 1040px; margin: 24px auto; color: var(--yf-text-tertiary); font-size: 11px; }
-@media (max-width: 700px) { .grid, .dragStates { grid-template-columns: minmax(0, 1fr); } .header > span:last-child { display: none; } }
+@media (max-width: 700px) { .grid { grid-template-columns: minmax(0, 1fr); } .header > span:last-child { display: none; } }
 
 .navigation { display: flex; gap: 8px; flex-wrap: wrap; max-width: 1040px; margin: -12px auto 20px; }
 .navigation a { padding: 4px 11px; border-radius: var(--yf-radius-pill); color: var(--yf-text-secondary); font-size: 12px; text-decoration: none; background: var(--yf-bg-canvas); }

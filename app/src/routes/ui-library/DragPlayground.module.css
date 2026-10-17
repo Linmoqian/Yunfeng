@@ -1,0 +1,15 @@
+/* 拖放沙盒的透明落点与浮起层，空间固定避免周边跳动。
+ * Created on 2026-10-18
+ * @author: https://github.com/Linmoqian
+ */
+.area { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.column { min-width: 0; }
+.column small { display: block; height: 26px; color: var(--yf-text-tertiary); font-size: 11px; }
+.slot { height: 64px; display: grid; align-items: center; padding: 12px; background: color-mix(in srgb, var(--yf-brand-primary) 2%, transparent); transition: background var(--yf-motion-fast, 140ms) ease; }
+.placeholder { color: var(--yf-text-tertiary); font-size: 12px; }
+.card { position: absolute; top: 26px; left: 0; width: calc((100% - 40px) / 3); height: 64px; display: flex; align-items: center; gap: 7px; padding: 12px; border: 1px solid var(--yf-border-divider); border-radius: 13px; background: var(--yf-bg-canvas); font-size: 12px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; z-index: 2; }
+.area[data-active="true"] .card { cursor: grabbing; box-shadow: 0 10px 24px color-mix(in srgb, var(--yf-brand-primary) 16%, transparent); }
+.card:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 3px; }
+.status { display: block; margin-top: 8px; font-size: 11px; color: var(--yf-text-tertiary); }
+@media (max-width: 500px) { .area { gap: 10px; } .card { width: calc((100% - 20px) / 3); padding: 8px; } .slot { padding: 8px; } }
+@media (prefers-reduced-motion: reduce) { .slot { transition: none; } }
