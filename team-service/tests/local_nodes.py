@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""三个真实本机进程的闭环验收；凭据仅在私有临时目录与请求头中使用。
+Created on 2026-10-17
+@author: https://github.com/Linmoqian
+"""
+import argparse
+import base64
+import hashlib
+import json
+import pathlib
+import select
+import subprocess
+import tempfile
+import urllib.error
+import urllib.request
+import uuid
+
+
+def exercise(binary, root):
+    nodes = {}
+
+    def start(label, address=None):
+        directory = root / label
+        bind = address.removeprefix("http://") if address else "127.0.0.1:0"
+        process = subprocess.Popen([str(binary), "--data-dir", str(directory), "--name", label, "--bind", bind], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        nodes[label] = {"process": process, "directory": directory}
+        if not select.select([process.stdout], [], [], 15)[0]:
+            raise AssertionError("节点启动超时")
+        line = process.stdout.readline()
+        if not line:
+            raise AssertionError("节点启动失败")
+        ready = json.loads(line)
+        node = nodes[label]
+        node.update(ready)
+        node["token"] = (directory / "control.token").read_text()
+        return node
+
+    def call(label, command, token=None):
+        node = nodes[label]
+        request = urllib.request.Request(node["address"] + "/v1/local", data=json.dumps(command).encode(), headers={"Authorization": "Bearer " + (token if token is not None else node["token"]), "Content-Type": "application/json"})
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.load(response)
+
+    def stop(label):
+        node = nodes[label]
+        if node["process"].poll() is None and "address" not in node:
+            node["process"].terminate()
+            node["process"].wait(timeout=5)
+        if node["process"].poll() is None:
+            call(label, {"action": "shutdown"})
+            node["process"].wait(timeout=5)
+        node["process"].stdout.close()
+        node["process"].stderr.close()
+
+    def sync(*labels):
+        for label in labels:
+            result = call(label, {"action": "sync"})
+            assert all(row["ok"] for row in result["results"]), "邻居同步失败"
+
+    try:
+        for label in ["A", "B", "C"]:
+            start(label)
+        assert len({n["id"] for n in nodes.values()}) == 3
+        call("A", {"action": "create", "name": "本机对等验收团队"})
+        call("A", {"action": "create", "name": "本机对等验收团队"})  # 创建请求重试
+        invitation = call("A", {"action": "invite"})
+        call("B", {"action": "join", "invitation": invitation})
+        call("B", {"action": "join", "invitation": invitation})  # 丢失响应后的同节点重试
+        call("C", {"action": "join", "invitation": call("B", {"action": "invite"})})
+        assert len(call("A", {"action": "snapshot"})["peers"]) == 1
+        assert len(call("B", {"action": "snapshot"})["peers"]) == 2
+        assert len(call("C", {"action": "snapshot"})["peers"]) == 1
+        first = {"action": "message", "id": str(uuid.uuid4()), "text": "A 的原始消息，经 B 转发到 C"}
+        call("A", first)
+        call("A", first)
+        sync("A", "B")
+        second = {"action": "message", "id": str(uuid.uuid4()), "text": "C 复核后回复，经 B 返回 A"}
+        call("C", second)
+        call("C", {"action": "board", "announcement": "C 节点复核公告", "links": []})
+        content = pathlib.Path(__file__).read_bytes()  # 真实本地源码文件
+        digest = hashlib.sha256(content).hexdigest()
+        call("C", {"action": "share", "name": "local_nodes.py", "data": base64.b64encode(content).decode()})
+        sync("C", "B", "A", "B", "C")
+        for label in nodes:
+            state = call(label, {"action": "snapshot"})
+            assert {m["id"] for m in state["snapshot"]["messages"]} == {first["id"], second["id"]}
+            assert {m["name"] for m in state["snapshot"]["messages"]} == {"A", "C"}
+            assert state["snapshot"]["board"] == "C 节点复核公告"
+            assert len(state["files"]) == 1
+            file = call(label, {"action": "file", "id": state["files"][0]["id"]})
+            assert file["sha256"] == digest and base64.b64decode(file["data"]) == content
+        for label in ["A", "C"]:
+            call(label, {"action": "board", "announcement": label + " 的离线公告更新", "links": []})
+        sync("A", "C", "B", "A", "C")
+        boards = {call(label, {"action": "snapshot"})["snapshot"]["board"] for label in nodes}
+        assert len(boards) == 1, "并发公告未收敛"
+        try:
+            call("A", {"action": "snapshot"}, token="invalid")
+            raise AssertionError("错误凭据被接受")
+        except urllib.error.HTTPError as error:
+            assert error.code == 403
+        try:
+            call("A", {"action": "share", "name": "../escape", "data": "eA=="})
+            raise AssertionError("路径穿越文件名被接受")
+        except urllib.error.HTTPError as error:
+            assert error.code == 400
+        original = {label: call(label, {"action": "snapshot"}) for label in nodes}
+        stop("B")
+        result = call("A", {"action": "sync"})
+        assert len(result["results"]) == 1 and result["results"][0]["ok"] is False
+        assert call("A", {"action": "snapshot"})["snapshot"]["messages"] == original["A"]["snapshot"]["messages"]
+        start("B", original["B"]["node"]["address"])
+        assert call("B", {"action": "snapshot"}) == original["B"]
+        sync("B", "A", "C")
+        stop("A")
+        start("A", original["A"]["node"]["address"])
+        assert call("A", {"action": "snapshot"}) == original["A"]
+        sync("A", "B", "C")
+        return {"nodes": 3, "topology": "A—B—C", "directPeerCounts": [1, 2, 1], "messages": 2, "fileBytes": len(content), "sha256": digest, "fileBytesEqual": True, "boardConverged": True, "restartRetained": True, "offlineRecovered": True, "invalidTokenRejected": True, "unsafeFileNameRejected": True, "scope": "loopback-only"}
+    finally:
+        for label, node in nodes.items():
+            try:
+                stop(label)
+            except (OSError, subprocess.TimeoutExpired):
+                node["process"].terminate()
+                node["process"].wait(timeout=5)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--binary", type=pathlib.Path, default=pathlib.Path(__file__).resolve().parents[1] / "target/debug/yunfeng-team-node")
+    parser.add_argument("--report", type=pathlib.Path)
+    args = parser.parse_args()
+    with tempfile.TemporaryDirectory(prefix="yunfeng-team-nodes-") as directory:
+        report = exercise(args.binary.resolve(), pathlib.Path(directory))
+    if args.report:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    print(json.dumps(report, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

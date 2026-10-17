@@ -55,6 +55,8 @@
 .noticeBoard { overflow: hidden; padding: 16px; margin: 2px 0 16px; border: 1px solid color-mix(in srgb, var(--yf-brand-primary) 12%, var(--yf-border-divider)); border-radius: 18px; background: linear-gradient(145deg, color-mix(in srgb, var(--yf-brand-primary) 4%, var(--yf-bg-canvas)), var(--yf-bg-canvas) 70%); box-shadow: 0 2px 8px color-mix(in srgb, var(--yf-shadow-color) 20%, transparent); }
 .boardHeader { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .boardHeader h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.boardFeedback { display: inline-flex; min-height: 20px; margin-left: auto; color: var(--yf-text-tertiary); font-size: 10px; }
+.savedBadge { display: inline-flex; align-items: center; gap: 3px; color: var(--yf-brand-primary); }
 .boardHeader > button { margin-left: auto; color: var(--yf-text-secondary); }
 .boardIcon { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 9px; color: var(--yf-brand-primary); background: color-mix(in srgb, var(--yf-brand-primary) 7%, var(--yf-bg-canvas)); }
 .boardTag { padding: 0 6px; border: 1px solid var(--yf-border-divider); border-radius: 999px; color: var(--yf-text-tertiary); font-size: 10px; }

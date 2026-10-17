@@ -71,3 +71,24 @@ test("告示牌失败保留草稿与链接，成功读取权威快照，取消�
   view.rerender(<TeamNoticeBoard state={{ ...state, team: null }} />);
   expect((screen.getByRole("button", { name: "编辑团队公告" }) as HTMLButtonElement).disabled).toBe(true);
 });
+
+test("告示牌只提交一次，保存中冻结编辑，成功后明确反馈，未修改不提交", async () => {
+  let confirm!: (value: boolean) => void;
+  const pending = new Promise<boolean>((resolve) => { confirm = resolve; });
+  const state = workspace({ saveBoard: vi.fn().mockReturnValue(pending) });
+  const view = render(<TeamNoticeBoard state={state} />);
+  await userEvent.click(screen.getByRole("button", { name: "编辑团队公告" }));
+  const editor = await screen.findByLabelText("团队公告");
+  expect((screen.getByRole("button", { name: "保存" }) as HTMLButtonElement).disabled).toBe(true);
+  await userEvent.clear(editor); await userEvent.type(editor, "新的团队约定");
+  expect(screen.getByRole("status").textContent).toContain("未保存");
+  fireEvent.keyDown(editor, { key: "Enter", metaKey: true });
+  fireEvent.keyDown(editor, { key: "Enter", metaKey: true });
+  expect(state.saveBoard).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("status").textContent).toContain("保存中");
+  expect((editor as HTMLTextAreaElement).disabled).toBe(true);
+  confirm(true);
+  view.rerender(<TeamNoticeBoard state={{ ...state, board: "新的团队约定" }} />);
+  await waitFor(() => expect(screen.getByRole("status").textContent).toContain("已保存"));
+  expect(screen.getByText("新的团队约定")).toBeTruthy();
+});

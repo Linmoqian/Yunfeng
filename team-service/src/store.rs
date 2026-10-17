@@ -8,6 +8,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+/// SQLite 团队存储；业务数据与节点事件共用同一连接。
 pub struct Store {
     pub(super) db: Connection,
 }
@@ -19,6 +20,7 @@ CREATE INDEX messages_team_sequence ON messages(team_id, sequence);
 PRAGMA user_version=1;";
 
 impl Store {
+    /// 打开或创建数据库并事务升级已知版本；目录、存储或版本不兼容时失败。
     pub fn open(path: &Path) -> Result<Self> {
         let parent = path
             .parent()
@@ -38,7 +40,7 @@ impl Store {
         let version: u32 = db
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .map_err(Error::storage)?;
-        if version > 1 {
+        if version > 2 {
             return Err(Error::new(
                 "COLLAB_SCHEMA",
                 "协作数据库版本较新，请更新应用",
@@ -58,6 +60,12 @@ impl Store {
             .map_err(Error::storage)?;
             tx.commit().map_err(Error::storage)?;
         }
+        if version < 2 {
+            let tx = db.transaction().map_err(Error::storage)?;
+            tx.execute_batch("ALTER TABLE messages ADD COLUMN author TEXT; PRAGMA user_version=2;")
+                .map_err(Error::storage)?;
+            tx.commit().map_err(Error::storage)?;
+        }
         Ok(Self { db })
     }
     fn active(&self) -> Result<String> {
@@ -70,6 +78,7 @@ impl Store {
             .map_err(Error::storage)?
             .ok_or_else(|| Error::new("COLLAB_NO_TEAM", "请先创建或恢复本地团队"))
     }
+    /// 校验并提交本地动作，返回确认后的快照；无活动团队、冲突和存储失败返回错误。
     pub fn action(&mut self, action: Action) -> Result<Snapshot> {
         match action {
             Action::Snapshot {} => {}
@@ -124,7 +133,7 @@ impl Store {
         self.snapshot()
     }
     fn create(&mut self, name: &str, owner: &str) -> Result<()> {
-        let tx = self.db.transaction().map_err(Error::storage)?;
+        let tx = self.db.savepoint().map_err(Error::storage)?;
         let active: Option<String> = tx
             .query_row(
                 "SELECT active_team FROM installations WHERE singleton=1",
@@ -170,7 +179,7 @@ impl Store {
     }
     fn message(&mut self, id: &str, text: &str) -> Result<()> {
         let team = self.active()?;
-        let tx = self.db.transaction().map_err(Error::storage)?;
+        let tx = self.db.savepoint().map_err(Error::storage)?;
         let existing: Option<(String, String)> = tx
             .query_row(
                 "SELECT team_id,text FROM messages WHERE id=?1",
@@ -214,6 +223,7 @@ impl Store {
         .map_err(Error::storage)?;
         tx.commit().map_err(Error::storage)
     }
+    /// 读取活动团队及最近200条消息；数据库读取或内容解码失败时返回错误。
     pub fn snapshot(&self) -> Result<Snapshot> {
         let (installation_id, active): (String, Option<String>) = self
             .db
@@ -256,12 +266,14 @@ impl Store {
                 .map_err(Error::storage)?;
             board = row.0;
             links = serde_json::from_str(&row.1).map_err(Error::storage)?;
-            let mut statement = self.db.prepare("SELECT id,text,created_at FROM (SELECT sequence,id,text,created_at FROM messages WHERE team_id=?1 ORDER BY sequence DESC LIMIT 200) ORDER BY sequence ASC").map_err(Error::storage)?;
+            let mut statement = self.db.prepare("SELECT id,text,created_at,author FROM (SELECT sequence,id,text,created_at,author FROM messages WHERE team_id=?1 ORDER BY sequence DESC LIMIT 200) ORDER BY sequence ASC").map_err(Error::storage)?;
             messages = statement
                 .query_map([&team.id], |row| {
                     Ok(Message {
                         id: row.get(0)?,
-                        name: team.owner.clone(),
+                        name: row
+                            .get::<_, Option<String>>(3)?
+                            .unwrap_or_else(|| team.owner.clone()),
                         text: row.get(1)?,
                         created_at: u64::try_from(row.get::<_, i64>(2)?).map_err(|value| {
                             rusqlite::Error::FromSqlConversionFailure(
@@ -286,5 +298,32 @@ impl Store {
             links,
             network_available: false,
         })
+    }
+}
+
+impl Store {
+    /// 在同一数据库事务中提交业务记录与节点事件；失败整批回滚。
+    #[cfg(feature = "node")]
+    pub(crate) fn atomic<T>(
+        &mut self,
+        operation: impl FnOnce(&mut Self) -> Result<T>,
+    ) -> Result<T> {
+        self.db
+            .execute_batch("SAVEPOINT team_node;")
+            .map_err(Error::storage)?;
+        match operation(self) {
+            Ok(value) => {
+                self.db
+                    .execute_batch("RELEASE team_node;")
+                    .map_err(Error::storage)?;
+                Ok(value)
+            }
+            Err(error) => {
+                self.db
+                    .execute_batch("ROLLBACK TO team_node; RELEASE team_node;")
+                    .map_err(Error::storage)?;
+                Err(error)
+            }
+        }
     }
 }

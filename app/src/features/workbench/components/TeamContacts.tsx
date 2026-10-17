@@ -41,7 +41,7 @@ export function TeamContacts({ state, onBack }: { state: TeamWorkspace; onBack: 
         <Button type="text" size="small" disabled={unavailable} icon={<LogOut size={14} />} onClick={() => modal.confirm({ title: "关闭本地团队？", content: "消息和公告会保留，可以从本地团队列表恢复。", okText: "关闭团队", cancelText: "取消", onOk: async () => { if (!await state.leave()) throw new Error("关闭失败，请查看行内提示"); } })}>关闭团队</Button>
       </div>
     </>}
-    <TeamSection title="配对与附近节点" icon={<Radio size={15} />}><p className={styles.hint}>设备配对、邀请与网络发现尚未接入。</p><Button size="small" disabled>加入远端团队</Button></TeamSection>
+    <TeamSection title="配对与附近节点" icon={<Radio size={15} />}><p className={styles.hint}>独立节点已支持本机配对；桌面配对与局域网发现尚未接入。</p><Button size="small" disabled>加入远端团队</Button></TeamSection>
     {state.snapshot && <TeamSection title="本机安装标识" icon={<Fingerprint size={15} />}><p className={styles.identifier}>{state.snapshot.installationId}</p><p className={styles.hint}>此标识不用于配对认证。</p></TeamSection>}
   </div>;
 }

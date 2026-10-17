@@ -10,6 +10,7 @@ Yunfeng 是本地优先的个人 Agent 工作台。桌面 React 界面通过 HTT
 | --- | --- |
 | `app/` | React + TypeScript + Vite 桌面界面，Tauri 2 外壳；论文写作、终端和本地协作通过 Rust IPC 提供 |
 | `server/` | 任务、Agent 会话、审批、事件和记忆；Pi SDK 在 Server 进程内运行 |
+| `team-service/` | 独立 Rust 团队核心，可选本机 HTTP 对等节点；[启动与多节点验证](team-service/README.md) |
 | `gateway/` | Bearer 认证和路径白名单，向移动端转发 Server API |
 | `mobile-app/` | 移动薄客户端，任务与对话通过网关，远程屏幕通过移动后端 |
 | `yunfeng-mobile-backend/` | Node 24 的设备配对、设备认证与 RustDesk 远程屏幕服务 |
@@ -67,6 +68,7 @@ TUI 在独立 workspace 内运行：`cd yunfeng-cli` 后执行 `pnpm install`、
 | 移动前端 | `pnpm --dir mobile-app test`、`pnpm --dir mobile-app build`、`pnpm --dir mobile-app check:api` |
 | 移动后端 | `pnpm --filter yunfeng-mobile-backend test`、`pnpm --filter yunfeng-mobile-backend smoke` |
 | Rust | 在 `app/src-tauri/` 执行 `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`、`cargo test` |
+| 团队节点 | 在 `team-service/` 执行 `cargo test --features node`；构建节点后运行 `python3 tests/local_nodes.py` |
 | TUI | 在 `yunfeng-cli/` 执行 `pnpm test`、`pnpm smoke` |
 
 实际验证结果属于对应任务记录；命令列表不代表全部能力已经验收。

@@ -1,7 +1,7 @@
-# 本地协作底座
+# 桌面协作适配
 
-第一批只提供 Rust 权威的本地团队、消息、公告和安装标识。`model.rs` 定义校验与 DTO，`store.rs` 管理 SQLite，`mod.rs` 是 Tauri 适配与有界调度入口。安装 UUID 不构成网络认证凭据。
+领域模型、输入校验、SQLite 存储和核心测试由独立 [team-service](../../../../team-service/README.md) crate 维护；本目录只保留 Tauri command、main 窗口授权、单操作背压与 `spawn_blocking` 适配。
 
-数据库保存在应用数据目录的 `collaboration/store.sqlite3`，采用 WAL、事务、外键及团队消息索引。查询只返回最新 200 条消息，每队最多 10000 条。本地关闭团队保留数据，可重新打开。
+现有 `collaboration_action` 请求与响应保持兼容，数据库仍在应用数据目录的 `collaboration/store.sqlite3`。首次打开将 v1 事务升级至 v2，增加可空消息作者字段，保留团队、公告、链接和历史消息。安装 UUID 不构成网络认证凭据。
 
-不会创建监听端口或发起发现。设备配对、签名身份、远端成员和消息同步在后续批次接入。运行 `cargo test collaboration` 验证存储与边界规则。
+独立 crate 的可选 node feature 可启动多个回环 HTTP 节点验证显式配对、事件交换和文件共享；桌面默认关闭该 feature，尚未连接独立节点网络。运行 `cargo test collaboration` 检查桌面边界，独立核心运行 `cargo test --manifest-path ../../team-service/Cargo.toml --features node`。

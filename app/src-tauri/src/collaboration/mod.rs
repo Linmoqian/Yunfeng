@@ -2,7 +2,7 @@
 //! Created on 2026-10-13
 //! @author: https://github.com/Linmoqian
 pub mod model;
-mod store;
+use yunfeng_team as store;
 #[cfg(test)]
 mod tests;
 use model::{Action, Error, Result, Snapshot};
