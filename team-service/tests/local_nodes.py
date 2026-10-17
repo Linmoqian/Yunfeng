@@ -52,6 +52,10 @@ def exercise(binary, root, verify_presence=False):
         node["process"].stdout.close()
         node["process"].stderr.close()
 
+    # 自动同步诊断是运行时状态，重启后重新测量，不属于持久化事实。
+    def durable(state):
+        return {k: v for k, v in state.items() if k != "autoSync"}
+
     def sync(*labels):
         for label in labels:
             result = call(label, {"action": "sync"})
@@ -140,7 +144,7 @@ def exercise(binary, root, verify_presence=False):
         assert len(result["results"]) == 1 and result["results"][0]["ok"] is False
         assert call("A", {"action": "snapshot"})["snapshot"]["messages"] == original["A"]["snapshot"]["messages"]
         start("B", original["B"]["node"]["address"])
-        assert call("B", {"action": "snapshot"}) == original["B"]
+        assert durable(call("B", {"action": "snapshot"})) == durable(original["B"])
         identity = call("B", {"action": "identity"}, token=actor_token, route="/v1/member")
         assert identity["id"] == records[1]["id"] and identity["profile"]["access"] == "observer"
         try:
@@ -154,7 +158,7 @@ def exercise(binary, root, verify_presence=False):
         sync("B", "A", "C")
         stop("A")
         start("A", original["A"]["node"]["address"])
-        assert call("A", {"action": "snapshot"}) == original["A"]
+        assert durable(call("A", {"action": "snapshot"})) == durable(original["A"])
         sync("A", "B", "C")
         presence = {}
         if verify_presence:

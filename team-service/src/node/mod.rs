@@ -10,6 +10,7 @@ mod member_view;
 mod organization;
 mod peers;
 mod presence;
+mod runtime;
 mod transactions;
 pub mod types;
 use crate::{
@@ -26,6 +27,7 @@ pub struct Node {
     identity: Identity,
     control: String,
     stopped: bool,
+    sync_failures: usize,
 }
 impl Node {
     /// 打开独立节点数据库；拒绝非回环地址、名称变更及不兼容的存储版本。
@@ -57,6 +59,7 @@ impl Node {
             identity: Identity { id, name, address },
             control,
             stopped: false,
+            sync_failures: 0,
         })
     }
     fn team(&self) -> Result<String> {
@@ -92,7 +95,7 @@ impl Node {
             .unwrap_or_default();
         let files: Vec<_> = events.iter().filter_map(|e| if let Mutation::File { name, sha256, size, .. } = &e.change { Some(json!({ "id": e.id, "name": name, "sha256": sha256, "size": size, "origin": e.origin })) } else { None }).collect();
         Ok(
-            json!({"node": self.identity, "snapshot": snapshot, "peers": peers.iter().map(|p| &p.node).collect::<Vec<_>>(), "files": files}),
+            json!({"node": self.identity, "snapshot": snapshot, "peers": peers.iter().map(|p| &p.node).collect::<Vec<_>>(), "files": files, "autoSync": {"failedPeers": self.sync_failures}}),
         )
     }
     fn join(&mut self, invitation: Invitation) -> Result<Value> {
@@ -271,15 +274,7 @@ pub fn serve(directory: &Path, name: &str, bind: SocketAddr) -> Result<()> {
         "{}",
         serde_json::to_string(&node.identity).map_err(Error::storage)?
     );
-    while !node.stopped {
-        let (mut stream, remote) = listener.accept().map_err(network)?;
-        if !remote.ip().is_loopback() {
-            continue;
-        }
-        let result = http::read(&mut stream)
-            .and_then(|(route, token, value)| node.handle(&route, &token, value));
-        let _ = http::respond(&mut stream, result);
-    }
+    runtime::run(&mut node, listener)?;
     Ok(())
 }
 fn write_credential(path: &Path, token: &str) -> Result<()> {

@@ -38,7 +38,7 @@ impl Binding {
             return Err(types::denied());
         }
         binding.id = identity.id;
-        let view = binding.view(reply, 0)?;
+        let view = binding.view(reply)?;
         Ok((binding, view))
     }
     fn credential(&self) -> Result<String> {
@@ -59,23 +59,10 @@ impl Binding {
         Ok(token)
     }
     pub(super) fn refresh(&self) -> Result<Value> {
-        let reply = self.request(json!({"action":"sync"}));
-        match reply {
-            Ok(reply) => {
-                let failures = reply["results"]
-                    .as_array()
-                    .ok_or_else(types::input)?
-                    .iter()
-                    .filter(|r| r["ok"] != true)
-                    .count();
-                self.view(reply["state"].clone(), failures)
-            }
-            Err(e) if e.code == "COLLAB_NO_TEAM" => {
-                self.view(self.request(json!({"action":"snapshot"}))?, 0)
-            }
-            Err(e) => Err(e),
-        }
+        let reply = self.request(json!({"action":"snapshot"}))?;
+        self.view(reply)
     }
+
     pub(super) fn action(&self, action: Action) -> Result<Value> {
         if matches!(action, Action::Activate { .. } | Action::Leave {}) {
             return Err(Error::new("COLLAB_INPUT", "请使用断开节点返回本地团队"));
@@ -84,12 +71,12 @@ impl Binding {
         if let Some(object) = input.as_object_mut() {
             object.remove("owner");
         }
-        self.view(self.request(input)?, 0)
+        self.view(self.request(input)?)
     }
     fn request(&self, value: Value) -> Result<Value> {
         client::request(&self.address, &self.credential()?, &value)
     }
-    fn view(&self, reply: Value, failures: usize) -> Result<Value> {
+    fn view(&self, reply: Value) -> Result<Value> {
         let identity: types::Identity =
             serde_json::from_value(reply["node"].clone()).map_err(|_| types::input())?;
         if identity.id != self.id
@@ -98,6 +85,7 @@ impl Binding {
         {
             return Err(types::denied());
         }
+        let failures = reply["autoSync"]["failedPeers"].as_u64().unwrap_or(0);
         let mut snapshot = reply["snapshot"].clone();
         let object = snapshot.as_object_mut().ok_or_else(types::input)?;
         object.insert("connection".into(), json!({"id":self.id,"name":identity.name,"address":self.address,"peerFailures":failures}));
