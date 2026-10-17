@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum Activity {
     Online,
@@ -23,10 +23,20 @@ pub struct Presence {
     pub observed_at: Option<u64>,
     pub expires_at: Option<u64>,
 }
+#[cfg(feature = "node")]
+mod exchange;
+#[cfg(feature = "node")]
+pub use exchange::Heartbeat;
+const TTL: Duration = Duration::from_secs(90);
 struct Lease {
     activity: Activity,
-    received: Instant,
+    deadline: Instant,
     timestamp: u64,
+    expires_at: u64,
+    #[cfg(feature = "node")]
+    revision: i64,
+    #[cfg(feature = "node")]
+    origin: String,
 }
 #[derive(Default)]
 pub(crate) struct Registry(HashMap<(String, String), Lease>);
@@ -40,8 +50,13 @@ impl Registry {
             (team.into(), member.into()),
             Lease {
                 activity,
-                received: Instant::now(),
+                deadline: Instant::now() + TTL,
+                expires_at: timestamp.saturating_add(TTL.as_millis() as u64),
                 timestamp,
+                #[cfg(feature = "node")]
+                revision: 0,
+                #[cfg(feature = "node")]
+                origin: String::new(),
             },
         );
     }
@@ -52,7 +67,7 @@ impl Registry {
         let lease = self.0.get(&(team.into(), member.into()));
         let status = match lease {
             None => "unknown",
-            Some(l) if now.duration_since(l.received) >= Duration::from_secs(90) => "offline",
+            Some(l) if now >= l.deadline => "offline",
             Some(l) => match l.activity {
                 Activity::Online => "online",
                 Activity::Working => "working",
@@ -64,7 +79,7 @@ impl Registry {
             member_id: member.into(),
             status,
             observed_at: lease.map(|l| l.timestamp),
-            expires_at: lease.map(|l| l.timestamp.saturating_add(90_000)),
+            expires_at: lease.map(|l| l.expires_at),
         }
     }
 }

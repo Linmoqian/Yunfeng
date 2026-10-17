@@ -180,3 +180,54 @@ fn organization_merge_resolves_concurrent_cycles_and_rejects_foreign_authority_a
     assert_eq!(log::events(&node.store, &team).unwrap().len(), count);
     assert_eq!(node.store.snapshot().unwrap().relations, expected);
 }
+
+#[test]
+fn presence_batch_validates_host_and_limits_before_committing_any_events() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut node = node(dir.path());
+    command(&mut node, json!({"action":"create","name":"心跳隔离"}));
+    let team = node.team().unwrap();
+    let member = node.identity.id.clone();
+    let heartbeat = crate::presence::Heartbeat {
+        member_id: member.clone(),
+        origin: uuid::Uuid::new_v4().to_string(),
+        revision: 1,
+        status: crate::presence::Activity::Working,
+        remaining_ms: 90_000,
+    };
+    let event = Event {
+        id: uuid::Uuid::new_v4().to_string(),
+        origin: member.clone(),
+        clock: 10,
+        team: team.clone(),
+        change: Mutation::Message {
+            member_id: None,
+            name: "节点".into(),
+            text: "整批失败不可写入".into(),
+            time: 1,
+        },
+    };
+    let mut batch = Exchange {
+        from: member.clone(),
+        team: team.clone(),
+        events: vec![event],
+        presence: vec![heartbeat],
+    };
+    assert_eq!(
+        presence::merge(&mut node.store, &member, &batch, std::time::Duration::ZERO)
+            .unwrap_err()
+            .code,
+        "NODE_FORBIDDEN"
+    );
+    assert!(node.store.snapshot().unwrap().messages.is_empty());
+    batch.presence[0].origin = member.clone();
+    batch.presence[0].remaining_ms = 90_001;
+    assert!(presence::merge(&mut node.store, &member, &batch, std::time::Duration::ZERO).is_err());
+    batch.presence[0].remaining_ms = 90_000;
+    batch.presence.push(batch.presence[0].clone());
+    assert!(presence::merge(&mut node.store, &member, &batch, std::time::Duration::ZERO).is_err());
+    batch.presence.truncate(1);
+    batch.presence = vec![batch.presence[0].clone(); 129];
+    assert!(presence::merge(&mut node.store, &member, &batch, std::time::Duration::ZERO).is_err());
+    assert!(node.store.snapshot().unwrap().messages.is_empty());
+}

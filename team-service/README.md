@@ -17,9 +17,12 @@ cargo build --features node
 cargo test --features node
 cargo clippy --all-targets --features node -- -D warnings
 python3 tests/local_nodes.py
+python3 tests/local_nodes.py --presence --report /tmp/yunfeng-presence-report.json
 ```
 
 验收脚本启动三个真实进程，在临时目录形成 A—B—C，验证四类成员资料同步、外宿主改写拒绝、成员凭据与权限重启保留、跨邻居消息/公告、原始源码文件与 SHA-256、重复同步、公告收敛、错误凭据、非法文件名、停机与重启恢复，最后停止节点并清理该脚本自己的临时数据。可用 `--report <文件>` 输出不含凭据的结果。
+
+`--presence` 复用这三个实例，额外验证在线、工作中、空闲状态跨两跳同步、直属可见范围、重复转发不续期、宿主重启不恢复本人旧状态、保持其他节点心跳时实等90秒断线过期，以及重启重新上报后的恢复。状态不进入事件日志，验收报告不含凭据。
 
 ## 最小调用方式
 
@@ -39,7 +42,7 @@ state = call({"action": "create", "name": "本地团队"})
 invitation = call({"action": "invite"})  # 敏感配对票据，仅交给要加入的本机节点
 ```
 
-B 使用自己的控制接口调用 `join`，传入 A 的 invitation；C 可用 B 的 invitation 加入。`message`、`board` 和 `share` 先保存本机，`sync` 与直接邻居双向交换并合并；每个节点都能邀请与同步。A 同步 B、B 同步 C 后，A 的事件可到达 C。没有自动轮询或后台重试，调用方根据任务事件触发 `sync` 并检查每个邻居的 `ok`。
+B 使用自己的控制接口调用 `join`，传入 A 的 invitation；C 可用 B 的 invitation 加入。`message`、`board` 和 `share` 先保存本机，`sync` 与直接邻居双向交换并合并；每个节点都能邀请与同步。A 同步 B、B 同步 C 后，A 的事件可到达 C。`sync` 同时交换成员心跳的剩余租约，不把临时状态加入事件日志；重复转发不续命，重启后的新上报使用原逻辑时钟的新修订。没有自动轮询或后台重试，调用方根据任务事件触发 `sync` 并检查每个邻居的 `ok`。
 
 文件 `share` 接收显示名称与最多 1MiB 的 Base64 字节，服务计算 SHA-256，接收方再次验证；`file` 按 UUID 读取内容。服务不会接受任意磁盘路径、遍历目录或自动写出下载文件。文件字节只保存在本地数据库的事件中，前端快照仅返回清单。
 

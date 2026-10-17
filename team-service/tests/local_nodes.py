@@ -16,7 +16,7 @@ import urllib.request
 import uuid
 
 
-def exercise(binary, root):
+def exercise(binary, root, verify_presence=False):
     nodes = {}
 
     def start(label, address=None):
@@ -156,7 +156,11 @@ def exercise(binary, root):
         start("A", original["A"]["node"]["address"])
         assert call("A", {"action": "snapshot"}) == original["A"]
         sync("A", "B", "C")
-        return {"nodes": 3, "topology": "A—B—C", "directPeerCounts": [1, 2, 1], "messages": 2, "members": 7, "memberKinds": ["human", "agent", "program", "robot"], "memberRightsRetained": True, "organizationIsolation": True, "organizationRestartRetained": True, "foreignMemberEditRejected": True, "fileBytes": len(content), "sha256": digest, "fileBytesEqual": True, "boardConverged": True, "restartRetained": True, "offlineRecovered": True, "invalidTokenRejected": True, "unsafeFileNameRejected": True, "scope": "loopback-only"}
+        presence = {}
+        if verify_presence:
+            from presence_nodes import exercise_presence
+            presence = exercise_presence(nodes, call, sync, stop, start)
+        return {"presence": presence, "nodes": 3, "topology": "A—B—C", "directPeerCounts": [1, 2, 1], "messages": 2, "members": 7, "memberKinds": ["human", "agent", "program", "robot"], "memberRightsRetained": True, "organizationIsolation": True, "organizationRestartRetained": True, "foreignMemberEditRejected": True, "fileBytes": len(content), "sha256": digest, "fileBytesEqual": True, "boardConverged": True, "restartRetained": True, "offlineRecovered": True, "invalidTokenRejected": True, "unsafeFileNameRejected": True, "scope": "loopback-only"}
     finally:
         for label, node in nodes.items():
             try:
@@ -170,9 +174,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", type=pathlib.Path, default=pathlib.Path(__file__).resolve().parents[1] / "target/debug/yunfeng-team-node")
     parser.add_argument("--report", type=pathlib.Path)
+    parser.add_argument("--presence", action="store_true", help="额外实等90秒验证状态租约与断线恢复")
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="yunfeng-team-nodes-") as directory:
-        report = exercise(args.binary.resolve(), pathlib.Path(directory))
+        report = exercise(args.binary.resolve(), pathlib.Path(directory), args.presence)
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2))

@@ -92,7 +92,7 @@ impl Node {
             MemberAction::Snapshot {} => return self.member_snapshot(&member),
             MemberAction::Presence { status } => {
                 let team = self.team()?;
-                self.store.presence.report(&team, &member.id, status);
+                super::presence::report(&mut self.store, &team, &member, status)?;
                 return self.member_snapshot(&member);
             }
             MemberAction::Children {} => {

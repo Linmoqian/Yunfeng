@@ -127,6 +127,8 @@ pub struct Welcome {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Exchange {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub presence: Vec<crate::presence::Heartbeat>,
     pub from: String,
     pub team: String,
     pub events: Vec<Event>,

@@ -8,6 +8,7 @@ mod member_api;
 mod member_view;
 mod organization;
 mod peers;
+mod presence;
 mod transactions;
 pub mod types;
 use crate::{
@@ -180,10 +181,12 @@ impl Node {
                     return Err(network("sync deadline"));
                 }
                 let body = Exchange {
+                    presence: self.store.presence.export(&team),
                     from: self.identity.id.clone(),
                     team: team.clone(),
                     events: log::events(&self.store, &team)?,
                 };
+                let started = std::time::Instant::now();
                 let reply: Exchange = serde_json::from_value(http::post(
                     &peer.node.address,
                     "/v1/exchange",
@@ -194,7 +197,12 @@ impl Node {
                 if reply.from != peer.node.id || reply.team != team {
                     return Err(denied());
                 }
-                log::merge(&mut self.store, &team, &reply.events)
+                presence::merge(
+                    &mut self.store,
+                    &self.identity.id,
+                    &reply,
+                    started.elapsed(),
+                )
             })();
             results.push(match result {
                 Ok(()) => json!({"node": peer.node.id, "ok": true}),

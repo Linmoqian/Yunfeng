@@ -152,8 +152,9 @@ pub fn exchange(
     if peer.incoming != token {
         return Err(denied());
     }
-    log::merge(store, &exchange.team, &exchange.events)?;
+    super::presence::merge(store, &local.id, &exchange, std::time::Duration::ZERO)?;
     Ok(Exchange {
+        presence: store.presence.export(&exchange.team),
         from: local.id.clone(),
         team: exchange.team.clone(),
         events: log::events(store, &exchange.team)?,
