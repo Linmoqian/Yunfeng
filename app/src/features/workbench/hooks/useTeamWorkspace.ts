@@ -42,6 +42,8 @@ export function useTeamWorkspace(active: boolean) {
     available, busy, notice, snapshot,
     team: snapshot?.team ?? null, messages: snapshot?.messages ?? [],
     participants: snapshot?.participants ?? [],
+    relations: snapshot?.relations ?? [],
+    saveRelation: (memberId: string, parentId: string | null) => run({ action: "relation", relation: { memberId, parentId } }, "直属关系已保存"),
     saveMember: (id: string, profile: MemberProfile) => run({ action: "member", member: { id, profile } }, "成员资料已保存"),
     board: snapshot?.board ?? "", links: snapshot?.links ?? [],
     files, setFiles, reload, saveBoard,
