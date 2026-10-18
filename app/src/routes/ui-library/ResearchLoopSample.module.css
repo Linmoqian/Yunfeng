@@ -1,0 +1,27 @@
+/* 研究目标与两条实验分支固定布局，状态更新不推动画布或抢占节点选择。
+ * Created on 2026-10-18
+ * @author: https://github.com/Linmoqian
+ */
+.toolbar, .status, .nodeInfo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.toolbar button:disabled { opacity: .4; cursor: default; transform: none; }
+.toolbar button[aria-pressed="true"] { color: var(--yf-brand-primary); background: color-mix(in srgb, var(--yf-brand-primary) 6%, transparent); }
+.status { margin-top: 16px; min-height: 28px; }
+.status > span:last-child { font-size: 11px; color: var(--yf-text-tertiary); }
+.graph { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 80px 80px; gap: 50px 36px; max-width: 720px; margin: 24px auto 16px; }
+.lines { position: absolute; z-index: -1; top: 80px; left: 0; width: 100%; height: 50px; pointer-events: none; }
+.lines path { fill: none; stroke: var(--yf-border-default); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.node { min-width: 0; border: 1px solid var(--yf-border-divider); border-radius: 15px; background: var(--yf-bg-canvas); transition: border-color 140ms ease, box-shadow 140ms ease; }
+.node.mission { grid-column: 1 / -1; width: calc((100% - 36px) / 2); justify-self: center; }
+.node[data-current="true"] { border-color: color-mix(in srgb, var(--yf-brand-primary) 50%, transparent); box-shadow: 0 2px 10px color-mix(in srgb, var(--yf-brand-primary) 7%, transparent); }
+.node[data-selected="true"] { background: color-mix(in srgb, var(--yf-brand-primary) 3%, var(--yf-bg-canvas)); }
+.node[data-complete="true"] { border-color: color-mix(in srgb, var(--yf-semantic-success) 30%, var(--yf-border-divider)); }
+.graph .node button { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 7px; width: 100%; height: 100%; padding: 12px 16px; border: 0; border-radius: inherit; background: transparent; text-align: left; }
+.graph .node button strong { color: var(--yf-text-primary); font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.graph .node button small { color: var(--yf-text-tertiary); font-size: 11px; line-height: 1.5; }
+.nodeInfo { min-height: 38px; font-size: 12px; }
+.nodeInfo > span:first-child { color: var(--yf-text-secondary); margin-right: 2px; }
+.summary { min-height: 42px; padding-top: 10px; color: var(--yf-text-secondary); font-size: 12px; line-height: 1.7; }
+.log { margin: 0; padding-left: 20px; color: var(--yf-text-tertiary); font-size: 12px; line-height: 1.9; }
+.reduced { display: block; margin-top: 8px; color: var(--yf-text-tertiary); font-size: 11px; }
+@media (max-width: 500px) { .graph { gap: 36px 12px; grid-template-rows: 92px 92px; } .node.mission { width: 70%; } .lines { top: 92px; height: 36px; } .graph .node button { padding: 10px; } .graph .node button strong { font-size: 14px; } }
+@media (prefers-reduced-motion: reduce) { .node { transition: none; } }
