@@ -78,3 +78,21 @@ test("Pi 通知绑定任务、合并已观察路径，暂停和关闭后拒绝�
     assert.equal(hooks.pendingCount, 0);
   } finally { bridge.close(); hooks.close(); }
 });
+
+test("Pi 通知在当前微任务合并交付，关闭后不会交付已排队通知", async () => {
+  const batches: HookSignal[][] = [];
+  const hooks = new HookLayer(checkpoint, () => true, (events) => { batches.push(events); return true; });
+  try {
+    for (const path of ["control.json", "report.json", "control.json"]) {
+      hooks.publish(researchEvent({ kind: "pi_extension", taskId: "task", action: "facts_changed", paths: [path] }));
+    }
+    assert.equal(batches.length, 0);
+    await Promise.resolve();
+    assert.equal(batches.length, 1);
+    assert.deepEqual((batches[0]![0]!.event as { paths: string[] }).paths, ["control.json", "report.json"]);
+    hooks.publish(researchEvent({ kind: "pi_extension", taskId: "task", action: "facts_changed", paths: ["report.json"] }));
+    hooks.close();
+    await Promise.resolve();
+    assert.equal(batches.length, 1);
+  } finally { hooks.close(); }
+});

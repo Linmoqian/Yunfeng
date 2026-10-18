@@ -1,5 +1,5 @@
 /* 本地文件 Hook：核对内容后通知，监听持续保留，缺失父目录按创建事件重绑。
- * Created on 2026-10-15
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { watch, type FSWatcher } from "node:fs";
@@ -85,7 +85,7 @@ export class FileHooks {
       this.scanning = this.scan().catch((error) => { if (!this.closed) this.failed(error as Error); }).finally(() => {
         this.scanning = null; if (this.dirty.size) this.schedule();
       });
-    }, 50);
+    }, 8);
     this.timer.unref();
   }
   private async scan(): Promise<void> {

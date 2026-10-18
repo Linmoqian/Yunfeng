@@ -7,7 +7,7 @@ import type { TaskState } from "../task/types.js";
 import type { AgentCore, Plan, ResearchCheckpoint, ResearchPhase, Result } from "./types.js";
 import { DecisionBlocked, feedback, reserveExecution } from "./decision/engine.js";
 import type { HookSignal } from "./hooks/types.js";
-import { contextChanged } from "./context.js";
+import { contextChanged, notifiedFilesChanged } from "./context.js";
 import { settleResearchReports } from "./components.js";
 interface Ports {
   read(): TaskState;
@@ -36,6 +36,8 @@ export class ResearchRuntime {
   private async turn(signals: HookSignal[]): Promise<void> {
     let state = this.ports.read().autonomy!;
     if (["PAUSED", "COMPLETED", "FAILED"].includes(state.phase)) return;
+    if (!state.result && !await notifiedFilesChanged(this.ports.read(), signals)) return;
+    if (this.stopped) return;
     await this.ports.save((s) => { s.trigger = { signals, receivedAt: new Date().toISOString() }; });
     const completedResult = state.result && state.result.status !== "running";
     if (state.result && state.result.status !== "running") {

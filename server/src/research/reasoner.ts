@@ -2,9 +2,9 @@
  * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
-import { createAgentSessionFromServices, getAgentDir, ModelRuntime, SessionManager, SettingsManager } from "../agent/sdk.js";
+import { createAgentSessionFromServices, getAgentDir, SessionManager } from "../agent/sdk.js";
 import { researchResources, type ResearchResources } from "./resources.js";
-import { join } from "node:path";
+import { researchModelEnvironment } from "./model-environment.js";
 import { resolveVisibleModels, selectInitialModelScope } from "../model-scope.js";
 import type { TaskModelRef } from "../task/types.js";
 import { parsePlan, parseLearning } from "./validation.js";
@@ -51,6 +51,7 @@ const contract = `你是云枫，科研自治 Runtime 中负责当前任务节�
 plan 输出 {decision:"act"|"wait"|"complete",reason,steps,success_condition,observe_paths}。
 关系图聚焦可追加 {action:"focus_component",component:"research-graph",target:"current"} 或真实节点 ID。该动作只请求可见画布聚焦；COMPONENT_BUSY/INTERACTION_UNAVAILABLE 表示工程师操作或画布不可见，本轮继续实验，不重试争抢控制。返回 accepted 只是接收，实际呈现需组件反馈确认。
 steps 最多8步，action只能是 write_file(path,content)、run_command(program,args数组) 、update_component(component,patch) 或 focus_component(component,target)，禁止shell字符串。
+选择能完成当前节点的最少步骤。简单文件写入用 write_file，已有报告展示用 update_component；这两类操作在宿主进程内完成，不为包装它们另起 shell、Node 或 Python 进程。只有真实实验或必要计算才使用 run_command，不重复生成已有产物或扫描无关文件。
 实验报告产生后用 update_component 更新当前任务的 research 组件：patch={source:项目内JSON报告路径,progress?:{label,current:数值字段路径,total?:数值字段路径,unit?},metrics?:[{label,key:数值字段路径,unit?}],conclusion?:{summary:文本字段路径,details?:文本字段路径}}。
 字段路径用点号读取报告原值；最多6个指标；不接受直接数值或模型撰写的结论。不要为了展示创建、修改或伪造报告，报告必须来自任务允许的真实实验产物；报告没有对应字段就省略该展示项。验收状态由 Runtime 依据 success_condition 计算，不能在 patch 中指定。
 update_component 例：{"action":"update_component","component":"research","patch":{"source":".lin/experiments/report.json","progress":{"label":"训练","current":"epoch","total":"epochs","unit":"轮"},"metrics":[{"label":"准确率","key":"accuracy"}],"conclusion":{"summary":"summary","details":"details"}}}。先运行实验，再按报告实际字段更新组件；等待期间不重复更新同一报告。
@@ -68,11 +69,11 @@ summary 与 next_question 不复述 Hook、Runtime 调度、内部阶段、文�
 反思必须依据执行结果和实测验收，原因不确定时标为假设；提出下一问题，不擅自修改原目标。`;
 
 export function piReasoner(cwd: string, model?: TaskModelRef, options: ResearchResources = {}): Reasoner {
+  const agentDir = getAgentDir();
+  const environment = researchModelEnvironment(cwd, agentDir, options);
   return async (phase, context, signal) => {
     signal.throwIfAborted();
-    const agentDir = getAgentDir();
-    const settings = SettingsManager.create(cwd, agentDir);
-    const modelRuntime = await ModelRuntime.create({ authPath: join(agentDir, "auth.json"), modelsPath: join(agentDir, "models.json"), signal });
+    const { settings, modelRuntime } = await environment.get(signal);
     const resourceLoader = await researchResources(cwd, agentDir, phase,
       phase === "decide" ? decisionContract : phase === "relate" ? relationContract : phase === "summarize" ? summaryContract : contract, options);
     signal.throwIfAborted();

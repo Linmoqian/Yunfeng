@@ -1,7 +1,7 @@
 // TaskStore：任务领域状态的持久化与事件日志。
 // 默认数据目录为 ~/.lin；普通任务与事件位于 tasks/<task-id>/，科研数据库位于目录根部。
 // 普通任务使用原子 JSON，科研检查点与节点关系使用 research.sqlite 同一事务；事件日志支持断线重放。
-// Created on 2026-10-16
+// Created on 2026-10-18
 // @author: https://github.com/Linmoqian
 
 import { ResearchGraphStore } from "../research/decision/store.js";
@@ -244,6 +244,16 @@ export class TaskStore {
     const next = current + 1;
     this.seqByTask.set(taskId, next);
     return next;
+  }
+
+  /** 事件落盘后的游标提交；科研路径不复制整棵目标树，持久化失败不改内存。 */
+  saveEventSequence(taskId: string, seq: number): void {
+    const state = this.states.get(taskId);
+    if (!state) return;
+    if (state.mode !== "research") { this.update(taskId, (task) => { task.lastEventSeq = seq; }); return; }
+    const updatedAt = this.now();
+    this.research.saveEventSequence(taskId, seq, updatedAt);
+    state.lastEventSeq = seq; state.updatedAt = updatedAt;
   }
 
   appendEvent(event: TaskEvent): void {

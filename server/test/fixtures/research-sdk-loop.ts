@@ -41,9 +41,11 @@ try {
   await waitFor(task.id, (t) => t.autonomy?.phase === "WAITING" && !t.autonomy.jobId);
   await waitFor(task.id, (t) => t.autonomy?.phase === "WAITING" && Boolean(t.autonomy.observation?.facts.some((f) => f.key === "file:control.json")));
   const cycle = task.autonomy!.cycle;
+  const sequence = task.lastEventSeq;
   assert.equal(service.notify(task.id, ["control.json"]), true);
   await delay(200);
   assert.equal(task.autonomy!.cycle, cycle, "未变化的扩展通知不得调用模型");
+  assert.equal(task.lastEventSeq, sequence, "同事实通知不得写检查点或推送阶段变化");
   assert.equal(service.notify(task.id, [".env"]), false);
   await writeFile(join(cwd, "control.json"), '{"ready":true,"reviewApproved":false}');
   assert.equal(service.notify(task.id, ["control.json"]), true);
@@ -67,7 +69,8 @@ try {
     await writeFile(join(cwd, "control.json"), '{"ready":true,"reviewApproved":true}');
     await restored.resume(task.id);
     const signal = AbortSignal.timeout(15000);
-    while (saved.autonomy!.phase !== "COMPLETED") {
+    const currentPhase = () => saved.autonomy!.phase;
+    while (currentPhase() !== "COMPLETED") {
       if (["FAILED", "PAUSED"].includes(saved.autonomy!.phase)) throw new Error(saved.autonomy!.reason);
       await delay(15, undefined, { signal });
     }

@@ -15,6 +15,7 @@ export class HookLayer {
   private readonly queue = new Map<string, HookSignal>();
   private readonly seen = new Set<string>();
   private timer?: ReturnType<typeof setTimeout>;
+  private immediate = false;
   private closed = false;
   constructor(private readonly read: () => ResearchCheckpoint, private readonly ready: (signals: readonly HookSignal[]) => boolean,
     private readonly trigger: (signals: HookSignal[]) => boolean, private readonly handlers: readonly ResearchHook[] = hooks) {}
@@ -30,8 +31,13 @@ export class HookLayer {
     const old = this.queue.get(key)?.event;
     const merged = event.kind === "pi_extension" ? { ...event, paths: [...new Set([...(old?.kind === "pi_extension" ? old.paths : []), ...event.paths])].slice(0, 8) } : event.kind === "files_changed" ? { ...event, paths: [...new Set([...(old?.kind === "files_changed" ? old.paths : []), ...event.paths])].slice(0, 8) } : event;
     this.queue.set(key, { hook: handler.name, reason: handler.accept(event, this.read())!, event: merged });
-    if (event.kind !== "files_changed" && event.kind !== "pi_extension") this.flush();
-    else if (!this.timer) { this.timer = setTimeout(() => { this.timer = undefined; this.flush(); }, 50); this.timer.unref(); }
+    if (event.kind === "pi_extension") {
+      if (!this.immediate) {
+        this.immediate = true;
+        queueMicrotask(() => { this.immediate = false; this.flush(); });
+      }
+    } else if (event.kind !== "files_changed") this.flush();
+    else if (!this.timer) { this.timer = setTimeout(() => { this.timer = undefined; this.flush(); }, 8); this.timer.unref(); }
     return true;
   }
   /** 由运行单元结束或通知触发；繁忙时保留队列，不创建重试定时循环。 */

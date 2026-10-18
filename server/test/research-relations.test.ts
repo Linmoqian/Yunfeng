@@ -1,5 +1,5 @@
 /* 关系数据库迁移、事务恢复、Agent 调整与任务接口的核心回归。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import assert from "node:assert/strict";
@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { TaskStore, statePath } from "../src/task/task-store.js";
+import { TaskEventHub } from "../src/task/task-event-hub.js";
 import { createTaskContextForDataDir } from "../src/task/task-context.js";
 import { createMemoryContextForDataDir } from "../src/plugins/memory/index.js";
 import { ResearchService } from "../src/research/service.js";
@@ -28,6 +29,38 @@ function seed(store: TaskStore) {
   });
   return task;
 }
+
+test("检查点和事件不重写未变节点，事件提交后可恢复，失败不提前通知", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "yf-relations-incremental-"));
+  try {
+    const store = new TaskStore({ dataDir: dir }), task = seed(store), hub = new TaskEventHub(store);
+    const db = new DatabaseSync(join(dir, "research.sqlite"));
+    try {
+      db.exec(`CREATE TABLE node_writes(kind TEXT);
+        CREATE TRIGGER node_insert AFTER INSERT ON research_node BEGIN INSERT INTO node_writes VALUES('insert'); END;
+        CREATE TRIGGER node_update AFTER UPDATE ON research_node BEGIN INSERT INTO node_writes VALUES('update'); END;
+        CREATE TRIGGER node_delete AFTER DELETE ON research_node BEGIN INSERT INTO node_writes VALUES('delete'); END;`);
+      store.update(task.id, (s) => { s.autonomy!.reason = "仅更新阶段"; });
+      let delivered = 0;
+      let persistedSeq: number | undefined;
+      hub.subscribeTask(task.id, () => { delivered += 1; persistedSeq = new TaskStore({ dataDir: dir }).get(task.id)!.lastEventSeq; });
+      await hub.emit(task.id, "task_updated", { phase: "WAITING" });
+      assert.equal(delivered, 1);
+      assert.equal(persistedSeq, task.lastEventSeq);
+      assert.equal(db.prepare("SELECT COUNT(*) AS count FROM node_writes").get()!.count, 0);
+      const seq = task.lastEventSeq;
+      db.exec("CREATE TRIGGER reject_cursor BEFORE UPDATE ON research_task BEGIN SELECT RAISE(ABORT,'test-write-rejected'); END;");
+      await assert.rejects(hub.emit(task.id, "task_updated", {}), /test-write-rejected/);
+      assert.equal(task.lastEventSeq, seq); assert.equal(delivered, 1);
+      db.exec("DROP TRIGGER reject_cursor");
+      store.update(task.id, (s) => { s.autonomy!.decision!.nodes[0]!.objective = "更新单一节点"; });
+      assert.deepEqual(db.prepare("SELECT kind FROM node_writes").all().map((row) => row.kind), ["update"]);
+      store.update(task.id, (s) => { s.autonomy!.decision!.nodes.pop(); });
+      assert.equal(new TaskStore({ dataDir: dir }).get(task.id)!.autonomy!.decision!.nodes.length, 1);
+      assert.deepEqual(db.prepare("SELECT kind FROM node_writes").all().map((row) => row.kind), ["update", "delete"]);
+    } finally { db.close(); }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 
 test("旧 JSON 导入数据库后以 SQL 关系为准，失败更新同时回滚内存与数据库", () => {
   const dir = mkdtempSync(join(tmpdir(), "yf-relations-"));

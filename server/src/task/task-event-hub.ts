@@ -1,5 +1,7 @@
 // TaskEventHub：任务事件的分发与断线重放。
 // 事件写入 events.jsonl 持久化；SSE 客户端按 seq 补发，断线重连用 Last-Event-ID 对齐。
+// Created on 2026-10-18
+// @author: https://github.com/Linmoqian
 
 import { randomUUID } from "node:crypto";
 import type { TaskEvent, TaskEventListener } from "./types.js";
@@ -43,9 +45,7 @@ export class TaskEventHub {
       data: data as never,
     };
     this.store.appendEvent(event);
-    this.store.update(taskId, (state) => {
-      state.lastEventSeq = seq;
-    });
+    this.store.saveEventSequence(taskId, seq);
     // 分发给详情订阅者
     const listeners = this.taskListeners.get(taskId);
     if (listeners) {
@@ -58,17 +58,19 @@ export class TaskEventHub {
       try { listener(event); } catch { /* ignore */ }
     }
     // 推送给 SSE 客户端（详情 + 全局都推送）
+    let frame: string | undefined;
+    const encode = () => frame ??= `id: ${event.seq}\ndata: ${JSON.stringify(event)}\n\n`;
     const taskClients = this.taskSse.get(taskId);
-    if (taskClients) this.pushToClients(taskClients, event);
-    this.pushToClients([...this.globalSse].filter((c) => c.taskId === taskId || c.taskId === "*"), event);
+    if (taskClients) this.pushToClients(taskClients, event, encode);
+    this.pushToClients([...this.globalSse].filter((c) => c.taskId === taskId || c.taskId === "*"), event, encode);
     return event;
   }
 
-  private pushToClients(clients: Iterable<SseClient>, event: TaskEvent): void {
+  private pushToClients(clients: Iterable<SseClient>, event: TaskEvent, encode: () => string): void {
     for (const client of clients) {
       if (client.closed) continue;
       client.lastSeq = event.seq;
-      client.write(`id: ${event.seq}\ndata: ${JSON.stringify(event)}\n\n`);
+      client.write(encode());
     }
   }
 

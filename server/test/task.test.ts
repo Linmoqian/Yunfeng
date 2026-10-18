@@ -1,5 +1,7 @@
 // TaskStore / TaskEventHub / TaskRuntime 单元测试。
 // 使用临时数据目录（YUNFENG_DATA_DIR 覆盖），不接触真实 ~/.lin。
+// Created on 2026-10-18
+// @author: https://github.com/Linmoqian
 
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -136,6 +138,28 @@ test("TaskEventHub 清理回调：退订后不再收到事件", async () => {
   } finally {
     ctx.cleanup();
   }
+});
+
+test("TaskEventHub 向进程内订阅传对象，多个 SSE 订阅共用一次编码", async () => {
+  const ctx = tempContext();
+  const stop: (() => void)[] = [];
+  try {
+    const task = ctx.store.create({ sessionId: "shared-frame", cwd: "/tmp/proj", title: "", source: "task" });
+    const frames: string[] = [];
+    stop.push(ctx.hub.subscribeTaskSse(task.id, (frame) => frames.push(frame), () => {}));
+    stop.push(ctx.hub.subscribeTaskSse(task.id, (frame) => frames.push(frame), () => {}));
+    stop.push(ctx.hub.subscribeGlobalSse((frame) => frames.push(frame), () => {}));
+    frames.length = 0;
+    let encoded = 0, received: unknown;
+    const payload = { delta: "结果", toJSON() { encoded += 1; return { delta: this.delta }; } };
+    stop.push(ctx.hub.subscribeTask(task.id, (event) => { received = event.data; }));
+    await ctx.hub.emit(task.id, "message_delta", payload);
+    assert.equal(received, payload);
+    assert.equal(encoded, 2, "事件日志和 SSE 各编码一次，不随订阅数增长");
+    assert.equal(frames.length, 3);
+    assert.ok(frames.every((frame) => frame === frames[0]));
+    assert.equal(JSON.parse(frames[0]!.split("data: ")[1]!).data.delta, "结果");
+  } finally { stop.forEach((unsubscribe) => unsubscribe()); ctx.cleanup(); }
 });
 
 test("审批：创建介入→任务进 waiting_approval→批准→待决清空", async () => {

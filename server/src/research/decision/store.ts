@@ -1,5 +1,5 @@
 /* 科研检查点与节点关系在同一 SQLite 事务保存；JSON 旧文件仅作迁移备份。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { DatabaseSync } from "node:sqlite";
@@ -45,20 +45,31 @@ export class ResearchGraphStore {
   save(task: TaskState): void {
     const tree = task.autonomy?.decision;
     if (tree) validateRelations(tree);
-    const checkpoint = structuredClone(task);
-    if (checkpoint.autonomy?.decision) checkpoint.autonomy.decision.nodes = [];
+    // 节点单独序列化，避免复制一遍完整实验报告与目标树。
+    const checkpoint = { ...task, ...(task.autonomy ? { autonomy: { ...task.autonomy, ...(tree ? { decision: { ...tree, nodes: [] } } : {}) } } : {}) };
     const db = this.open();
     try {
       db.exec("BEGIN IMMEDIATE");
       db.prepare("INSERT INTO research_task(id,checkpoint) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET checkpoint=excluded.checkpoint").run(task.id, JSON.stringify(checkpoint));
-      db.prepare("DELETE FROM research_node WHERE task_id=?").run(task.id);
       if (tree) {
-        const insert = db.prepare("INSERT INTO research_node(task_id,id,parent,ordinal,payload) VALUES (?,?,?,?,?)");
+        const ids = ["mission", ...tree.nodes.map((node) => node.id)];
+        db.prepare(`DELETE FROM research_node WHERE task_id=? AND id NOT IN (${ids.map(() => "?").join(",")})`).run(task.id, ...ids);
+        const insert = db.prepare(`INSERT INTO research_node(task_id,id,parent,ordinal,payload) VALUES (?,?,?,?,?)
+          ON CONFLICT(task_id,id) DO UPDATE SET parent=excluded.parent,ordinal=excluded.ordinal,payload=excluded.payload
+          WHERE parent IS NOT excluded.parent OR ordinal!=excluded.ordinal OR payload!=excluded.payload`);
         insert.run(task.id, "mission", null, -1, "{}");
         tree.nodes.forEach(({ id, parent, ...payload }, ordinal) => insert.run(task.id, id, parent, ordinal, JSON.stringify(payload)));
-      }
+      } else db.prepare("DELETE FROM research_node WHERE task_id=?").run(task.id);
       db.exec("COMMIT");
     } catch (error) { try { db.exec("ROLLBACK"); } catch { /* BEGIN 未成功时无需回滚。 */ } throw error; }
     finally { db.close(); }
+  }
+  /** 事件游标无需复制或重写节点；仍同步提交后才允许向订阅者分发。 */
+  saveEventSequence(id: string, seq: number, updatedAt: string): void {
+    const db = this.open();
+    try {
+      const result = db.prepare("UPDATE research_task SET checkpoint=json_set(checkpoint,'$.lastEventSeq',?,'$.updatedAt',?) WHERE id=?").run(seq, updatedAt, id);
+      if (Number(result.changes) !== 1) throw new Error("科研检查点不存在");
+    } finally { db.close(); }
   }
 }
