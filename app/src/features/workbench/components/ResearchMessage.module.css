@@ -1,5 +1,5 @@
 /* 科研结果与计划的紧凑卡片，复用主题圆角、边框和品牌色。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 .card { min-width: 0; padding: 14px 16px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-surface); }
@@ -19,7 +19,8 @@
 .acceptance { display: flex; flex-wrap: wrap; gap: 6px 10px; padding-top: 10px; border-top: 1px solid var(--yf-border-divider); font-size: 12px; overflow-wrap: anywhere; }
 .acceptance > span { align-self: flex-start; padding: 1px 7px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-secondary); }
 .acceptance code { -webkit-user-select: text; user-select: text; }
-.reportText { white-space: pre-wrap; }
+.reportText { white-space: normal; }
+.reportText :where(p, ol, ul) { margin-block: 6px; }
 .reportDetails { max-height: min(300px, 30vh); overflow: auto; }
 .reportOutput { margin: 8px 0 0; max-height: 260px; overflow: auto; white-space: pre-wrap; font: 12px/1.7 var(--font-mono); }
 

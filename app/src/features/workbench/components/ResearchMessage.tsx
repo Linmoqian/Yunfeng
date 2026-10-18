@@ -1,5 +1,5 @@
 /* 科研消息的轻量分类呈现，展示原文，方法按需展开，授权步骤完整可见。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { CircleCheck, ClipboardList, FlaskConical, Info, TriangleAlert } from "lucide-react";
@@ -17,14 +17,14 @@ const kinds = {
   方式: { label: "方式", icon: Info },
 } as const;
 
-function Markdown({ text }: { text: string }) {
-  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>{text}</ReactMarkdown>;
+export function ResearchMarkdown({ text, allowImages = true }: { text: string; allowImages?: boolean }) {
+  return <ReactMarkdown remarkPlugins={[remarkGfm]} disallowedElements={allowImages ? [] : ["img"]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>{text}</ReactMarkdown>;
 }
 
 /** 只识别现有 Runtime 前缀，未识别正文继续按 Markdown 展示。 */
 export function ResearchMessage({ text }: { text: string }) {
   const match = /^(实验结论|研究完成|需要处理|计划|方式)：/.exec(text);
-  if (!match) return <Markdown text={text} />;
+  if (!match) return <ResearchMarkdown text={text} />;
   const kind = match[1] as keyof typeof kinds;
   const { label, icon: Icon } = kinds[kind];
   const body = text.slice(match[0].length).trim();
@@ -41,13 +41,14 @@ export function ResearchMessage({ text }: { text: string }) {
     {compact ? <>
       <p className={styles.headline}>{headline}</p>
       <div className={styles.metrics} aria-label="关键指标">{summary!.metrics.map((metric) => <Capsule key={metric.text} className={styles.metric} status={metric.status} tone={metric.status === "passed" ? "success" : metric.status === "failed" ? "danger" : "accent"}>{metric.text}</Capsule>)}</div>
-      {summary!.notices.map((notice, index) => <div className={styles.notice} role="note" key={index}><Markdown text={notice} /></div>)}
-    </> : <div className={styles.body}><Markdown text={separateMethod ? body.slice(marker!.index) : body} /></div>}
-    {(compact || separateMethod) && <Details className={styles.method} label={compact ? "详细过程" : "方式"}><div className={styles.body}><Markdown text={compact ? body : prefix} /></div></Details>}
+      {summary!.notices.map((notice, index) => <div className={styles.notice} role="note" key={index}><ResearchMarkdown text={notice} /></div>)}
+    </> : <div className={styles.body}><ResearchMarkdown text={separateMethod ? body.slice(marker!.index) : body} /></div>}
+    {(compact || separateMethod) && <Details className={styles.method} label={compact ? "详细过程" : "方式"}><div className={styles.body}><ResearchMarkdown text={compact ? body : prefix} /></div></Details>}
   </section>;
 }
 
 type Step = { action: "write_file"; path: string; content: string } | { action: "run_command"; program: string; args: string[] }
+  | { action: "read_horizon"; domain: "literature"; query: string; path: string }
   | { action: "update_component"; component: "research"; patch: { source: string } };
 type Condition = { kind: "file_exists"; path: string } | { kind: "metric"; path: string; key: string; operator: string; value: number };
 
@@ -59,6 +60,7 @@ function parseApproval(message: string): { reason: string; steps: Step[]; condit
     if (!Array.isArray(data.steps) || !data.steps.every((s: Step) => s && (s.action === "write_file"
       ? typeof s.path === "string" && typeof s.content === "string"
       : s.action === "update_component" ? s.component === "research" && typeof s.patch?.source === "string"
+      : s.action === "read_horizon" ? s.domain === "literature" && typeof s.query === "string" && typeof s.path === "string"
       : s.action === "run_command" && typeof s.program === "string" && Array.isArray(s.args) && s.args.every((arg) => typeof arg === "string")))) return null;
     const c = data.success_condition;
     if (!c || typeof c.path !== "string" || !(c.kind === "file_exists" || (c.kind === "metric" && typeof c.key === "string" && [">", ">=", "<", "<=", "=="].includes(c.operator) && typeof c.value === "number"))) return null;
@@ -73,10 +75,11 @@ export function ResearchApprovalPlan({ message }: { message: string }) {
   const c = plan.condition;
   return <section className={styles.card} aria-label="待确认计划">
     <div className={styles.heading}><ClipboardList size={15} aria-hidden="true" /><span>计划</span></div>
-    <div className={styles.body}><Markdown text={plan.reason} /></div>
+    <div className={styles.body}><ResearchMarkdown text={plan.reason} /></div>
     <ol className={styles.steps}>{plan.steps.map((step, index) => <li key={index}>{step.action === "write_file"
       ? <><span>写入 <code>{step.path}</code></span><pre>{step.content}</pre></>
       : step.action === "update_component" ? <><span>更新科研组件</span><pre>{JSON.stringify(step.patch, null, 2)}</pre></>
+      : step.action === "read_horizon" ? <><span>文献检索 · Europe PMC / Crossref</span><p>{step.query}</p><span>保存来源至 <code>{step.path}</code></span></>
       : <><span>运行</span><pre>{[step.program, ...step.args.map((arg) => JSON.stringify(arg))].join(" ")}</pre></>}
     </li>)}</ol>
     <div className={styles.acceptance}><span>验收</span><code>{c.kind === "file_exists" ? `${c.path} 存在` : `${c.path} · ${c.key} ${c.operator} ${c.value}`}</code></div>

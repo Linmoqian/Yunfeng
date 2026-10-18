@@ -8,6 +8,7 @@ import { withToolScope, toolArbiter } from "./tool-arbiter.js";
 import { readText, modifyText } from "./text-tools.js";
 import { evaluate } from "./project.js";
 import { writeExecutionFiles } from "./execution-files.js";
+import { searchLiterature } from "./literature/search.js";
 import type { Plan, Result } from "./types.js";
 import type { ResearchPatch } from "./components.js";
 
@@ -34,8 +35,12 @@ export class JobExecutor {
               } else if (step.action === "patch_file") {
                 output = (output + "\n" + JSON.stringify({ path: step.path, ...await modifyText(cwd, step.path, step.old_text, step.new_text, controller.signal) })).slice(-65536);
               } else if (step.action === "read_horizon") {
-                if (!horizon) throw new Error("视界未连接当前任务");
-                output = (output + "\n" + JSON.stringify(await horizon(step.domain))).slice(-65536);
+                if (step.query !== undefined) {
+                  output = (output + "\n" + JSON.stringify(await searchLiterature(cwd, { query: step.query, path: step.path! }, controller.signal))).slice(-65536);
+                } else {
+                  if (!horizon) throw new Error("视界未连接当前任务");
+                  output = (output + "\n" + JSON.stringify(await horizon(step.domain))).slice(-65536);
+                }
               } else if (step.action === "focus_component") {
                 if (!focusComponent) throw new Error("关系图组件未连接");
                 output = (output + "\n" + await toolArbiter.run({ tool: "horizon", resources: [{ key: `component:${cwd}`, write: true }] }, () => focusComponent(step.target))).slice(-65536);

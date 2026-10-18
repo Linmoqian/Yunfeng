@@ -96,3 +96,14 @@ node server/scripts/research-live/core-tools-audit.mjs /absolute/path/to/complet
 ```
 
 验收使用实际 Rust PTY Runtime，不启动窗口，不代表桌面可见性或动画验收。当前未配置桌面组件端口，视界验证 ideas 目标树与 research 报告数据；文献、文稿和训练模块的真实外部服务不在本实验范围。
+
+## 真实模型文献检索闭环
+
+在 server/ 显式运行（使用本机 Lin 模型配置，产生真实模型费用与公开索引请求）：
+
+```sh
+pnpm exec tsx scripts/research-live/literature-live.ts /absolute/path/to/new-literature-check prepare
+pnpm exec tsx scripts/research-live/literature-live.ts /absolute/path/to/new-literature-check resume
+```
+
+两个进程分别验证控制文件 Hook 等待、同事实去重、暂停后事实变化和服务重建恢复。resume 仅自动批准固定公开查询与报告发布，拒绝模型新增命令或写文件；真实索引报告、两个实际来源引用、胶囊快照、反思和单次执行由脚本核对。trace.jsonl、检查点和 result.json 留存原结果及耗时；失败保留检查点，不伪造数据或自动改写模型输出。此验收只确认检索与对比流程，不证明论文科学结论、全文证据或跨机器恢复。

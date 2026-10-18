@@ -5,6 +5,7 @@
 import { createAgentSessionFromServices, getAgentDir, SessionManager } from "../agent/sdk.js";
 import { researchResources, type ResearchResources } from "./resources.js";
 import { researchPolicy } from "./policy.js";
+import { validateLiteratureLearning } from "./literature/evidence.js";
 import { researchModelEnvironment } from "./model-environment.js";
 import { resolveVisibleModels, selectInitialModelScope } from "../model-scope.js";
 import type { TaskModelRef } from "../task/types.js";
@@ -54,7 +55,8 @@ plan 输出 {decision:"act"|"wait"|"complete",reason,steps,success_condition,obs
 关系图聚焦可追加 {action:"focus_component",component:"research-graph",target:"current"} 或真实节点 ID。该动作只请求可见画布聚焦；COMPONENT_BUSY/INTERACTION_UNAVAILABLE 表示科学家操作或画布不可见，本轮继续实验，不重试争抢控制。返回 accepted 只是接收，实际呈现需组件反馈确认。
 steps 最多8步，按读取、修改、终端、视界四类能力选择：read_file(path,start_line?,line_count?)、write_file(path,content)、patch_file(path,old_text,new_text)、run_command(program,args数组)、read_horizon(domain)、update_component(component,patch)、focus_component(component,target)。
 read_file 为 UTF-8 小文件按行读取，start_line 从1开始，line_count 默认200最多1000，文件上限64KiB。patch_file 要求非空 old_text 在当前文件唯一匹配，冲突后重新读取，不整文件盲目覆盖。
-read_horizon 的 domain 仅 training/literature/writing/ideas，读取现有模块的有界摘要；available=false 表示未接入，不能虚构状态。既有目标树 horizon 字段仍表示局部候选。
+read_horizon 的 domain 仅 training/literature/writing/ideas，默认读取现有模块摘要；仅 literature 可加 query(1到300字符公开查询) 和 path(.lin/experiments 内 JSON 报告路径)，两个字段必须同时提供，用于真实检索并保留来源，完整计划须授权。默认最多6篇去重结果、每篇最多1000字符摘要；查询不支持任意 URL，约15秒超时，不自动重试。同查询同路径复用已保存报告，要刷新使用新路径。available=false 表示未接入，不能虚构状态。既有目标树 horizon 字段仍表示局部候选。
+检索计划例：{action:"read_horizon",domain:"literature",query:"soybean pod detection deep learning",path:".lin/experiments/literature.json"}，随后可 update_component(source=同一报告,metrics=[{label:"文献",key:"source_count"},{label:"双源候选",key:"independent_candidates"}],conclusion={summary:"summary",details:"details"})。sources 保留链接、摘要、作者与来源时间；independent_candidates>=2 仅表示可比较候选，reflect 须依据摘要对比共同点、差异与局限，引用真实来源链接，不能宣称已验证科学结论。禁止模型写入、修改或补造检索报告；报告路径由检索步骤写入，独立比较笔记可写另一文件。
 终端仅提交 program 和独立 args，不隐式套用 shell；桌面由内置 Rust PTY 执行，暂停会取消回收。宿主统一仲裁权限和资源，模型不能指定调用权重、跳过授权或重排已有依赖。
 选择能完成当前节点的最少步骤。简单文件写入用 write_file，已有报告展示用 update_component；这两类操作在宿主进程内完成，不为包装它们另起 shell、Node 或 Python 进程。只有真实实验或必要计算才使用 run_command，不重复生成已有产物或扫描无关文件。
 实验报告产生后用 update_component 更新当前任务的 research 组件：patch={source:项目内JSON报告路径,progress?:{label,current:数值字段路径,total?:数值字段路径,unit?},metrics?:[{label,key:数值字段路径,unit?}],conclusion?:{summary:文本字段路径,details?:文本字段路径}}。
@@ -68,6 +70,7 @@ success_condition 是 {kind:"file_exists",path} 或 {kind:"metric",path,key,oper
 路径为项目内相对路径，默认写入 .lin/experiments；其他写入和未授权命令须等待科学家授权。
 observe_paths最多8个小型文本文件；等待事件监听最多3个路径，验收路径优先，其次按observe_paths顺序。需要尚未产生的事实时选择wait；不要伪造指标或设备状态。
 reflect 输出 {summary,knowledge_update:[{key,value}],next_question}，最多8条更新。
+reflect 的 context.literature 含真实摘要和候选组时，summary 必须选择其中一组，用两篇原始 URL 的 Markdown 链接简要对比共同点、方法或对象差异与未验证局限。数量和验收已由组件胶囊展示，summary 不再复述；candidate_sources 是候选来源数，retained_candidate_pairs 才是已保留候选组数，不能混用。最终验收反思也沿用已保存的来源。摘要未提供的细节标为未知，不能推测数据独立或具体指标。没有可比较候选时说明证据不足。
 summary、next_question、知识 key 和 value 均须为字符串，数值结论也写成文字。
 summary 面向科学家，最多两三句，只说明本次新增实测结果、与目标的差距和必要局限，不重复已有结论或计划，不加“反思”“下一问题”等标题。失败时说明需要处理的事项；next_question 仅供内部规划，不向科学家自动追问。
 summary 与 next_question 不复述 Hook、Runtime 调度、内部阶段、文件配置路径、命令参数或原始 JSON；这些细节只进入 knowledge_update。
@@ -102,7 +105,7 @@ export function piReasoner(cwd: string, model?: TaskModelRef, options: ResearchR
         if (output.length > 100000) throw new Error("模型结果过长");
         try {
           const value = JSON.parse(output.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, ""));
-          return phase === "summarize" ? { presentations: parseSummaries(value) } : phase === "relate" ? { matches: parseClassification(value) } : phase === "decide" ? parseProposal(value) : phase === "plan" ? parsePlan(value) : parseLearning(value);
+          return phase === "summarize" ? { presentations: parseSummaries(value) } : phase === "relate" ? { matches: parseClassification(value) } : phase === "decide" ? parseProposal(value) : phase === "plan" ? parsePlan(value) : validateLiteratureLearning(context, parseLearning(value));
         } catch (error) {
           if (attempt > 0) throw error;
           prompt = JSON.stringify({ phase, validation_error: error instanceof SyntaxError ? "需要一个有效 JSON 对象" : (error as Error).message, instruction: "仅纠正上次输出的结构，遵守同一阶段契约、目标和权限，返回完整 JSON。不得执行动作。" });

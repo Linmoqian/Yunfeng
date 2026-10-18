@@ -1,11 +1,12 @@
 /* execute 发布的科研快照：关键事实使用胶囊，报告与执行原文默认折叠。
- * Created on 2026-10-16
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { FlaskConical } from "lucide-react";
 import type { ResearchComponentSnapshot } from "../../../services/researchComponent";
 import { Capsule, Details, ProgressCapsule } from "../../../components/common";
 import styles from "./ResearchMessage.module.css";
+import { ResearchMarkdown } from "./ResearchMessage";
 
 export function ResearchReport({ snapshot }: { snapshot: ResearchComponentSnapshot }) {
   const view = snapshot.state;
@@ -22,7 +23,7 @@ export function ResearchReport({ snapshot }: { snapshot: ResearchComponentSnapsh
     </div>
     {view.conclusion && <p className={styles.body}>{view.conclusion.summary}</p>}
     <Details className={styles.method}><div className={`${styles.body} ${styles.reportDetails}`}>
-      {view.conclusion?.details && <p className={styles.reportText}>{view.conclusion.details}</p>}
+      {view.conclusion?.details && <div className={styles.reportText}><ResearchMarkdown text={view.conclusion.details} allowImages={false} /></div>}
       <p>来源：<code>{view.source}</code></p>
       {evaluation && <p>验收：{evaluation.reason}</p>}
       {currentResult?.output && <pre className={styles.reportOutput}>{currentResult.output}</pre>}

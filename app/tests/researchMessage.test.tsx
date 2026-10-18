@@ -1,5 +1,5 @@
 /* 科研分类展示核心回归：不丢指标、授权内容与原始未知步骤。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { afterEach, expect, test, vi } from "vitest";
@@ -78,4 +78,12 @@ test("基线结论突出结果与复核，配置原文只在详情展开，未�
   cleanup();
   render(<ResearchMessage text="实验结论：节点验收通过。当前 reviewApproved=false，等待人工复核，可能存在标签错误。" />);
   expect(screen.getByText(/可能存在标签错误/)).toBeTruthy();
+});
+
+test("公开文献查询的接收方、查询和报告路径在确认前直接可见", () => {
+  const plan = { steps: [{ action: "read_horizon", domain: "literature", query: "public plant research", path: ".lin/experiments/literature.json" }], success_condition: { kind: "metric", path: ".lin/experiments/literature.json", key: "independent_candidates", operator: ">=", value: 2 } };
+  render(<ResearchApprovalPlan message={`确认公开查询\n\n${JSON.stringify(plan)}`} />);
+  expect(screen.getByText("文献检索 · Europe PMC / Crossref")).toBeTruthy();
+  expect(screen.getByText("public plant research")).toBeTruthy();
+  expect(screen.getByText(".lin/experiments/literature.json")).toBeTruthy();
 });

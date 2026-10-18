@@ -1,5 +1,5 @@
 /* 科研组件呈现回归：报告事实、真实验收和默认折叠，不显示其他作业的验收。
- * Created on 2026-10-16
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { afterEach, expect, test } from "vitest";
@@ -56,4 +56,17 @@ test("事实更新立即可读，保留已展开过程与键盘焦点", async ()
   expect(document.activeElement).toBe(trigger);
   await userEvent.keyboard("{Enter}");
   expect(trigger.getAttribute("aria-expanded")).toBe("false");
+});
+
+test("文献来源默认折叠，展开后可访问原链接且不加载外部图片", async () => {
+  render(<ResearchReport snapshot={{ ...snapshot, state: { ...snapshot.state,
+    metrics: [{ label: "文献", value: 2 }, { label: "双源候选", value: 2 }],
+    conclusion: { summary: "找到双源候选，独立数据仍待核验。", details: "[文献一](https://doi.org/10.1234/one)\n\n[文献二](https://doi.org/10.1234/two)\n\n![不加载](https://example.com/image.png)" },
+  } }} />);
+  expect(screen.getByText("双源候选 2")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "文献一" })).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "详细过程" }));
+  expect(screen.getByRole("link", { name: "文献一" }).getAttribute("href")).toBe("https://doi.org/10.1234/one");
+  expect(screen.getByRole("link", { name: "文献二" }).getAttribute("rel")).toBe("noreferrer");
+  expect(screen.queryByRole("img")).toBeNull();
 });

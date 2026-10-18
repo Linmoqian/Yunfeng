@@ -54,7 +54,7 @@ export class ResearchRuntime {
       await this.ports.save((s) => { feedback(s, s.result!); const node = s.decision?.nodes.find((n) => n.jobId === s.result!.job_id); if (node) node.reflection = learning.summary; s.learning = learning; s.lastResult = s.result; delete s.result; delete s.jobId; delete s.authorizedPlan; });
       // 反思与下一问题保存在检查点和记忆中；对话只播报实际实验结果和最终验收。
       if (complete) await this.ports.message("研究完成：目标验收条件已通过。");
-      else if (result.status !== "succeeded" || (executed && !(state.component?.state.jobId === result.job_id && state.component.state.conclusion))) {
+      else if (result.status !== "succeeded" || (executed && (state.plan?.steps.some((s) => s.action === "read_horizon" && s.query !== undefined) || !(state.component?.state.jobId === result.job_id && state.component.state.conclusion)))) {
         await this.ports.message(`${result.status === "succeeded" ? "实验结论" : "需要处理"}：${learning.summary}`);
       }
       if (complete) { await this.phase("COMPLETED", "目标验收条件已通过"); return; }
@@ -74,7 +74,7 @@ export class ResearchRuntime {
     const tree = this.ports.read().autonomy!.decision;
     const node = tree?.nodes.find((n) => n.id === plan.node_id);
     if (node) await this.ports.message(`决策：${node.objective}\n\n评分 ${node.priority}；估计收益 ${node.expected_gain}；成功概率估计 ${node.confidence}；相对成本 ${node.cost}；预算 ${tree!.budget.spent}/${tree!.budget.limit}`);
-    const steps = plan.steps.map((step) => step.action === "write_file" ? `写入 ${step.path}` : step.action === "patch_file" ? `精确修改 ${step.path}` : step.action === "read_file" ? `读取 ${step.path}` : step.action === "read_horizon" ? `读取视界 ${step.domain}` : step.action === "focus_component" ? `聚焦节点 ${step.target}` : step.action === "update_component" ? `更新科研组件，报告 ${step.patch.source}` : `运行 ${step.program}，参数 ${JSON.stringify(step.args)}`).join("\n");
+    const steps = plan.steps.map((step) => step.action === "write_file" ? `写入 ${step.path}` : step.action === "patch_file" ? `精确修改 ${step.path}` : step.action === "read_file" ? `读取 ${step.path}` : step.action === "read_horizon" ? step.query === undefined ? `读取视界 ${step.domain}` : `向 Europe PMC / Crossref 发送查询 ${JSON.stringify(step.query)}，保存来源至 ${step.path}` : step.action === "focus_component" ? `聚焦节点 ${step.target}` : step.action === "update_component" ? `更新科研组件，报告 ${step.patch.source}` : `运行 ${step.program}，参数 ${JSON.stringify(step.args)}`).join("\n");
     await this.ports.message(`计划：${plan.reason}${steps ? `\n\n步骤：\n${steps}` : ""}${plan.success_condition ? `\n\n验收条件：${JSON.stringify(plan.success_condition)}` : ""}`);
     if (plan.decision === "wait") { await this.phase("WAITING", plan.reason); return; }
     if (plan.decision === "pause") {

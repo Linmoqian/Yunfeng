@@ -1,5 +1,5 @@
 /* 校验模型提交的计划和反思，未知形状不会进入执行器。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import type { Condition, Learning, Plan, Step } from "./types.js";
@@ -11,8 +11,13 @@ export function step(value: unknown): Step {
   const item = record(value);
   const only = (keys: string[]) => { if (Object.keys(item).some((k) => !keys.includes(k))) throw new Error("工具步骤包含未知字段"); };
   if (item.action === "read_horizon") {
-    only(["action", "domain"]);
+    only(["action", "domain", "query", "path"]);
     if (!horizonDomains.includes(item.domain as HorizonDomain)) throw new Error("视界类型无效");
+    if (item.query !== undefined || item.path !== undefined) {
+      const query = text(item.query, 300), path = text(item.path, 500);
+      if (item.domain !== "literature" || /[\x00-\x1f]/.test(query) || !/^\.lin\/experiments\/[\w/-]+\.json$/.test(path)) throw new Error("文献检索需要公开查询与实验目录内 JSON 报告路径");
+      return { action: "read_horizon", domain: "literature", query, path };
+    }
     return { action: "read_horizon", domain: item.domain as HorizonDomain };
   }
   if (item.action === "read_file") {

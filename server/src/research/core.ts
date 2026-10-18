@@ -18,11 +18,18 @@ import type { ResearchPatch } from "./components.js";
 import { withToolScope } from "./tool-arbiter.js";
 import type { FeedbackSink } from "./tool-feedback.js";
 import type { HorizonDomain } from "./horizon.js";
+import { literatureEvidence, validateLiteratureLearning } from "./literature/evidence.js";
 
 export async function planAuthorized(task: TaskState, plan: Plan): Promise<boolean> {
   const config = task.autonomy!;
   let allowed = true;
   for (const step of plan.steps) {
+    if (step.action === "read_horizon" && step.query !== undefined) {
+      await projectPath(task.cwd, step.path!);
+      // 查询会发往公共索引并保存报告，须确认完整计划，不能继承只读视界权限。
+      allowed = false;
+      continue;
+    }
     if (step.action === "write_file" || step.action === "patch_file") {
       const target = await projectPath(task.cwd, step.path);
       const roots = await Promise.all(config.permissions.writeRoots.map((root) => projectPath(task.cwd, root)));
@@ -90,7 +97,11 @@ export class ProjectCore implements AgentCore {
   }
   async reflect(result: Result) {
     const task = this.task();
-    const learning = parseLearning(await this.reason("reflect", { goal: task.autonomy!.goal, plan: task.autonomy!.plan, result }, AbortSignal.any([this.signal, AbortSignal.timeout(120_000)])));
+    const literature = literatureEvidence(result, task.autonomy!.lastResult, task.autonomy!.component?.result);
+    const context = { goal: task.autonomy!.goal, plan: task.autonomy!.plan,
+      result: literature ? { ...result, output: "文献摘要证据见 literature，工具原回执已保存。" } : result,
+      ...(literature ? { literature } : {}) };
+    const learning = validateLiteratureLearning(context, parseLearning(await this.reason("reflect", context, AbortSignal.any([this.signal, AbortSignal.timeout(120_000)]))));
     this.signal.throwIfAborted();
     // 重启重试反思时，用作业引用去重；候选知识不会被自动当作实测事实。
     if (!this.memory.list({ projectKey: task.cwd }).some((m) => m.refId === result.job_id)) {
