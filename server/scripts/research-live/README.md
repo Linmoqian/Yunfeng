@@ -73,3 +73,26 @@ cargo test --locked --manifest-path app/src-tauri/Cargo.toml research_core_tools
 ```
 
 `core-tools-check.mjs` 由 Rust 测试注入私有通道，运行范围读取、唯一原文修改、结构化 argv PTY 和视界投影；核验授权前无修改/启动、暂停后真实 PID 退出、授权失效、恢复后新计划批准、真实报告和组件验收、未知作业恢复回收。输出仅汇总计数和状态；临时项目自动清理，不读取真实任务数据、不请求 LLM。宿主 Runtime 输出与桌面使用同一缓存，脚本不启动窗口，不代表 UI 呈现验收。
+
+## 四工具真实模型、取消与两进程恢复
+
+先构建 Server，在仓库根执行。此入口会产生真实模型费用，默认测试跳过；目录必须尚不存在，失败证据也不覆盖：
+
+```sh
+pnpm --dir server build
+YUNFENG_RESEARCH_LIVE=1 YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-core-tools cargo test --locked --manifest-path app/src-tauri/Cargo.toml research_core_tools_real_model_loop -- --ignored --nocapture
+```
+
+Rust 测试宿主注入实际私有通道，依次启动两个 Node 进程。第一个由真实 Pi 决策等待 Hook，提交按行读取、ideas 视界、精确修改、结构化 argv 终端和报告发布计划；验收器先检查原始计划符合实验约束，再批准。实验启动后真实暂停并确认 PID 回收，旧授权失效。第二个进程从同一 SQLite 恢复，显式继续后反思取消结果、重新规划与授权；程序执行真实 gzip、独立解压核验，发布报告，完成实测验收及反思。
+
+模型自行选择压缩级别；验收器不替换模型输出、不补写实验指标。实验程序用独占尝试锁阻止重复启动，运行日志必须只有 attempt=1、2 各一次。记录七个各3秒的静默窗口、32次同事实通知、三条独立作业经验；一次取消加一次成功，不将取消后的明确重试算成重复执行。
+
+`trace.jsonl` 在仲裁入口记录每次调用，包含工具分类、宿主固定权重、是否派发、成败和单调时钟耗时；不依赖最近64条回执缓存。统计包含观察与验收的内部读取，`horizon` 同时包含读取目标树及发布现有科研组件。耗时包含权限核验、仲裁等待、Rust 通道往返、工具本身和少量观测开销；终端包含真实进程运行、取消回收及输出读取。模型阶段另计，不混入工具耗时。这是闭环实测记录，不是纯 Rust 内核基准或稳定尾延迟评估。
+
+保留两个检查点、两进程 `*-metrics.json`、实验日志、SQLite、`result.json` 及独立 `audit.json`。可不调用模型重新审计：
+
+```sh
+node server/scripts/research-live/core-tools-audit.mjs /absolute/path/to/completed-core-tools
+```
+
+验收使用实际 Rust PTY Runtime，不启动窗口，不代表桌面可见性或动画验收。当前未配置桌面组件端口，视界验证 ideas 目标树与 research 报告数据；文献、文稿和训练模块的真实外部服务不在本实验范围。

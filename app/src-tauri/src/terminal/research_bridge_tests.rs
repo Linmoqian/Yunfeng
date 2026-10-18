@@ -143,6 +143,47 @@ fn research_core_tools_authorization_cancel_and_recovery() {
 }
 
 #[test]
+#[ignore = "paid real model acceptance; requires explicit opt-in, output directory and server build"]
+fn research_core_tools_real_model_loop() {
+    assert_eq!(std::env::var("YUNFENG_RESEARCH_LIVE").as_deref(), Ok("1"));
+    let root = std::path::PathBuf::from(
+        std::env::var_os("YUNFENG_ACCEPTANCE_OUTPUT").expect("provide a new evidence directory"),
+    );
+    assert!(root.is_absolute() && !root.exists());
+    let bridge = AgentBridge::start(Runtime::default(), None).unwrap();
+    let script = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../server/scripts/research-live/core-tools-live.mjs");
+    for mode in ["cancel", "resume"] {
+        let mut command = std::process::Command::new("node");
+        command.arg(&script).arg(&root).arg(mode);
+        bridge.configure(&mut command);
+        let output = command.output().unwrap();
+        assert!(
+            output.status.success(),
+            "mode={mode} stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        print!("{}", String::from_utf8_lossy(&output.stdout));
+    }
+    let report: Value =
+        serde_json::from_slice(&std::fs::read(root.join("result.json")).unwrap()).unwrap();
+    assert_eq!(report["status"], "real-core-tools-passed");
+    let audit = std::process::Command::new("node")
+        .arg(script.with_file_name("core-tools-audit.mjs"))
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(
+        audit.status.success(),
+        "audit stdout={} stderr={}",
+        String::from_utf8_lossy(&audit.stdout),
+        String::from_utf8_lossy(&audit.stderr)
+    );
+    print!("{}", String::from_utf8_lossy(&audit.stdout));
+}
+
+#[test]
 #[ignore = "requires server build, Rust release worker and Node/tsx; run explicitly"]
 fn hybrid_workflow_three_round_comparison() {
     let root = tempfile::tempdir().unwrap();

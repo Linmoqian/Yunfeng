@@ -1,5 +1,5 @@
 /* 决策层核心验收：优先级、预算、重复尝试、有界树和条件锁定。
- * Created on 2026-10-15
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import assert from "node:assert/strict";
@@ -10,6 +10,14 @@ import type { ResearchCheckpoint, Plan } from "../src/research/types.js";
 const condition = { kind: "metric" as const, path: ".lin/experiments/metrics.json", key: "accuracy", operator: ">=" as const, value: 0.93 };
 const candidate = (key: string, gain = 0.8, cost = 0.1, parent = "mission") => ({ key, parent, objective: key, kind: "execute", confidence: 0.8, cost, expected_gain: gain });
 const proposal = (candidates: unknown[]) => parseProposal({ decision: "select", reason: "依据成本与收益排序", candidates, mission_condition: condition });
+
+test("摘要结构错误指明字段，使模型纠正保持对象契约", () => {
+  const wait = { decision: "wait", reason: "等待观测", candidates: [] };
+  assert.throws(() => parseProposal({ ...wait, mission_presentation: "标题" }), /mission_presentation.*title,summary/);
+  assert.throws(() => parseProposal({ ...wait, candidates: [{ ...candidate("实验"), presentation: null }] }), /candidates\[0\].presentation.*title,summary/);
+  const presentation = { title: "压缩实验", summary: "依据实测报告验收压缩结果" };
+  assert.deepEqual(parseProposal({ ...wait, mission_presentation: presentation }).mission_presentation, presentation);
+});
 
 test("规则评分选择低成本高收益任务，保留目标树与滚动窗口", () => {
   const initial = createDecision("提升检测精度");
