@@ -1,5 +1,5 @@
 /* 科研任务阶段与暂停恢复控制，以服务端检查点为准。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { researchProgress } from "../researchPresentation";
 import { ProgressCapsule } from "./ProgressCapsule";
 import { ResearchReport } from "./ResearchReport";
 import { Capsule } from "./Capsule";
+import { ResearchResponseClock } from "./ResearchActivity";
 import styles from "./ResearchRuntimeCard.module.css";
 const labels = { OBSERVING: "查看进展", PLANNING: "分析中", EXECUTING: "实验中", WAITING: "等待中", REFLECTING: "整理结果", PAUSED: "已暂停", COMPLETED: "已完成", FAILED: "需要处理" };
 export function ResearchRuntimeCard({ task, graphOpen, onToggleGraph }: { task: TaskState; graphOpen?: boolean; onToggleGraph?: () => void }) {
@@ -26,7 +27,8 @@ export function ResearchRuntimeCard({ task, graphOpen, onToggleGraph }: { task: 
     finally { setBusy(false); }
   }
   return <aside className={styles.card} aria-label="科研自主任务">
-    <Capsule className={styles.line} value={state.phase}><strong aria-live="polite">科研 · {labels[state.phase]}</strong>
+    <Capsule className={styles.line} value={state.phase}><strong aria-live="polite">科研 · {state.approvalId ? "待确认" : state.phase === "WAITING" && state.jobId ? "实验中" : labels[state.phase]}</strong>
+      {(paused || state.phase === "COMPLETED") && <ResearchResponseClock task={task} working={false} />}
       {state.phase !== "COMPLETED" && <Button size="small" loading={busy} onClick={() => void control()} icon={paused ? <Play size={14} /> : <Pause size={14} />}>{paused ? "继续" : "暂停"}</Button>}
       {onToggleGraph && <Button id={`research-graph-${task.id}`} type="text" size="small" aria-label="研究分支关系图" title="研究分支关系图" aria-pressed={Boolean(graphOpen)} icon={<GitFork size={15} />} onClick={onToggleGraph} />}
       <Popover trigger="click" title="运行详情" content={<div className={styles.details}><p>第 {state.cycle} / {state.maxCycles} 轮</p><p>{state.reason}</p><small>{task.cwd}</small></div>}>

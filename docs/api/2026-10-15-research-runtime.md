@@ -79,7 +79,7 @@
 
 科研 conversation 返回 `{context:{messages,entryIds}}`，内容来自已有任务事件；SSE 的 `message_completed` 带 `{message:{id,role,content}}`，`task_updated` 带检查点摘要。断线补发继续沿用事件 seq；客户端按消息 ID 去重。capabilities 仅列出 observe、plan、execute、reflect。
 
-计划、决策评分与作业原始输出属于 `role=tool` 的过程记录，对话默认过滤。`role=assistant` 播报实际实验结论、需要工程师澄清的目标、待执行授权、规划失败后的处理事项与一次最终验收通知；无副作用的中间核验不追加反思消息。反思与下一问题仍写入检查点和候选记忆。用户消息保留。历史快照将旧助手角色的固定过程前缀映射为 tool，不改写原事件；客户端过滤旧 SSE 补发的对应前缀、历史自动追问、连续同文结论和紧接实验结论的完成流程复述。运行卡显示简短阶段进展，内部依据和目录在详情中查看；失败、人工问题与具体计划授权保持可见。
+计划、决策评分与作业原始输出属于 `role=tool` 的过程记录，对话默认过滤。`role=assistant` 播报实际实验结论、需要工程师澄清的目标、待执行授权、规划失败后的处理事项与一次最终验收通知；无副作用的中间核验不追加反思消息。反思与下一问题仍写入检查点和候选记忆。用户消息保留。历史快照将旧助手角色的固定过程前缀映射为 tool，不改写原事件；客户端过滤旧 SSE 补发的对应前缀、历史自动追问、连续同文结论和紧接实验结论的完成流程复述。运行卡显示简短阶段进展，内部依据和目录在详情中查看；失败、人工问题与具体计划授权保持可见。 工作中的阶段进展显示在最新消息之后，复用枫叶云朵动画与目标树已有标题、概述；授权与空闲等待不播放工作动画。响应计时使用 `trigger.receivedAt`，包含本次唤醒后的观察、模型及工具等待，不能作为纯推理耗时或累计工作时间；空闲、暂停与完成时按 `updatedAt` 停止，不提供虚构完成百分比。
 
 `trigger.signals` 每项包含 hook、reason、event。event 有 id、occurredAt，以及 kind：lifecycle（action=started/resumed/recovered）、files_changed（最多八个项目内 paths）、job_completed（jobId、status）、approval_granted（requestId）、pi_extension（action=facts_changed、taskId、paths）。这些事件来自受信任的本地适配器；没有新增 HTTP 事件注入接口。Hook 筛选通知，Context Builder 重读真实状态，Decision Layer 判断是否值得行动。具体模块见 [Hook 说明](../../server/src/research/hooks/README.md)。
 

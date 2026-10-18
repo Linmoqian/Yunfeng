@@ -1,11 +1,11 @@
 /* 通用对话日志，科研正文与待确认计划通过独立呈现组件接入。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
-import { forwardRef, useState } from "react";
+import { forwardRef, useState, type ReactNode } from "react";
 
 import { MapleStatusMark } from "../MapleStatusMark";
 import { ConversationLoading } from "./ConversationLoading";
@@ -42,6 +42,7 @@ interface ApprovalInfo {
 
 interface ConversationLogProps {
   research?: boolean;
+  activity?: ReactNode;
   items: ConversationItem[];
   toolCalls: ToolCallInfo[];
   loading: boolean;
@@ -199,7 +200,7 @@ function ApprovalCard({
 }
 
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
-  { items, research, toolCalls, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
+  { items, research, activity, toolCalls, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
   ref,
 ) {
   const visibleItems = items.filter((item) => item.role !== "tool");
@@ -271,6 +272,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
         />
       ))}
 
+      {activity}
       {streamError ? <p className="conversation-error" role="alert">{streamError}</p> : null}
       <span className="sr-only">{streamStatus === "streaming" ? "Agent 正在回复" : "对话实时同步"}</span>
     </div>

@@ -1,5 +1,5 @@
 // 会话聚焦编排，科研展示由独立 Runtime 卡片承载。
-// Created on 2026-10-16
+// Created on 2026-10-18
 // @author: https://github.com/Linmoqian
 import { App } from "antd";
 import { motion, useReducedMotion } from "motion/react";
@@ -20,6 +20,7 @@ import { Composer } from "./components/Composer";
 import { ChangeSummary } from "./components/ChangeSummary";
 import { QueuedMessages } from "./components/QueuedMessages";
 import { ConversationWelcome } from "./components/ConversationWelcome";
+import { ResearchActivity } from "./components/ResearchActivity";
 import { ResearchRuntimeCard } from "./components/ResearchRuntimeCard";
 import { ResearchGraph } from "./components/ResearchGraph";
 import { researchConversation } from "./researchPresentation";
@@ -89,6 +90,12 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     const log = conversationLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
   }, [conversation, toolCalls, graphTaskId]);
+
+  // 阶段卡出现时跟随底部；工程师已向上阅读时保留其滚动位置，计时跳秒不触发滚动。
+  useEffect(() => {
+    const log = conversationLogRef.current;
+    if (activeTask?.autonomy && log && log.scrollHeight - log.scrollTop - log.clientHeight < 260) log.scrollTop = log.scrollHeight;
+  }, [activeTask?.autonomy?.phase, activeTask?.autonomy?.trigger?.receivedAt]);
 
   useEffect(() => {
     window.localStorage.setItem("yunfeng-show-thinking", String(showThinking));
@@ -217,6 +224,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
           : draft && !conversation.length ? <ConversationWelcome mode={workMode} onModeChange={setWorkMode} /> : <ConversationLog
             ref={conversationLogRef}
             research={activeTask?.mode === "research"}
+            activity={activeTask?.mode === "research" ? <ResearchActivity key={activeTask.id} task={activeTask} /> : undefined}
             items={researchConversation(conversation, activeTask?.mode)}
             toolCalls={toolCalls}
             loading={conversationLoading}

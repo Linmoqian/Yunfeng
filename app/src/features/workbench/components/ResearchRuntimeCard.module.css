@@ -1,5 +1,5 @@
 /* 自主任务摘要沿用 Yunfeng 色彩与圆角。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 .card { margin: 0 0 8px; min-width: 0; }
@@ -12,3 +12,14 @@
 .details { max-width: min(420px, 75vw); overflow-wrap: anywhere; }
 .details p { margin: 0 0 8px; }
 .details small { color: var(--yf-text-tertiary); font-size: 11px; }
+
+.activity { margin: 20px 0; padding: 14px 16px; border: 1px solid var(--yf-border-divider); border-radius: 18px; background: var(--yf-bg-canvas); min-width: 0; }
+.activityHeading { display: flex; align-items: center; gap: 8px; min-height: 26px; }
+.activityHeading > strong { font-size: 13px; font-weight: 500; color: var(--yf-text-secondary); }
+.clock { margin-left: auto; font-size: 12px; color: var(--yf-text-tertiary); font-variant-numeric: tabular-nums; flex: none; min-width: 38px; text-align: right; }
+.node { margin-top: 10px; overflow-wrap: anywhere; }
+.node > strong { font-size: 14px; font-weight: 500; }
+.node p, .activityReason { font-size: 12px; color: var(--yf-text-secondary); line-height: 1.7; margin: 5px 0 0; overflow-wrap: anywhere; }
+.activityMeta { display: flex; gap: 6px; margin: 10px 0; font-size: 11px; }
+.activity small { color: var(--yf-text-tertiary); font-size: 11px; }
+@media (max-width: 600px) { .activity { padding: 12px; } .activityHeading { flex-wrap: wrap; } }
