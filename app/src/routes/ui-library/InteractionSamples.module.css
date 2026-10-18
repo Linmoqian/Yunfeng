@@ -1,0 +1,17 @@
+/* 审阅交互样例预留稳定空间，避免消息进出带动相邻卡片跳动。
+ * Created on 2026-10-18
+ * @author: https://github.com/Linmoqian
+ */
+.description { display: grid; margin-top: 14px; min-height: 22px; color: var(--yf-text-secondary); font-size: 12px; }
+.description > span { grid-area: 1 / 1; }
+.row, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.row { margin-top: 10px; }
+.actions { margin-top: 14px; }
+.actions > span { color: var(--yf-text-tertiary); font-size: 11px; }
+.actions button:disabled { opacity: .4; cursor: default; transform: none; }
+.queueSample { min-height: 180px; }
+.queueSample > .actions { margin-top: 0; }
+.queueStage { margin-top: 14px; }
+.queueStage :global(.ant-input) { border-radius: 13px; padding: 9px 12px; font-size: 12px; }
+.queueStage li button { flex: none; border: 0; padding: 4px; background: transparent; }
+@media (pointer: coarse) { .queueStage li button { min-width: 44px; min-height: 44px; } }
