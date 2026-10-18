@@ -19,12 +19,12 @@ if (!process.argv[2]) throw new Error("需要尚不存在的独立输出目录")
 const hybrid = process.argv[3] === "--hybrid";
 if (process.argv[3] && !hybrid) throw new Error("仅支持 --hybrid 可选参数");
 const hybridEnv = hybrid ? { YUNFENG_RESEARCH_NATIVE: process.env.YUNFENG_RESEARCH_NATIVE, YUNFENG_APP_PORT: process.env.YUNFENG_APP_PORT, YUNFENG_APP_TOKEN: process.env.YUNFENG_APP_TOKEN } : undefined;
-if (hybrid) assert.equal(hybridEnv!.YUNFENG_RESEARCH_NATIVE, "1", "需要由 Rust 私有通道宿主启动");
+if (hybrid) assert.equal(hybridEnv!.YUNFENG_RESEARCH_NATIVE, "2", "需要由支持批量操作的 Rust 私有通道宿主启动");
 // 基线必须隔离父进程注入的原生标识，只有混合组子进程接收能力与凭据。
 delete process.env.YUNFENG_RESEARCH_NATIVE;
-const selectedLanes: Lane[] = [...lanes, ...(hybrid ? ["hybridPipe" as const] : [])];
+const selectedLanes: Lane[] = [...lanes, ...(hybrid ? ["hybridSingle" as const, "hybridPipe" as const] : [])];
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
-const sources = ["./workflow-compare.ts", "./workflow-fixture.ts", "./workflow-transport.ts", "./native-worker.mjs", "../../dist/research/project.js", "../../dist/research/executor.js", "../../dist/research/native-files.js", "../../dist/research/execution-files.js", "../../dist/agent/desktop-client.js", "../../dist/research/decision/store.js", "../../dist/task/task-store.js", "../../dist/task/task-event-hub.js"];
+const sources = ["./workflow-compare.ts", "./workflow-fixture.ts", "./workflow-transport.ts", "./native-worker.mjs", "../../dist/research/project.js", "../../dist/research/executor.js", "../../dist/research/native-files.js", "../../dist/research/execution-files.js", "../../dist/agent/desktop-client.js", "../../dist/research/decision/store.js", "../../dist/task/task-store.js", "../../dist/task/task-event-hub.js", "../../../app/src-tauri/src/terminal/agent_bridge.rs", "../../../app/src-tauri/research-kernel/src/execution.rs"];
 const sourceHashes = Object.fromEntries(await Promise.all(sources.map(async (path) => [path, hash(await readFile(fileURLToPath(new URL(path, import.meta.url))))])));
 const binaryHash = hash(await readFile(binary));
 const hybridHostHash = hybrid && process.env.YUNFENG_ACCEPTANCE_RUST_HOST ? hash(await readFile(process.env.YUNFENG_ACCEPTANCE_RUST_HOST)) : undefined;
@@ -41,7 +41,7 @@ function canonical(value: any): any {
   if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, key === "cwd" ? "fixture" : canonical(value[key])]));
   return value;
 }
-type Row = Omit<Awaited<ReturnType<typeof timed<Reply>>>, "value"> & { id: string; label: string; execution: string; innerMs?: number; valueHash: string; restart?: { shutdownMs: number; readyMs: number } };
+type Row = Omit<Awaited<ReturnType<typeof timed<Reply>>>, "value"> & { id: string; label: string; execution: string; innerMs?: number; nativeRequests?: number; valueHash: string; restart?: { shutdownMs: number; readyMs: number } };
 type Run = { round: number; lane: Lane; stages: Row[]; totalElapsedMs: number; measuredStagesMs: number; harnessMs: number };
 const runs: Run[] = [], expected = new Map<string, any>();
 async function run(round: number, lane: Lane): Promise<Run> {
@@ -55,7 +55,7 @@ async function run(round: number, lane: Lane): Promise<Run> {
     else expected.set(id, value);
     values.set(id, reply.value);
     const execution = workflow.find((step) => step.id === id)?.local ? "shared-script" : id.startsWith("lifecycle.") ? "lifecycle" : lane;
-    stages.push({ id, label, execution, ...clock, innerMs: reply.innerMs, valueHash, ...(restart ? { restart } : {}) });
+    stages.push({ id, label, execution, ...clock, innerMs: reply.innerMs, nativeRequests: reply.nativeRequests, valueHash, ...(restart ? { restart } : {}) });
   }
   try {
     await record("lifecycle.start", "启动并保存、恢复 100 节点", async () => { instance = await target(lane, path, false, hybridEnv); return { value: { ready: true } }; });
@@ -87,6 +87,7 @@ async function run(round: number, lane: Lane): Promise<Run> {
     const events = (await readFile(join(path, "data/tasks/workflow-task/events.jsonl"), "utf8")).trim().split("\n").map((line) => JSON.parse(line));
     assert.deepEqual(events.map((event) => event.seq), [1, 2, 3, 4]);
     assert.deepEqual(events.map((event) => event.data.phase), ["REFLECTING", "PAUSED", "REFLECTING", "COMPLETED"]);
+    if (lane === "hybridSingle" || lane === "hybridPipe") assert.equal(stages.reduce((sum, stage) => sum + (stage.nativeRequests ?? 0), 0), lane === "hybridSingle" ? 28 : 18, "固定流程的原生请求提交次数");
     await writeFile(join(path, "timings.json"), JSON.stringify(stages, null, 2));
     const measuredStagesMs = stages.reduce((sum, stage) => sum + stage.elapsedMs, 0);
     return { round, lane, stages, totalElapsedMs, measuredStagesMs, harnessMs: totalElapsedMs - measuredStagesMs };
@@ -100,7 +101,8 @@ function stats(values: number[]) {
 }
 await mkdir(root); // 独立夹具只允许新目录，失败时保留证据供排查。
 for (let round = 1; round <= 3; round += 1) {
-  const order = [...selectedLanes.slice(round - 1), ...selectedLanes.slice(0, round - 1)];
+  const offset = hybrid ? (round - 1) * 2 : round - 1;
+  const order = [...selectedLanes.slice(offset), ...selectedLanes.slice(0, offset)];
   for (const lane of order) {
     const result = await run(round, lane); runs.push(result);
     await writeFile(join(root, "runs.partial.json"), JSON.stringify(runs, null, 2));
@@ -112,6 +114,6 @@ const summary = runs[0]!.stages.map(({ id, label, execution }) => ({ id, label, 
 const totals = Object.fromEntries(selectedLanes.map((lane) => [lane, { stages: stats(runs.filter((r) => r.lane === lane).map((r) => r.measuredStagesMs)), workOnly: stats(runs.filter((r) => r.lane === lane).map((r) => r.stages.filter((s) => !s.id.startsWith("lifecycle.")).reduce((sum, s) => sum + s.elapsedMs, 0))), includingHarness: stats(runs.filter((r) => r.lane === lane).map((r) => r.totalElapsedMs)) }]));
 const report = { schemaVersion: 1, startedAt: runs[0]!.stages[0]!.startedAt, finishedAt: new Date().toISOString(), rounds: 3, llmCalls: 0, hybrid, clock: { timestamp: "Date/UTC system wall clock", elapsed: "process.hrtime.bigint OS monotonic nanoseconds", wallElapsed: "Date.now milliseconds; may be zero for short stages" }, environment: { node: process.version, rust: (await exec("rustc", ["--version"])).stdout.trim(), platform: platform(), arch: arch(), cpu: cpus()[0]?.model, ...(hybrid ? { hybridRustProfile: process.env.YUNFENG_ACCEPTANCE_RUST_PROFILE ?? "unknown" } : {}) }, sourceHashes: { ...sourceHashes, rustBinary: binaryHash, ...(hybridHostHash ? { hybridRustHost: hybridHostHash } : {}) }, fixedStateTimestamp: at, summary, totals, runs, parity: { allStageValues: true, pausedStateRestored: true, crossDatabaseRead: true, contiguousEvents: true }, scope: "脚本 Hook 输入与固定规则规划/反思；真实本地文件统计、SQLite、事件和实例恢复；不加载 Pi、真实 LLM、真实训练、桌面 UI" };
 await writeFile(join(root, "workflow-comparison.json"), JSON.stringify(report, null, 2));
-const table = ["# 固定工作流三轮耗时", "", "单位 ms；各环节为三轮中位数。hybridPipe 为 TS 编排/存储与真实 Rust 私有 TCP 文件执行，包含两次进程边界。", "", `| 环节 | ${selectedLanes.join(" | ")} |`, `| --- | ${selectedLanes.map(() => "---:").join(" | ")} |`, ...summary.map((s: any) => `| ${s.label}${s.sharedScript ? "（共用脚本）" : ""} | ${selectedLanes.map((lane) => s[lane].medianMs.toFixed(6)).join(" | ")} |`), "", ...selectedLanes.map((lane) => `${lane}：环节累计 ${totals[lane]!.stages.medianMs.toFixed(3)} ms；扣除启动/关闭/重建 ${totals[lane]!.workOnly.medianMs.toFixed(3)} ms；含脚本环节间校验 ${totals[lane]!.includingHarness.medianMs.toFixed(3)} ms。`), "", "Node 进程内重建领域实例，管道版本退出并重启工作进程。固定规则决策/反思在共用脚本中执行，不代表模型推理。", "", report.scope];
+const table = ["# 固定工作流三轮耗时", "", "单位 ms；各环节为三轮中位数。hybridSingle / hybridPipe 共用相同 Rust 宿主、响应缓冲与 TS 编排；分别使用单项 / 批量请求，均包含父子管道与 Rust TCP 两次进程边界。宿主 profile 记录在 JSON 中。", "", `| 环节 | ${selectedLanes.join(" | ")} |`, `| --- | ${selectedLanes.map(() => "---:").join(" | ")} |`, ...summary.map((s: any) => `| ${s.label}${s.sharedScript ? "（共用脚本）" : ""} | ${selectedLanes.map((lane) => s[lane].medianMs.toFixed(6)).join(" | ")} |`), "", ...selectedLanes.map((lane) => `${lane}：环节累计 ${totals[lane]!.stages.medianMs.toFixed(3)} ms；扣除启动/关闭/重建 ${totals[lane]!.workOnly.medianMs.toFixed(3)} ms；含脚本环节间校验 ${totals[lane]!.includingHarness.medianMs.toFixed(3)} ms。`), "", "Node 进程内重建领域实例，管道版本退出并重启工作进程。固定规则决策/反思在共用脚本中执行，不代表模型推理。", "", report.scope];
 await writeFile(join(root, "workflow-comparison.md"), table.join("\n") + "\n");
 console.log(JSON.stringify({ status: "workflow-comparison-passed", output: join(root, "workflow-comparison.json"), totals }));

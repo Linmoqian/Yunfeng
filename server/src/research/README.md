@@ -28,7 +28,7 @@
 
 选择性 skill 和 Pi 事件桥已通过 [2026-10-18 真实模型闭环验收](../../../docs/development/2026-10-18-research-live-acceptance.md)：两进程暂停恢复、32 次同事实通知过滤、实际压缩和反思、组件报告及作业去重。显式运行入口见 [research-live](../../scripts/research-live/README.md)，默认测试不会请求真实模型。
 
-性能路径：Runtime、Pi 事件桥和 execute 组件适配器位于同一 Node 进程，直接传对象；文件写入与组件更新直接调用，只有必要实验命令启动子进程，stdout/stderr 走管道并限制输出长度。模型规划要求选择最少步骤，避免用 shell、Node 或 Python 包装已有原生动作。
+性能路径：TypeScript 保留 Runtime、Hook、Pi 事件桥和任务编排；桌面支持能力2时，观察文件合并为一次 Rust 请求，连续写入与末尾验收合并执行，命令和组件步骤截断批次。Rust 通过固定缓冲发送 JSON，减少细碎系统调用；不使用共享内存或宣称零拷贝。旧宿主能力1继续逐项请求，独立 Server 保留 Node 实现，通道失败不重放或回退。组件更新复用既有适配，只有必要实验命令启动子进程，stdout/stderr 走管道并限制输出长度。模型规划要求选择最少步骤，避免用 shell、Node 或 Python 包装已有原生动作。边界和部分提交语义见 [科研执行契约](../../../docs/api/2026-10-18-research-execution.md)。
 
 `model-environment.ts` 在活跃任务内复用 SDK 模型目录和设置；每阶段核对 auth、模型目录、全局及项目设置的文件身份、大小、纳秒时间戳和环境摘要。变化后重载，加载期间变化最多重试一次；取消不返回缓存。每阶段仍重新验证所选 skill、建立独立无工具会话并回收扩展，暂停恢复后使用新环境。
 

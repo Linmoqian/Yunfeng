@@ -6,7 +6,7 @@ use super::Runtime;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::{HashSet, VecDeque};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -128,8 +128,11 @@ impl Handler {
             },
             _ => json!({ "error": { "code": "FORBIDDEN", "message": "终端通道认证失败" } }),
         };
-        serde_json::to_writer(&mut *stream, &response)?;
-        stream.write_all(b"\n")
+        // 合并 JSON 的细碎写入；固定缓冲避免再复制一份完整的大响应。
+        let mut output = BufWriter::new(stream);
+        serde_json::to_writer(&mut output, &response)?;
+        output.write_all(b"\n")?;
+        output.flush()
     }
 }
 
@@ -173,7 +176,7 @@ impl AgentBridge {
         })
     }
     pub fn configure(&self, command: &mut std::process::Command) {
-        command.env("YUNFENG_RESEARCH_NATIVE", "1");
+        command.env("YUNFENG_RESEARCH_NATIVE", "2");
         command.env("YUNFENG_APP_PORT", self.address.port().to_string());
         command.env("YUNFENG_APP_TOKEN", &self.token);
         command.env("YUNFENG_TERMINAL_PORT", self.address.port().to_string());

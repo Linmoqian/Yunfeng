@@ -4,7 +4,7 @@
  */
 import { spawn } from "node:child_process";
 import { evaluate } from "./project.js";
-import { writeExecutionFile } from "./execution-files.js";
+import { writeExecutionFiles } from "./execution-files.js";
 import type { Plan, Result, Step } from "./types.js";
 import type { ResearchPatch } from "./components.js";
 
@@ -49,7 +49,9 @@ export class JobExecutor {
       let result: Result;
       try {
         let output = "";
-        for (const step of plan.steps) {
+        let evaluation: Result["evaluation"];
+        for (let index = 0; index < plan.steps.length; index++) {
+          const step = plan.steps[index]!;
           controller.signal.throwIfAborted();
           if (step.action === "focus_component") {
             if (!focusComponent) throw new Error("关系图组件未连接");
@@ -60,12 +62,14 @@ export class JobExecutor {
             await updateComponent(step.patch, controller.signal);
             output = (output + `\n已更新科研组件：${step.patch.source}`).slice(-65536);
           } else {
-            await writeExecutionFile(cwd, step.path, step.content, controller.signal);
-            output += `已写入 ${step.path}\n`;
+            const files = [step];
+            while (files.length < 8 && plan.steps[index + 1]?.action === "write_file") files.push(plan.steps[++index] as typeof step);
+            evaluation = await writeExecutionFiles(cwd, files, controller.signal, index === plan.steps.length - 1 ? plan.success_condition : undefined);
+            output += files.map((file) => `已写入 ${file.path}\n`).join("");
           }
         }
         controller.signal.throwIfAborted();
-        const evaluation = await evaluate(cwd, plan.success_condition);
+        evaluation ??= await evaluate(cwd, plan.success_condition);
         result = { job_id: id, status: evaluation.passed ? "succeeded" : "failed", output, evaluation };
       } catch (error) {
         result = { job_id: id, status: controller.signal.aborted ? "cancelled" : "failed", output: String((error as Error).message).slice(-65536) };

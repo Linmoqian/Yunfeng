@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import { freemem, totalmem, platform } from "node:os";
 import type { Condition, Result, State } from "./types.js";
 import { nativeResearchFiles } from "./native-files.js";
+import type { FileRead } from "./native-files.js";
 const exec = promisify(execFile);
 const privatePart = /^(?:\.env(?:\..*)?|auth\.json|models\.json|credentials.*|.*\.(?:pem|key)|\.git|node_modules)$/i;
 
@@ -41,6 +42,20 @@ export async function readProjectText(cwd: string, path: string): Promise<string
   return readFile(file, "utf8");
 }
 
+/** 一次观察范围显式提交；单个文件缺失保留该位置的错误，不丢弃其他真实事实。 */
+export async function readProjectFiles(cwd: string, paths: readonly string[]): Promise<FileRead[]> {
+  if (!paths.length) return [];
+  if (paths.length > 8) throw new Error("观察路径超过上限");
+  const native = nativeResearchFiles();
+  if (native) return native.readMany(cwd, paths);
+  const results: FileRead[] = [];
+  for (const path of paths) {
+    try { results.push({ content: await readProjectText(cwd, path) }); }
+    catch (error) { results.push({ error: (error as Error).message }); }
+  }
+  return results;
+}
+
 export async function observeProject(cwd: string, paths: string[], memory: unknown[], events: unknown[]): Promise<State> {
   const timestamp = new Date().toISOString();
   const facts: State["facts"] = [];
@@ -57,9 +72,13 @@ export async function observeProject(cwd: string, paths: string[], memory: unkno
     const folder = await projectPath(cwd, ".lin/experiments");
     defaults = [...defaults, ...(await readdir(folder)).filter((name) => /\.(json|ya?ml|log|md)$/.test(name)).slice(0, 6).map((name) => `.lin/experiments/${name}`)];
   } catch { /* 新项目可以没有实验目录。 */ }
-  for (const path of [...new Set([...paths, ...defaults])].slice(0, 8)) {
-    try { add(`file:${path}`, await readProjectText(cwd, path), `filesystem:${path}`); }
-    catch (error) { add(`file:${path}`, { unavailable: (error as Error).message }, `filesystem:${path}`); }
+  const selected = [...new Set([...paths, ...defaults])].slice(0, 8);
+  let results: FileRead[];
+  try { results = await readProjectFiles(cwd, selected); }
+  catch (error) { results = selected.map(() => ({ error: (error as Error).message })); }
+  for (let index = 0; index < selected.length; index++) {
+    const path = selected[index]!, result = results[index]!;
+    add(`file:${path}`, result.content ?? { unavailable: result.error }, `filesystem:${path}`);
   }
   return { facts, events, memory, constraints: ["未知指标和设备状态不得当作事实", "仅 execute 允许项目副作用", "反思知识是候选推断", "命令受权限清单或具体计划授权限制"] };
 }

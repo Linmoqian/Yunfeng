@@ -30,3 +30,42 @@ fn strict_requests_real_files_and_no_invalid_metric_success() {
     assert!(call(json!({"action":"read","cwd":cwd,"path":"invalid.txt"})).is_err());
     assert!(call(json!({"action":"read","cwd":cwd,"path":"."})).is_err());
 }
+
+#[test]
+fn bounded_batches_preserve_read_order_prevalidate_and_do_not_hide_partial_writes() {
+    let root = tempfile::tempdir().unwrap();
+    let cwd = root.path().to_str().unwrap();
+    let condition =
+        json!({"kind":"metric","path":"two.json","key":"value","operator":"==","value":2});
+    let files =
+        json!([{"path":"one.json","content":"{}"},{"path":"two.json","content":"{\"value\":2}"}]);
+    assert_eq!(
+        call(json!({"action":"write_many","cwd":cwd,"files":files,"condition":condition})).unwrap()
+            ["evaluation"]["passed"],
+        true
+    );
+    let read = call(json!({"action":"read_many","cwd":cwd,"paths":["two.json","missing.json",".env","one.json"]})).unwrap();
+    assert_eq!(read[0]["content"], "{\"value\":2}");
+    assert_eq!(read[1]["error"], "观察文件不可用");
+    assert_eq!(read[2]["error"], "观察文件不可用");
+    assert_eq!(read[3]["content"], "{}");
+    for paths in [vec![], vec!["one.json"; 9]] {
+        assert!(call(json!({"action":"read_many","cwd":cwd,"paths":paths})).is_err());
+    }
+    let invalid = json!([{"path":"untouched.json","content":"ok"},{"path":".env","content":"bad"}]);
+    assert!(call(json!({"action":"write_many","cwd":cwd,"files":invalid})).is_err());
+    assert!(!root.path().join("untouched.json").exists());
+    let invalid_condition = json!({"kind":"file_exists","path":"../outside"});
+    assert!(call(json!({"action":"write_many","cwd":cwd,"files":[{"path":"untouched.json","content":"ok"}],"condition":invalid_condition})).is_err());
+    assert!(!root.path().join("untouched.json").exists());
+    assert!(call(json!({"action":"write_many","cwd":cwd,"files":vec![json!({"path":"over.json","content":"x"});9]})).is_err());
+    assert!(call(json!({"action":"write_many","cwd":cwd,"files":[{"path":"too-big","content":"x".repeat(65537)}]})).is_err());
+    std::fs::create_dir(root.path().join("directory")).unwrap();
+    let partial = json!([{"path":"committed.json","content":"first"},{"path":"directory","content":"second"},{"path":"never.json","content":"third"}]);
+    assert!(call(json!({"action":"write_many","cwd":cwd,"files":partial})).is_err());
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("committed.json")).unwrap(),
+        "first"
+    );
+    assert!(!root.path().join("never.json").exists());
+}

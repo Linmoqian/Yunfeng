@@ -3,7 +3,7 @@
  * @author: https://github.com/Linmoqian
  */
 import type { TaskState } from "../task/types.js";
-import { observeProject, readProjectText } from "./project.js";
+import { observeProject, readProjectFiles } from "./project.js";
 import type { State } from "./types.js";
 import type { HookSignal } from "./hooks/types.js";
 const fileValue = (value: unknown) => typeof value === "string" ? value : "unreadable";
@@ -13,9 +13,11 @@ export async function notifiedFilesChanged(task: TaskState, signals: HookSignal[
   const previous = task.autonomy?.observation;
   if (!previous || signals.some((s) => s.event.kind !== "files_changed" && s.event.kind !== "pi_extension")) return true;
   const paths = [...new Set(signals.flatMap(({ event }) => event.kind === "files_changed" || event.kind === "pi_extension" ? event.paths : []))];
-  for (const path of paths) {
-    let value: unknown;
-    try { value = await readProjectText(task.cwd, path); } catch { value = undefined; }
+  const selected = paths.slice(0, 8);
+  let results;
+  try { results = await readProjectFiles(task.cwd, selected); } catch { return true; }
+  for (let index = 0; index < selected.length; index++) {
+    const path = selected[index]!, value = results[index]?.content;
     if (fileValue(previous.facts.find((f) => f.key === `file:${path}`)?.value) !== fileValue(value)) return true;
   }
   return false;

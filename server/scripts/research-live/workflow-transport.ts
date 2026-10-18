@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { at, type Lane, type Request } from "./workflow-fixture.js";
 export const binary = fileURLToPath(new URL("../../../app/src-tauri/research-kernel/target/release/yunfeng-research-kernel", import.meta.url));
 export const nodeWorker = fileURLToPath(new URL("./native-worker.mjs", import.meta.url));
-export type Reply = { value: any; innerMs?: number };
+export type Reply = { value: any; innerMs?: number; nativeRequests?: number };
 export type Target = { call: (request: Request) => Promise<Reply>; close: () => Promise<void> };
 export async function target(lane: Lane, root: string, resume = false, hybridEnv?: NodeJS.ProcessEnv): Promise<Target> {
   if (lane === "nodeDirect") {
@@ -20,10 +20,11 @@ export async function target(lane: Lane, root: string, resume = false, hybridEnv
   }
   const args = lane === "rustPipe" ? [root] : [nodeWorker, root];
   if (resume) args.push("--resume");
-  if (lane === "hybridPipe") assert.equal(hybridEnv?.YUNFENG_RESEARCH_NATIVE, "1", "混合对照需要真实桌面私有通道");
+  const hybrid = lane === "hybridPipe" || lane === "hybridSingle";
+  if (hybrid) assert.equal(hybridEnv?.YUNFENG_RESEARCH_NATIVE, "2", "混合对照需要支持批量操作的真实桌面私有通道");
   const env = { ...process.env };
   delete env.YUNFENG_RESEARCH_NATIVE;
-  if (lane === "hybridPipe") Object.assign(env, hybridEnv);
+  if (hybrid) Object.assign(env, hybridEnv, { YUNFENG_RESEARCH_NATIVE: lane === "hybridSingle" ? "1" : "2" });
   const child = spawn(lane === "rustPipe" ? binary : process.execPath, args, { env, stdio: ["pipe", "pipe", "pipe"] });
   const lines = createInterface({ input: child.stdout });
   let pending: { resolve: (value: any) => void; reject: (error: Error) => void } | undefined;
@@ -46,7 +47,7 @@ export async function target(lane: Lane, root: string, resume = false, hybridEnv
       child.stdin.write(JSON.stringify({ ...request, at }) + "\n");
       const reply = await response;
       assert.equal(reply.ok, true, `worker rejected ${request.op}`);
-      return { value: reply.value, innerMs: reply.innerMs };
+      return { value: reply.value, innerMs: reply.innerMs, nativeRequests: reply.nativeRequests };
     } finally { clearTimeout(deadline); }
   }, async close() {
     if (child.exitCode !== null || child.signalCode !== null) { lines.close(); return; }

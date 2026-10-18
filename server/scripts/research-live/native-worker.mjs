@@ -7,11 +7,12 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createInterface } from 'node:readline';
 import { performance } from 'node:perf_hooks';
-import { readProjectText, evaluate } from '../../dist/research/project.js';
+import { readProjectText, readProjectFiles, evaluate } from '../../dist/research/project.js';
 import { ResearchGraphStore } from '../../dist/research/decision/store.js';
 import { TaskStore } from '../../dist/task/task-store.js';
 import { TaskEventHub } from '../../dist/task/task-event-hub.js';
 import { JobExecutor } from '../../dist/research/executor.js';
+import { nativeResearchFiles } from '../../dist/research/native-files.js';
 
 export async function fixtureHandler(root, { resume = false } = {}) {
   const dataDir = join(root, 'data'); await mkdir(dataDir, { recursive: true });
@@ -32,9 +33,11 @@ export async function fixtureHandler(root, { resume = false } = {}) {
       case 'evaluate': return evaluate(root, request.condition);
       case 'write': return write(request);
       case 'experiment': {
-        const config = JSON.parse(await readProjectText(root, '.lin/experiments/config.json'));
+        const files = await readProjectFiles(root, ['.lin/experiments/config.json', 'samples.json']);
+        if (files.some((file) => file.error !== undefined)) throw new Error('fixture files unavailable');
+        const config = JSON.parse(files[0].content);
         if (!['baseline', 'optimize'].includes(config.stage)) throw new Error('invalid fixture stage');
-        const samples = JSON.parse(await readProjectText(root, 'samples.json'));
+        const samples = JSON.parse(files[1].content);
         const selected = samples.filter((sample) => config.stage === 'baseline' || sample.keep);
         const sum = selected.reduce((total, sample) => total + sample.value, 0);
         const report = { count: selected.length, sum, mean: sum / selected.length, completed: 1 };
@@ -59,10 +62,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     for await (const line of createInterface({ input: process.stdin })) {
       if (Buffer.byteLength(line) > 1024 * 1024) throw new Error('request exceeds fixture limit');
-      const request = JSON.parse(line), start = performance.now();
+      const request = JSON.parse(line), native = nativeResearchFiles();
+      const submitted = native?.submittedRequests ?? 0, start = performance.now();
       let response;
       try { const value = await handler.call(request); response = { ok: true, value, innerMs: performance.now() - start }; }
       catch { response = { ok: false, code: 'REJECTED', innerMs: performance.now() - start }; }
+      response.nativeRequests = (native?.submittedRequests ?? 0) - submitted;
       process.stdout.write(JSON.stringify(response) + '\n');
     }
   } finally { await handler.close(); }

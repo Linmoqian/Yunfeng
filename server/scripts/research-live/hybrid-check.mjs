@@ -9,13 +9,19 @@ import { createTaskContextForDataDir } from '../../dist/task/task-context.js';
 import { createMemoryContextForDataDir } from '../../dist/plugins/memory/index.js';
 import { ResearchService } from '../../dist/research/service.js';
 import { nativeResearchFiles } from '../../dist/research/native-files.js';
-import { readProjectText, evaluate } from '../../dist/research/project.js';
+import { readProjectText, readProjectFiles, evaluate } from '../../dist/research/project.js';
 const root = await realpath(process.argv[2]), cwd = join(root, 'project');
 await mkdir(join(cwd, '.lin/experiments'), { recursive: true });
 const native = nativeResearchFiles(); assert.ok(native, '必须配置真实 Rust 通道');
 // 无效 UTF-8 在 Rust 严格失败，用它排除悄悄走回 Node 的替代路径。
 await writeFile(join(cwd, 'invalid.txt'), Buffer.from([255]));
 await assert.rejects(readProjectText(cwd, 'invalid.txt'));
+// 八个 64 KiB 文本在 JSON 中最坏可膨胀到约 3 MiB，仍须在有界响应内完成。
+await writeFile(join(cwd, 'escaped.txt'), '\u0000'.repeat(65536));
+const escaped = await readProjectFiles(cwd, Array(8).fill('escaped.txt'));
+assert.equal(escaped.length, 8); assert.ok(escaped.every((item) => item.content === '\u0000'.repeat(65536)));
+const mixed = await readProjectFiles(cwd, ['invalid.txt', 'missing.txt', 'escaped.txt']);
+assert.ok(mixed[0].error && mixed[1].error); assert.equal(mixed[2].content.length, 65536);
 await writeFile(join(cwd, 'control.json'), '{"ready":false,"reviewApproved":false}');
 await writeFile(join(cwd, 'samples.json'), JSON.stringify(Array.from({ length: 256 }, (_, i) => ({ value: i % 2 ? 4 : 0, keep: i % 2 === 1 }))));
 const baseline = '.lin/experiments/baseline.json', report = '.lin/experiments/report.json';
@@ -47,7 +53,7 @@ const start = () => {
 };
 function until(check) {
   return new Promise((resolve, reject) => {
-    const deadline = setTimeout(() => { stop(); reject(new Error('hybrid phase timeout')); }, 15000);
+    const deadline = setTimeout(() => { stop(); const task = context.store.findAll()[0]; reject(new Error(`hybrid phase timeout: ${JSON.stringify({ phase: task?.autonomy?.phase, reason: task?.autonomy?.reason, plans, phases })}`)); }, 15000);
     const inspect = () => {
       const task = context.store.findAll()[0];
       if (task?.autonomy?.phase === 'FAILED') { clearTimeout(deadline); stop(); reject(new Error(task.autonomy.reason)); }

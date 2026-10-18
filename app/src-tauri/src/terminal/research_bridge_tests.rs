@@ -100,6 +100,6 @@ fn hybrid_workflow_three_round_comparison() {
     .unwrap();
     assert_eq!(report["rounds"], 3);
     assert_eq!(report["hybrid"], true);
-    assert_eq!(report["runs"].as_array().unwrap().len(), 12);
+    assert_eq!(report["runs"].as_array().unwrap().len(), 15);
     print!("{}", String::from_utf8_lossy(&output.stdout));
 }
