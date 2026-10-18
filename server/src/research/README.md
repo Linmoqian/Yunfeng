@@ -25,3 +25,5 @@
 新增资源验证：在 `server/` 执行 `pnpm exec tsx --test test/research-resources.test.ts test/research-hooks.test.ts`。资源集成测试用实际 Pi SDK、本地模型替身与真实源码 gzip 作业验证选择、生命周期、无变化通知过滤、执行、反思、组件发布和暂停后重建恢复；不代表真实模型决策质量验收。
 
 真实模型验收记录见 [源码压缩实验验收](../../../docs/development/2026-10-15-research-acceptance.md)。默认模型与凭据可由仓库根 `.env` 提供，加载规则见 [Server 说明](../../README.md)；不动态读取 `.pi`。模型认证失败须修复配置后手动继续；模型列表中的“可用”只表示本地配置被识别，不代表上游认证成功。
+
+选择性 skill 和 Pi 事件桥已通过 [2026-10-18 真实模型闭环验收](../../../docs/development/2026-10-18-research-live-acceptance.md)：两进程暂停恢复、32 次同事实通知过滤、实际压缩和反思、组件报告及作业去重。显式运行入口见 [research-live](../../scripts/research-live/README.md)，默认测试不会请求真实模型。
