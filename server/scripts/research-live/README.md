@@ -25,3 +25,7 @@ pnpm exec tsx scripts/research-live/performance.ts /absolute/path/to/performance
 ```
 
 创建并清理独立临时夹具，无模型网络请求。测量 Pi 通知调度、项目观察、选中 skill 加载、模型目录准备、100 节点检查点及事件提交、原生文件写入和实际 Node 命令启动，输出首轮与热路径 p50/p95。模型环境测试只测配置加载，不包含模型推理；通知测试只测同进程桥到 Hook，不包含文件回读、Git、持久化、桌面通信或 UI 呈现。观察夹具不是 Git 仓库，不能代表大型仓库扫描。短基准受机器负载影响；进程启动不因环境复用而消失。
+
+## Rust 对照
+
+新增独立 [Rust 科研核心](../../../app/src-tauri/research-kernel/README.md)，构建并执行后在全新目录生成 `comparison.json`、SQLite 和日志。`native-worker.mjs` 复用当前 `server/dist` 生产代码，运行前需要 `pnpm --dir server build`；`native-compare.ts` 记录进程内调用、双方 JSON 管道完整往返、核心内部计时、冷启动及采样 RSS。默认每项 5 次预热和 100 次测量，无模型请求。脚本 RSS 与二进制定位按 macOS/Linux 设计，当前仅验收 macOS arm64。详见 [结果与限制](../../../docs/development/2026-10-18-research-rust-comparison.md)。
