@@ -1,0 +1,22 @@
+/* 工具回执复用胶囊语义色；只旋转活动图标，保持消息布局稳定。
+ * Created on 2026-10-19
+ * @author: https://github.com/Linmoqian
+ */
+.feedback { margin: 16px 0; min-width: 0; padding: 12px 14px; border: 1px solid var(--yf-border-divider); border-radius: 16px; background: var(--yf-bg-canvas); }
+.heading { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; color: var(--yf-text-secondary); font-size: 12px; }
+.heading small { margin-left: auto; color: var(--yf-text-tertiary); font-size: 11px; }
+.receipts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.receipt { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; min-width: 0; max-width: 100%; font-size: 12px; }
+.name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.receipt time { opacity: .75; font-size: 11px; font-variant-numeric: tabular-nums; }
+.receipt[data-tone="success"] { color: color-mix(in srgb, var(--yf-semantic-success) 60%, var(--yf-text-primary)); background: color-mix(in srgb, var(--yf-semantic-success) 7%, var(--yf-bg-canvas)); }
+.receipt[data-tone="danger"] { color: var(--yf-semantic-error); background: color-mix(in srgb, var(--yf-semantic-error) 7%, var(--yf-bg-canvas)); }
+.receipt[data-tone="warning"] { color: color-mix(in srgb, var(--yf-semantic-warning) 65%, var(--yf-text-primary)); background: color-mix(in srgb, var(--yf-semantic-warning) 7%, var(--yf-bg-canvas)); }
+.feedback small { color: var(--yf-text-tertiary); font-size: 11px; }
+.records { padding: 0; margin: 6px 0; list-style: none; max-height: 220px; overflow: auto; font-size: 12px; color: var(--yf-text-secondary); }
+.records li { display: grid; grid-template-columns: minmax(0, 1fr) auto 64px; gap: 10px; padding: 6px 0; }
+.records li > :first-child { overflow-wrap: anywhere; }
+.records time { text-align: right; font-variant-numeric: tabular-nums; }
+.running { animation: toolSpin 1.4s linear infinite; }
+@keyframes toolSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .running { animation: none; } }

@@ -1,5 +1,5 @@
 /* 自主任务摘要沿用 Yunfeng 色彩与圆角。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 .card { margin: 0 0 8px; min-width: 0; }
@@ -22,4 +22,5 @@
 .node p, .activityReason { font-size: 12px; color: var(--yf-text-secondary); line-height: 1.7; margin: 5px 0 0; overflow-wrap: anywhere; }
 .activityMeta { display: flex; gap: 6px; margin: 10px 0; font-size: 11px; }
 .activity small { color: var(--yf-text-tertiary); font-size: 11px; }
+.attention { margin: 10px 0; padding: 8px 10px; border-radius: 10px; color: var(--yf-text-primary); background: color-mix(in srgb, var(--yf-semantic-warning) 8%, var(--yf-bg-canvas)); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .activity { padding: 12px; } .activityHeading { flex-wrap: wrap; } }

@@ -1,5 +1,5 @@
 /* 科研响应进展：呈现真实阶段与节点；计时只覆盖本次 Hook 唤醒，不代表模型推理耗时。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { useEffect, useState } from "react";
@@ -40,18 +40,26 @@ const stages = {
 
 export function ResearchActivity({ task }: { task: TaskState }) {
   const state = task.autonomy;
-  if (!state || ["PAUSED", "COMPLETED", "FAILED"].includes(state.phase)) return null;
+  if (!state || state.phase === "COMPLETED") return null;
   const working = researchWorking(task);
   const node = state.decision?.nodes.find((item) => item.id === state.decision?.selectedId);
   const presentation = node?.presentation ?? state.decision?.mission.presentation;
   const title = state.approvalId ? "等待你确认实验计划" : state.phase === "WAITING" && state.jobId ? "实验正在运行，等待完成结果" : stages[state.phase];
+  const attention = state.phase === "FAILED" || state.phase === "PAUSED" || Boolean(state.approvalId);
+  const result = state.result;
+  const evaluation = result?.evaluation;
+  const nodes = state.decision?.nodes.filter((item) => item.kind !== "group") ?? [];
   return <section className={styles.activity} aria-label="科研工作进展" aria-busy={working}>
     <div className={styles.activityHeading}>
       {working && <MapleCloudLoading compact />}
-      <strong role="status">{title}</strong><ResearchResponseClock task={task} working={working} />
+      <strong role="status">{title}</strong>{!["PAUSED", "FAILED"].includes(state.phase) && <ResearchResponseClock task={task} working={working} />}
     </div>
     {presentation && <div className={styles.node}><strong>{presentation.title}</strong><p>{presentation.summary}</p></div>}
-    <div className={styles.activityMeta}><Capsule animateOnMount={false}>第 {state.cycle} 轮</Capsule>{node && <Capsule animateOnMount={false}>{node.status === "running" ? "执行节点" : state.phase === "REFLECTING" ? "核验节点" : "当前节点"}</Capsule>}</div>
+    <div className={styles.activityMeta}><Capsule animateOnMount={false}>第 {state.cycle} 轮</Capsule>{nodes.length > 0 && <Capsule animateOnMount={false} title="当前目标树的节点验收进展">已验收 {nodes.filter((item) => item.status === "succeeded").length} / {nodes.length}</Capsule>}
+      {evaluation && <Capsule tone={evaluation.passed ? "success" : "danger"} value={String(evaluation.passed)}>{evaluation.passed ? "节点验收通过" : "节点验收未通过"}</Capsule>}
+      {result && !evaluation && <Capsule tone={result.status === "failed" ? "danger" : "warning"}>{({ running: "作业处理中", succeeded: "执行完成，待验收", failed: "执行失败", cancelled: "执行已取消", interrupted: "结果待核对" })[result.status]}</Capsule>}
+    </div>
+    {attention && <p className={styles.attention} role="note">{state.approvalId ? "请在上方确认执行范围，授权后继续。" : state.reason}</p>}
     <Details label="运行详情"><p className={styles.activityReason}>{state.reason}</p><small>本次响应计时包含等待，不等于模型推理耗时。</small></Details>
   </section>;
 }

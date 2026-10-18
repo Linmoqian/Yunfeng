@@ -1,5 +1,5 @@
 /* 科研闭环审阅样例：事件唤醒、单步或自动推进、暂停恢复与节点详情。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { useEffect, useReducer, useState } from "react";
@@ -8,6 +8,8 @@ import { Bell, ChevronRight, Pause, Play, RotateCcw } from "lucide-react";
 import { Capsule, Details, ProgressCapsule, interactionStyles, useYunfengMotion } from "../../components/common";
 import { initialResearchSample, researchSampleReducer, samplePhaseLabels } from "./researchSampleState";
 import styles from "./ResearchLoopSample.module.css";
+import { ToolFeedback } from "../../features/workbench/components/ToolFeedback";
+import type { ToolCallInfo } from "../../features/workbench/toolFeedback";
 
 const nodes = [{ title: "源码压缩优化", summary: "比较压缩参数，核对字节一致性。" }, { title: "建立基线", summary: "测量 level 1 的压缩结果。" }, { title: "优化与验证", summary: "比较 level 9 与基线的差距。" }];
 export function ResearchLoopSample() {
@@ -28,6 +30,15 @@ export function ResearchLoopSample() {
     return index === current && running ? "进行中" : "待执行";
   }
   const phase = state.paused ? "已暂停" : samplePhaseLabels[state.phase];
+  const showTools = state.phase !== "waiting" || state.finished > 0;
+  const executing = state.phase === "execute";
+  const sampleCalls: ToolCallInfo[] = showTools ? [
+    { callId: "sample-read", name: "read", ...(state.phase !== "observe" ? { finishedAt: "sample", outcome: "succeeded" as const } : state.paused ? { finishedAt: "sample", outcome: "unknown" as const } : {}) },
+    ...(["execute", "reflect", "complete", "waiting"].includes(state.phase) ? [
+      { callId: "sample-modify", name: "modify", finishedAt: "sample", outcome: "succeeded" as const },
+      { callId: "sample-terminal", name: "terminal", ...(!executing ? { finishedAt: "sample", outcome: "succeeded" as const } : state.paused ? { finishedAt: "sample", outcome: "unknown" as const } : {}) },
+    ] : []),
+  ] : [];
   return <>
     <div className={styles.toolbar}>
       <button type="button" className={interactionStyles.pressable} disabled={state.paused || state.phase !== "waiting"} onClick={() => dispatch({ type: "hook" })}><Bell size={13} />Hook 唤醒</button>
@@ -56,6 +67,7 @@ export function ResearchLoopSample() {
       {(selected === 2 && state.finished === 2 || selected === 0 && state.phase === "complete") && <><Capsule tone="accent">缩小 14.4%</Capsule><Capsule>解压一致</Capsule></>}
     </div>
     <div className={styles.summary} aria-live="polite">{state.paused ? `已保留${samplePhaseLabels[state.phase]}阶段，继续后从原处推进。` : state.phase === "waiting" ? state.round === 0 ? "等待数据就绪事件，点击 Hook 唤醒。" : "基线已记录，等待复核事件；再次点击 Hook 唤醒。" : state.phase === "complete" ? "样例结论：压缩体积缩小 14.4%，解压字节一致。" : `${nodes[current].title} · ${samplePhaseLabels[state.phase]}${state.phase === "execute" ? ` ${state.progress}/2` : ""}`}</div>
+    <ToolFeedback calls={sampleCalls} />
     <Details label="科研演示过程"><ol className={styles.log}>{state.log.map((entry, index) => <li key={index}>{entry}</li>)}</ol></Details>
     {reduced && <small className={styles.reduced}>已按系统设置减少动态效果。</small>}
   </>;

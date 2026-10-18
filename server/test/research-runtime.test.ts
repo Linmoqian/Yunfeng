@@ -1,5 +1,5 @@
 /* 自主闭环的核心验收：真实作业、事件等待、权限、中断恢复和取消。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import assert from "node:assert/strict";
@@ -65,6 +65,10 @@ test("execute 读取真实报告发布科研组件，完成与暂停恢复保留
     const completed = ctx.phase("COMPLETED");
     const task = await ctx.service.create(ctx.cwd, "核验并展示实验", undefined, { permissions: { commands: [{ program, args }] } });
     await completed;
+    const receipts = ctx.context.store.readEvents(task.id, 0).filter((event) => event.type === "tool_finished");
+    assert.equal(receipts.length, 4);
+    assert.equal(new Set(receipts.map((event) => (event.data as { callId: string }).callId)).size, 4);
+    assert.equal(receipts.filter((event) => (event.data as { name: string }).name === "terminal").length, 1);
     const snapshot = structuredClone(task.autonomy!.component!);
     const experiment = task.autonomy!.decision!.nodes.find((n) => n.jobId === snapshot.state.jobId)!;
     assert.deepEqual(experiment.report, snapshot);

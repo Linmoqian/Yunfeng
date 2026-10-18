@@ -1,5 +1,5 @@
 /* 四阶段核心：真实观察、目标树选点与 Pi 规划、受控作业、候选知识沉淀。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import type { TaskState } from "../task/types.js";
@@ -16,6 +16,7 @@ import { parseProposal } from "./decision/proposal.js";
 import type { DecisionState } from "./decision/types.js";
 import type { ResearchPatch } from "./components.js";
 import { withToolScope } from "./tool-arbiter.js";
+import type { FeedbackSink } from "./tool-feedback.js";
 import type { HorizonDomain } from "./horizon.js";
 
 export async function planAuthorized(task: TaskState, plan: Plan): Promise<boolean> {
@@ -42,7 +43,7 @@ export class ProjectCore implements AgentCore {
     private readonly updateComponent?: (patch: ResearchPatch, signal: AbortSignal) => Promise<void>,
     private readonly focusComponent?: (target: string) => Promise<string>, private readonly graphStatus?: () => unknown,
     private readonly relate?: (tree: DecisionState, node: string, signal: AbortSignal) => Promise<DecisionState>,
-    private readonly horizon?: (domain: HorizonDomain) => Promise<unknown>) {}
+    private readonly horizon?: (domain: HorizonDomain) => Promise<unknown>, private readonly feedback?: FeedbackSink) {}
   async observe(): Promise<State> {
     const task = this.task();
     const state = await withToolScope({ signal: this.signal }, () => buildContext(task, this.memory.retrieve({ projectKey: task.cwd, limit: 8 })));
@@ -85,7 +86,7 @@ export class ProjectCore implements AgentCore {
       const current = this.task();
       if (current.autonomy?.jobId !== jobId || current.autonomy.phase === "PAUSED" || !await planAuthorized(current, plan)) throw new Error("TOOL_FORBIDDEN：实验计划授权已失效");
     };
-    return this.jobs.start(jobId, task.cwd, plan, this.completed, this.updateComponent, this.focusComponent, authorize, this.horizon);
+    return this.jobs.start(jobId, task.cwd, plan, this.completed, this.updateComponent, this.focusComponent, authorize, this.horizon, this.feedback);
   }
   async reflect(result: Result) {
     const task = this.task();

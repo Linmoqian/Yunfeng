@@ -1,5 +1,5 @@
 /* 科研工作反馈回归：计时不随快照重置，空闲与授权不伪装执行，节点来自真实快照。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { act, cleanup, render, screen } from "@testing-library/react";
@@ -47,4 +47,14 @@ test("空闲等待无工作动画，真实作业运行继续提示，完成后�
   expect(screen.queryByLabelText("科研工作进展")).toBeNull();
   view.rerender(<ResearchResponseClock task={{ ...value, updatedAt: "2026-10-18T10:01:15.000Z" }} working={false} />);
   expect(screen.getByText("01:15")).toBeTruthy();
+});
+
+test("验收直接来自结果字段，暂停原因可见且不播放工作动画", () => {
+  const value = task();
+  const view = render(<ResearchActivity task={{ ...value, autonomy: { ...value.autonomy!, phase: "REFLECTING", result: { job_id: "job", status: "succeeded", evaluation: { passed: false, reason: "指标未达到阈值" } } } }} />);
+  expect(screen.getByText("节点验收未通过")).toBeTruthy();
+  expect(screen.queryByText("节点验收通过")).toBeNull();
+  view.rerender(<ResearchActivity task={{ ...value, autonomy: { ...value.autonomy!, phase: "PAUSED", reason: "需要你补充独立验证数据" } }} />);
+  expect(screen.getByRole("note").textContent).toContain("补充独立验证数据");
+  expect(screen.queryByTestId("work-animation")).toBeNull();
 });

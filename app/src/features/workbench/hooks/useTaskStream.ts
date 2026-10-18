@@ -1,11 +1,12 @@
 // 任务聚焦面板的事件流 Hook：聚合会话输出、工具调用、审批与任务状态变更。
 // 按服务端消息身份合并快照和增量；Server TaskStore 是任务事实来源。
-// Created on 2026-10-17
+// Created on 2026-10-19
 // @author: https://github.com/Linmoqian
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  loadTask,
   loadTaskConversation,
   loadSessionConversation,
   loadTaskInterventions,
@@ -24,6 +25,8 @@ import {
   type ConversationItem,
   type ToolCallInfo,
 } from "../components/ConversationLog";
+
+import { reduceToolFeedback, settleToolFeedback } from "../toolFeedback";
 
 export type StreamStatus = "connecting" | "idle" | "streaming" | "error";
 export type ApprovalKind = "confirm" | "select" | "input";
@@ -98,7 +101,13 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
       // 服务端连接帧只携带补发元信息，不更新本地任务状态。
       if (data?.kind === "connected") return;
       if (data && typeof data === "object" && currentTask) {
-        setLocalTask((current) => ({ ...(current?.id === currentTask.id ? current : currentTask), ...data }) as TaskState);
+        if (typeof data.lastEventSeq === "number" && data.lastEventSeq < currentTask.lastEventSeq) return;
+        setLocalTask((current) => current?.id === currentTask.id && typeof data.lastEventSeq === "number" && current.lastEventSeq > data.lastEventSeq
+          ? current : ({ ...(current?.id === currentTask.id ? current : currentTask), ...data }) as TaskState);
+        if (!currentTask.autonomy && data.status === "running" && currentTask.status !== "running") setToolCalls((calls) => calls.filter((call) => !call.finishedAt));
+        if (["completed", "failed", "archived"].includes(data.status ?? "") || ["PAUSED", "FAILED", "COMPLETED"].includes(data.autonomy?.phase ?? "")) {
+          setToolCalls((calls) => settleToolFeedback(calls, event.occurredAt ?? "unknown"));
+        }
       }
       return;
     }
@@ -145,32 +154,12 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
       });
     }
 
-    if (event.type === "tool_started") {
-      const data = event.data as { name?: string; callId?: string; args?: unknown; startedAt?: string } | undefined;
-      const callId = typeof data?.callId === "string" ? data.callId : `tool-${Date.now()}`;
-      setStreamStatus("streaming");
-      setToolActivity(`正在运行 ${typeof data?.name === "string" ? data.name : "工具"}`);
-      setToolCalls((current) => [
-        ...current.filter((call) => call.callId !== callId),
-        { callId, name: data?.name ?? "工具", args: data?.args, startedAt: data?.startedAt },
-      ]);
+    if (["tool_started", "tool_updated", "tool_finished"].includes(event.type)) {
+      setToolCalls((current) => reduceToolFeedback(current, event));
+      if (event.type === "tool_started") setStreamStatus("streaming");
     }
-    if (event.type === "tool_updated") {
-      const data = event.data as { callId?: string; name?: string; partialResult?: unknown } | undefined;
-      const callId = typeof data?.callId === "string" ? data.callId : "";
-      if (callId) {
-        setToolCalls((current) => current.map((call) =>
-          call.callId === callId ? { ...call, name: data?.name ?? call.name, args: data?.partialResult ?? call.args } : call,
-        ));
-      }
-    }
-    if (event.type === "tool_finished") {
-      const data = event.data as { callId?: string } | undefined;
-      const callId = typeof data?.callId === "string" ? data.callId : "";
-      setToolActivity(null);
-      if (callId) {
-        setToolCalls((current) => current.filter((call) => call.callId !== callId));
-      }
+    if (event.type === "run_failed" || event.type === "run_settled") {
+      setToolCalls((current) => settleToolFeedback(current, event.occurredAt ?? "unknown"));
     }
     if (event.type === "run_failed") {
       setStreamStatus("error");
@@ -263,10 +252,32 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
         if (!controller.signal.aborted) setConversationLoading(false);
       }
     };
-    const unsubscribe = subscribeTaskEvents(taskId, handleStreamEvent, (connected) => {
+    const initialSeq = activeTask.lastEventSeq;
+    const unsubscribe = subscribeTaskEvents(taskId, (event) => {
+      if (event.seq !== undefined && event.seq <= initialSeq) {
+        if (["tool_started", "tool_updated", "tool_finished"].includes(event.type)) setToolCalls((current) => {
+          const calls = reduceToolFeedback(current, event), latest = activeTaskRef.current;
+          return latest && (["completed", "failed", "archived"].includes(latest.status) || ["PAUSED", "FAILED", "COMPLETED"].includes(latest.autonomy?.phase ?? ""))
+            ? settleToolFeedback(calls, latest.updatedAt) : calls;
+        });
+        return;
+      }
+      handleStreamEvent(event);
+    }, (connected) => {
       if (!connected) setStreamStatus("connecting");
-      else { setStreamStatus((status) => status === "streaming" ? status : "idle"); void refreshConversation(); }
-    });
+      else {
+        setStreamStatus((status) => status === "streaming" ? status : "idle");
+        void refreshConversation();
+        void loadTask(taskId, controller.signal).then((snapshot) => {
+          if (controller.signal.aborted) return;
+          if (activeTaskRef.current && activeTaskRef.current.lastEventSeq > snapshot.lastEventSeq) return;
+          setLocalTask((current) => current && current.lastEventSeq > snapshot.lastEventSeq ? current : snapshot);
+          if (["completed", "failed", "archived"].includes(snapshot.status) || ["PAUSED", "FAILED", "COMPLETED"].includes(snapshot.autonomy?.phase ?? "")) {
+            setToolCalls((calls) => settleToolFeedback(calls, snapshot.updatedAt));
+          }
+        }).catch(() => { /* 连接恢复后仍由实时快照继续收敛。 */ });
+      }
+    }, Math.max(0, initialSeq - 120));
     void refreshConversation();
 
     void loadTaskInterventions(taskId, controller.signal)

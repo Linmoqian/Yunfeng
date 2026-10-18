@@ -1,5 +1,5 @@
 /* 科研任务编排：复用 TaskStore、审批和 SSE，管理停止、恢复与文件事件。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { summarizeMissing } from "./decision/presentation.js";
@@ -180,7 +180,7 @@ export class ResearchService {
     }, async (target) => {
       const result = await this.graph(id).call({ action: "focus", component: "research-graph", target });
       return JSON.stringify(result);
-    }, () => this.graph(id).status(), (tree, node, signal) => this.relevance.analyze(tree, node, strategy, signal), (domain) => this.horizon(id).read(domain, controller.signal));
+    }, () => this.graph(id).status(), (tree, node, signal) => this.relevance.analyze(tree, node, strategy, signal), (domain) => this.horizon(id).read(domain, controller.signal), async (event) => { await this.context.hub.emit(id, event.type, event.data); });
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {

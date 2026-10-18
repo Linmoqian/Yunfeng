@@ -1,5 +1,5 @@
 /* 通用对话日志，科研正文与待确认计划通过独立呈现组件接入。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import ReactMarkdown from "react-markdown";
@@ -17,15 +17,8 @@ import {
 
 export type { ConversationItem, ConversationRole, MessageStatus } from "../conversationState";
 
-interface ToolCallInfo {
-  callId: string;
-  name: string;
-  args?: unknown;
-  startedAt?: string;
-  finishedAt?: string;
-  isError?: boolean;
-  result?: unknown;
-}
+import { ToolFeedback } from "./ToolFeedback";
+import type { ToolCallInfo } from "../toolFeedback";
 
 export type { ToolCallInfo, ApprovalInfo };
 
@@ -252,14 +245,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
         </article>
       ))}
 
-      {toolCalls.map((call) => (
-        <article key={call.callId} className="tool-card tool-card--running" aria-label={`正在调用工具：${call.name}`}>
-          <div className="tool-card__summary">
-            <span className="tool-card__name"><Wrench size={13} aria-hidden="true" /> {call.name}</span>
-            <span className="tool-card__status">调用中</span>
-          </div>
-        </article>
-      ))}
+      <ToolFeedback calls={toolCalls} />
 
       {approvals.map((approval) => (
         <ApprovalCard

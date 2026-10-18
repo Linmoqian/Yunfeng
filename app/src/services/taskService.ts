@@ -1,6 +1,6 @@
 // 任务领域 API 客户端：/api/tasks 系列 + 兼容旧 /api/sessions 浏览。
 // 工作台以服务端真实任务状态为准，科研模式复用任务接口。
-// Created on 2026-10-18
+// Created on 2026-10-19
 // @author: https://github.com/Linmoqian
 
 import { fetchRead, recoveryDelay } from "./recovery.ts";
@@ -40,6 +40,8 @@ export interface TaskState {
   mode?: "development" | "research";
   autonomy?: {
     component?: import("./researchComponent").ResearchComponentSnapshot;
+    result?: import("./researchComponent").ResearchResult;
+    lastResult?: import("./researchComponent").ResearchResult;
     phase: "OBSERVING" | "PLANNING" | "EXECUTING" | "WAITING" | "REFLECTING" | "PAUSED" | "COMPLETED" | "FAILED";
     goal: string; reason: string; cycle: number; maxCycles: number; jobId?: string; approvalId?: string;
     decision?: ResearchDecisionState;
@@ -139,6 +141,7 @@ export interface TaskStreamEvent {
   id?: string;
   taskId?: string;
   seq?: number;
+  occurredAt?: string;
   type: string;
   data?: unknown;
   [key: string]: unknown;
@@ -432,9 +435,9 @@ export async function loadTaskCapabilities(taskId: string, signal?: AbortSignal)
  * 首次订阅默认只收实时事件；EventSource 断线重连会自动携带 Last-Event-ID，
  * 服务端据此只补发缺失的 seq。需要显式补发历史时使用 ?afterSeq=N。
  */
-function subscribeStream(url: string, onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void): () => void {
+function subscribeStream(url: string, onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void, afterSeq?: number): () => void {
   let source: EventSource, timer: ReturnType<typeof setTimeout> | undefined;
-  let closed = false, attempt = 0, lastId = "";
+  let closed = false, attempt = 0, lastId = afterSeq === undefined ? "" : String(afterSeq);
   const connect = () => {
     if (closed) return;
     source = new EventSource(`${url}${lastId ? `?afterSeq=${encodeURIComponent(lastId)}` : ""}`);
@@ -460,8 +463,8 @@ function subscribeStream(url: string, onEvent: (event: TaskStreamEvent) => void,
   connect();
   return () => { closed = true; clearTimeout(timer); source.close(); };
 }
-export function subscribeTaskEvents(taskId: string, onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void): () => void {
-  return subscribeStream(`/api/tasks/${encodeURIComponent(taskId)}/events`, onEvent, onConnectionChange);
+export function subscribeTaskEvents(taskId: string, onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void, afterSeq?: number): () => void {
+  return subscribeStream(`/api/tasks/${encodeURIComponent(taskId)}/events`, onEvent, onConnectionChange, afterSeq);
 }
 /** 摘要流重连首帧为权威快照；重建监听后刷新旧会话的 REST 快照。 */
 export function subscribeTaskSummary(onEvent: (event: TaskStreamEvent) => void, onConnectionChange?: (connected: boolean) => void): () => void {

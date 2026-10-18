@@ -45,6 +45,22 @@
 
 ## 响应
 
+### 运行反馈（2026-10-19）
+
+科研 execute 复用既有 Task SSE 的 `tool_started`、`tool_finished`，不新增端口、协议或模型直连工具。Pi SDK 仍只负责结构化决策、规划和反思。任务阶段、节点进展、待确认与验收分别读取 `autonomy.phase`、`decision`、`approvalId` 和 `result.evaluation`，不从工具输出猜测任务完成。
+
+| 事件字段 | 类型 | 约束与含义 |
+| --- | --- | --- |
+| data.callId、jobId | string | 服务端作业 ID 与原计划步骤序号组成稳定调用身份；重连仅补发回执，不执行工具 |
+| data.name | string | read / modify / terminal / horizon；相邻写入仍合并为一次 modify 回执 |
+| data.startedAt | string | ISO 时间，工具提交到 execute 时记录；包含后续仲裁等待，不保证 OS 进程已经启动 |
+| data.finishedAt、elapsedMs | string、number | 结束时提供；elapsedMs 来自宿主单调时钟，包含提交、仲裁等待与执行 |
+| data.outcome、isError | string、boolean | succeeded / failed / cancelled；isError 对后两者为 true；工具成功不代表节点或长期目标验收通过 |
+
+科研生命周期反馈不含文件正文、命令参数和终端输出；完整计划仍经原审批接口核对，原始结果仍保存在现有任务结果中。反馈写入失败会记录服务端错误，不会因此重试已经完成的副作用。取消不能回滚已经提交的修改。
+
+工作台主对话展示活动、异常及最近三条工具胶囊，其余回执默认折叠；每个作业最多保留 12 条界面回执。初次订阅通过既有 `afterSeq` 补发最近 120 个事件，只恢复工具回执，不重复正文、审批或旧阶段；缺失的开始或完成事件不能据此推断成功。重连同时读取最新任务快照，缺少终态回执的已停止调用标记“结果待核对”。较早记录继续保存在原事件日志中，此窗口不是完整审计导出。
+
 创建成功返回 HTTP 200，`{task,sessionId}`；普通查询与 commands 沿用既有响应结构。
 
 | 字段 | 类型 | 必定返回 | 约束 | 说明 |
