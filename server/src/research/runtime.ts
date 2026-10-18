@@ -1,5 +1,5 @@
 /* 事件驱动外层 Runtime：等待期间不占用模型循环，恢复不重放副作用。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { randomUUID } from "node:crypto";
@@ -70,7 +70,7 @@ export class ResearchRuntime {
     const tree = this.ports.read().autonomy!.decision;
     const node = tree?.nodes.find((n) => n.id === plan.node_id);
     if (node) await this.ports.message(`决策：${node.objective}\n\n评分 ${node.priority}；估计收益 ${node.expected_gain}；成功概率估计 ${node.confidence}；相对成本 ${node.cost}；预算 ${tree!.budget.spent}/${tree!.budget.limit}`);
-    const steps = plan.steps.map((step) => step.action === "write_file" ? `写入 ${step.path}` : step.action === "focus_component" ? `聚焦节点 ${step.target}` : step.action === "update_component" ? `更新科研组件，报告 ${step.patch.source}` : `运行 ${step.program}，参数 ${JSON.stringify(step.args)}`).join("\n");
+    const steps = plan.steps.map((step) => step.action === "write_file" ? `写入 ${step.path}` : step.action === "patch_file" ? `精确修改 ${step.path}` : step.action === "read_file" ? `读取 ${step.path}` : step.action === "read_horizon" ? `读取视界 ${step.domain}` : step.action === "focus_component" ? `聚焦节点 ${step.target}` : step.action === "update_component" ? `更新科研组件，报告 ${step.patch.source}` : `运行 ${step.program}，参数 ${JSON.stringify(step.args)}`).join("\n");
     await this.ports.message(`计划：${plan.reason}${steps ? `\n\n步骤：\n${steps}` : ""}${plan.success_condition ? `\n\n验收条件：${JSON.stringify(plan.success_condition)}` : ""}`);
     if (plan.decision === "wait") { await this.phase("WAITING", plan.reason); return; }
     if (plan.decision === "pause") { await this.phase("PAUSED", plan.reason); return; }

@@ -1,13 +1,31 @@
 /* 校验模型提交的计划和反思，未知形状不会进入执行器。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import type { Condition, Learning, Plan, Step } from "./types.js";
 import { parseResearchPatch } from "./components.js";
 import { record, text } from "./values.js";
+import { horizonDomains, type HorizonDomain } from "./horizon.js";
 export { record, text } from "./values.js";
 export function step(value: unknown): Step {
   const item = record(value);
+  const only = (keys: string[]) => { if (Object.keys(item).some((k) => !keys.includes(k))) throw new Error("工具步骤包含未知字段"); };
+  if (item.action === "read_horizon") {
+    only(["action", "domain"]);
+    if (!horizonDomains.includes(item.domain as HorizonDomain)) throw new Error("视界类型无效");
+    return { action: "read_horizon", domain: item.domain as HorizonDomain };
+  }
+  if (item.action === "read_file") {
+    only(["action", "path", "start_line", "line_count"]);
+    const start = item.start_line ?? 1, count = item.line_count ?? 200;
+    if (!Number.isSafeInteger(start) || Number(start) < 1 || Number(start) > 65537 || !Number.isSafeInteger(count) || Number(count) < 1 || Number(count) > 1000) throw new Error("读取行范围无效");
+    return { action: "read_file", path: text(item.path, 500), start_line: Number(start), line_count: Number(count) };
+  }
+  if (item.action === "patch_file") {
+    only(["action", "path", "old_text", "new_text"]);
+    if (typeof item.old_text !== "string" || !item.old_text || typeof item.new_text !== "string" || [item.old_text, item.new_text].some((s) => Buffer.byteLength(s) > 65536)) throw new Error("精确修改文本无效或超过上限");
+    return { action: "patch_file", path: text(item.path, 500), old_text: item.old_text, new_text: item.new_text };
+  }
   if (item.action === "focus_component") {
     if (item.component !== "research-graph" || Object.keys(item).some((key) => !["action", "component", "target"].includes(key))) throw new Error("仅允许聚焦当前科研关系图");
     return { action: "focus_component", component: "research-graph", target: text(item.target ?? "current", 100) };
@@ -17,14 +35,16 @@ export function step(value: unknown): Step {
     return { action: "update_component", component: "research", patch: parseResearchPatch(item.patch) };
   }
   if (item.action === "write_file") {
+    only(["action", "path", "content"]);
     if (typeof item.content !== "string") throw new Error("write_file.content 必须是文本字符串，JSON 对象须先序列化");
     if (Buffer.byteLength(item.content, "utf8") > 65536) throw new Error("文件内容超过 64 KiB 限制");
     return { action: "write_file", path: text(item.path, 500), content: item.content };
   }
   if (item.action === "run_command" && Array.isArray(item.args) && item.args.length <= 32 && item.args.every((arg) => typeof arg === "string" && arg.length <= 2000 && !arg.includes("\0"))) {
+    only(["action", "program", "args"]);
     return { action: "run_command", program: text(item.program, 500), args: item.args as string[] };
   }
-  throw new Error("计划只支持受控文件写入、无 shell 命令和科研组件更新");
+  throw new Error("计划仅支持有界读取、精确修改、无 shell 命令和已注册视界操作");
 }
 export function condition(value: unknown): Condition {
   const item = record(value);

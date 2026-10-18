@@ -9,6 +9,18 @@ use std::path::Path;
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Request {
+    ReadRange {
+        cwd: String,
+        path: String,
+        start_line: usize,
+        line_count: usize,
+    },
+    Patch {
+        cwd: String,
+        path: String,
+        old_text: String,
+        new_text: String,
+    },
     Read {
         cwd: String,
         path: String,
@@ -98,6 +110,24 @@ fn evaluate(cwd: &str, condition: Condition) -> Result<Value> {
 /// 写入错误可能发生在提交后，调用方不得自动重放。该方法不是操作系统沙箱。
 pub fn execute(request: Request) -> Result<Value> {
     match request {
+        Request::ReadRange {
+            cwd,
+            path,
+            start_line,
+            line_count,
+        } => {
+            bounded(&cwd, &path)?;
+            crate::text::read_range(Path::new(&cwd), &path, start_line, line_count)
+        }
+        Request::Patch {
+            cwd,
+            path,
+            old_text,
+            new_text,
+        } => {
+            bounded(&cwd, &path)?;
+            crate::text::patch(Path::new(&cwd), &path, &old_text, &new_text)
+        }
         Request::Read { cwd, path } => {
             bounded(&cwd, &path)?;
             Ok(files::read_text(Path::new(&cwd), &path)?.into())

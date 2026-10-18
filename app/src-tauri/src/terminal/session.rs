@@ -1,5 +1,5 @@
 //! 本机 PTY 生命周期；阻塞读写在受限会话内，错误不返回系统细节。
-//! Created on 2026-10-14
+//! Created on 2026-10-18
 //! @author: https://github.com/Linmoqian
 use super::model::{error, Chunk, Output, Result, Size};
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
@@ -49,6 +49,39 @@ impl Session {
         }
         let mut command = CommandBuilder::new("/bin/bash");
         command.args(["-lc", script]);
+        command.cwd(cwd);
+        Self::spawn(
+            Size {
+                cols: 100,
+                rows: 30,
+            },
+            command,
+            true,
+        )
+    }
+    pub fn program(cwd: &str, program: &str, args: &[String]) -> Result<Self> {
+        if program.is_empty()
+            || program.len() > 500
+            || program.contains('\0')
+            || args.len() > 32
+            || args
+                .iter()
+                .any(|arg| arg.len() > 8000 || arg.contains('\0'))
+        {
+            return Err(error("INVALID_INPUT", "科研程序或参数无效"));
+        }
+        if !cfg!(unix) {
+            return Err(error(
+                "UNSUPPORTED",
+                "科研内置终端当前仅支持 macOS 和 Linux",
+            ));
+        }
+        let cwd = std::fs::canonicalize(cwd)
+            .ok()
+            .filter(|p| p.is_dir())
+            .ok_or_else(|| error("INVALID_INPUT", "工作目录不可用"))?;
+        let mut command = CommandBuilder::new(program);
+        command.args(args);
         command.cwd(cwd);
         Self::spawn(
             Size {
@@ -137,6 +170,9 @@ impl Session {
         Ok(chunk)
     }
     pub fn write(&self, data: &str) -> Result<()> {
+        if self.agent {
+            return Err(error("FORBIDDEN", "Agent 作业终端只读"));
+        }
         if data.is_empty() || data.len() > 16 * 1024 {
             return Err(error("INVALID_INPUT", "终端输入需为 1 至 16384 字节"));
         }

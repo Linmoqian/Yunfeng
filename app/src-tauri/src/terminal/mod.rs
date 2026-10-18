@@ -1,5 +1,5 @@
 //! 工作台终端命令边界；主窗口与桌面 Agent 共用最多四个本机 PTY。
-//! Created on 2026-10-14
+//! Created on 2026-10-18
 //! @author: https://github.com/Linmoqian
 mod agent_bridge;
 pub use agent_bridge::AgentBridge;
@@ -74,6 +74,12 @@ impl Runtime {
         }
     }
     pub(super) fn start_command(&self, cwd: &str, command: &str) -> Result<Value> {
+        self.insert_session(|| Session::command(cwd, command))
+    }
+    pub(super) fn start_program(&self, cwd: &str, program: &str, args: &[String]) -> Result<Value> {
+        self.insert_session(|| Session::program(cwd, program, args))
+    }
+    fn insert_session(&self, start: impl FnOnce() -> Result<Session>) -> Result<Value> {
         let mut sessions = self
             .0
             .lock()
@@ -81,7 +87,7 @@ impl Runtime {
         if sessions.len() >= MAX_SESSIONS {
             return Err(error("LIMIT", "最多同时保留四个终端"));
         }
-        let session = Arc::new(Session::command(cwd, command)?);
+        let session = Arc::new(start()?);
         let id = uuid::Uuid::new_v4().to_string();
         sessions.insert(id.clone(), session);
         Ok(json!({ "id": id }))

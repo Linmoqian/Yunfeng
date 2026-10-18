@@ -1,9 +1,11 @@
 /* Rust PTY 私有通道客户端；连接和响应有界，命令绝不自动重放。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { desktopConnection } from "./desktop-client.js";
 export type TerminalRequest = { action: "start"; cwd: string; command: string }
+  | { action: "run"; cwd: string; program: string; args: string[]; jobId: string }
+  | { action: "stopJob"; jobId: string }
   | { action: "read"; id: string; cursor: number } | { action: "stop" | "release"; id: string };
 export interface TerminalChunk {
   data: number[]; cursor: number; truncated: boolean; closed: boolean; failed: boolean; exitCode: number | null;

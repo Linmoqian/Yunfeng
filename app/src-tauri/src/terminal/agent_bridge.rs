@@ -1,11 +1,11 @@
 //! 桌面私有 Agent 通道；复用 PTY 和组件状态，不对 Web 暴露命令接口。
-//! Created on 2026-10-16
+//! Created on 2026-10-18
 //! @author: https://github.com/Linmoqian
 use super::model::{error, Request, Result, MAX_SESSIONS};
 use super::Runtime;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::{
@@ -34,6 +34,17 @@ enum Action {
         cwd: String,
         command: String,
     },
+    Run {
+        cwd: String,
+        program: String,
+        args: Vec<String>,
+        #[serde(rename = "jobId")]
+        job_id: String,
+    },
+    StopJob {
+        #[serde(rename = "jobId")]
+        job_id: String,
+    },
     Read {
         id: String,
         cursor: u64,
@@ -50,8 +61,30 @@ struct Handler {
     app: Option<tauri::AppHandle>,
     owned: HashSet<String>,
     released: VecDeque<String>,
+    research_jobs: HashMap<String, (String, String, String, Vec<String>)>,
 }
 impl Handler {
+    fn prepare_start(&mut self) -> Result<()> {
+        self.owned.retain(|id| self.runtime.get(id).is_ok());
+        self.released.retain(|id| self.owned.contains(id));
+        self.research_jobs
+            .retain(|_, (id, ..)| self.owned.contains(id));
+        while self
+            .runtime
+            .action(Request::List)?
+            .as_array()
+            .is_some_and(|ids| ids.len() >= MAX_SESSIONS)
+        {
+            let Some(id) = self.released.pop_front() else {
+                break;
+            };
+            self.runtime.action(Request::Close { id: id.clone() })?;
+            self.owned.remove(&id);
+            self.research_jobs
+                .retain(|_, (existing, ..)| existing != &id);
+        }
+        Ok(())
+    }
     fn dispatch(&mut self, action: Action) -> Result<Value> {
         if let Action::Research { request } = action {
             return yunfeng_research_kernel::execution::execute(request).map_err(|_| {
@@ -69,23 +102,63 @@ impl Handler {
             return crate::component_sharing::agent::execute(app, request)
                 .map_err(|e| error(e.code, e.message));
         }
-        if let Action::Start { cwd, command } = action {
-            self.owned.retain(|id| self.runtime.get(id).is_ok());
-            self.released.retain(|id| self.owned.contains(id));
-            // 只回收 Agent 已消费完的终端；保留人工终端及仍在读取的任务。
-            while self
-                .runtime
-                .action(Request::List)?
-                .as_array()
-                .is_some_and(|ids| ids.len() >= MAX_SESSIONS)
-            {
-                let Some(id) = self.released.pop_front() else {
-                    break;
-                };
-                self.runtime.action(Request::Close { id: id.clone() })?;
-                self.owned.remove(&id);
+        if let Action::StopJob { job_id } = action {
+            if job_id.is_empty() || job_id.len() > 200 || job_id.contains('\0') {
+                return Err(error("INVALID_INPUT", "科研作业身份无效"));
             }
-            let started = self.runtime.start_command(&cwd, &command)?;
+            let prefix = format!("{job_id}:");
+            let ids: Vec<String> = self
+                .research_jobs
+                .iter()
+                .filter(|(key, _)| **key == job_id || key.starts_with(&prefix))
+                .map(|(_, (id, ..))| id.clone())
+                .collect();
+            for id in ids {
+                if self.runtime.get(&id).is_ok() {
+                    self.runtime.action(Request::Stop { id: id.clone() })?;
+                    if !self.released.contains(&id) {
+                        self.released.push_back(id);
+                    }
+                }
+            }
+            return Ok(Value::Null);
+        }
+        if matches!(action, Action::Start { .. } | Action::Run { .. }) {
+            if let Action::Run {
+                cwd,
+                program,
+                args,
+                job_id,
+            } = &action
+            {
+                if job_id.is_empty() || job_id.len() > 200 || job_id.contains('\0') {
+                    return Err(error("INVALID_INPUT", "科研作业身份无效"));
+                }
+                if let Some((id, root, executable, arguments)) = self.research_jobs.get(job_id) {
+                    if cwd != root || program != executable || args != arguments {
+                        return Err(error("CONFLICT", "科研作业身份已绑定其他命令"));
+                    }
+                    return Ok(json!({"id":id}));
+                }
+            }
+            self.prepare_start()?;
+            let started = match action {
+                Action::Start { cwd, command } => self.runtime.start_command(&cwd, &command)?,
+                Action::Run {
+                    cwd,
+                    program,
+                    args,
+                    job_id,
+                } => {
+                    let started = self.runtime.start_program(&cwd, &program, &args)?;
+                    if let Some(id) = started["id"].as_str() {
+                        self.research_jobs
+                            .insert(job_id, (id.to_owned(), cwd, program, args));
+                    }
+                    started
+                }
+                _ => return Err(error("INVALID_INPUT", "启动操作不可用")),
+            };
             if let Some(id) = started["id"].as_str() {
                 self.owned.insert(id.into());
             }
@@ -93,7 +166,10 @@ impl Handler {
         }
         let id = match &action {
             Action::Read { id, .. } | Action::Stop { id } | Action::Release { id } => id,
-            Action::Start { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
+            Action::Start { .. } | Action::Run { .. } => {
+                return Err(error("INVALID_INPUT", "操作不可用"))
+            }
+            Action::StopJob { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
             Action::Component { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
             Action::Research { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
         };
@@ -158,6 +234,7 @@ impl AgentBridge {
                     app,
                     owned: HashSet::new(),
                     released: VecDeque::new(),
+                    research_jobs: HashMap::new(),
                 };
                 for connection in listener.incoming() {
                     if stop.load(Ordering::Acquire) {
@@ -176,7 +253,7 @@ impl AgentBridge {
         })
     }
     pub fn configure(&self, command: &mut std::process::Command) {
-        command.env("YUNFENG_RESEARCH_NATIVE", "2");
+        command.env("YUNFENG_RESEARCH_NATIVE", "3");
         command.env("YUNFENG_APP_PORT", self.address.port().to_string());
         command.env("YUNFENG_APP_TOKEN", &self.token);
         command.env("YUNFENG_TERMINAL_PORT", self.address.port().to_string());

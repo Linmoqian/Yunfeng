@@ -27,6 +27,9 @@ import { researchEvent } from "./hooks/types.js";
 import { researchMessageRole } from "./messages.js";
 import { researchComponents, settleResearchReports } from "./components.js";
 import type { Plan } from "./types.js";
+import { toolArbiter } from "./tool-arbiter.js";
+import { stopResearchJob } from "./terminal.js";
+import { taskHorizon } from "./horizon-ports.js";
 import type { TaskCommand, TaskModelRef, TaskState } from "../task/types.js";
 
 const phaseLabels = { OBSERVING: "观察项目", PLANNING: "制定计划", EXECUTING: "提交实验", WAITING: "等待事件", REFLECTING: "核对与反思", PAUSED: "已暂停", COMPLETED: "目标已验收", FAILED: "需要处理" };
@@ -38,9 +41,18 @@ export class ResearchService {
   private readonly jobs = new JobExecutor();
   private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; hooks: HookLayer; files: FileHooks; bridge: PiResearchBridge }>();
   private closed = false;
+  private readonly recovering = new Map<string, Promise<void>>();
   private readonly graphRequests = new Set<string>();
   private readonly graphAbort = new AbortController();
   private readonly graphs = new Map<string, ResearchGraphComponent>();
+  horizon(id: string) {
+    const read = () => {
+      const task = this.context.store.get(id);
+      if (!task?.autonomy || task.mode !== "research") throw new Error("科研任务不存在");
+      return task;
+    };
+    return taskHorizon(read);
+  }
   graph(id: string): ResearchGraphComponent {
     const task = this.context.store.get(id);
     if (!task?.autonomy || task.mode !== "research") throw new Error("科研任务不存在");
@@ -152,7 +164,7 @@ export class ResearchService {
       if (await runtime.receive(result)) hooks.publish(researchEvent({ kind: "job_completed", jobId: result.job_id, status: result.status }));
     }, strategy, async (patch, signal) => {
       const jobId = task.autonomy!.jobId!;
-      const components = researchComponents(task.cwd, jobId, () => task.autonomy!.component, async (view) => {
+      const components = researchComponents(task.cwd, jobId, () => task.autonomy!.component, async (view) => toolArbiter.run({ tool: "horizon", resources: [{ key: `component:${task.cwd}`, write: true }], signal }, async () => {
         signal.throwIfAborted(); controller.signal.throwIfAborted();
         if (task.autonomy!.jobId !== jobId) throw new Error("科研组件作业已失效");
         const previous = task.autonomy!.component;
@@ -163,12 +175,12 @@ export class ResearchService {
           if (node) node.report = snapshot; });
         await this.context.hub.emit(id, "task_updated", publicResearchTask(task));
         return snapshot;
-      }, signal);
+      }), signal);
       await components.patch("research", patch);
     }, async (target) => {
       const result = await this.graph(id).call({ action: "focus", component: "research-graph", target });
       return JSON.stringify(result);
-    }, () => this.graph(id).status(), (tree, node, signal) => this.relevance.analyze(tree, node, strategy, signal));
+    }, () => this.graph(id).status(), (tree, node, signal) => this.relevance.analyze(tree, node, strategy, signal), (domain) => this.horizon(id).read(domain, controller.signal));
     runtime = new ResearchRuntime(core, {
       read: () => this.context.store.get(id)!,
       save: async (change) => {
@@ -255,14 +267,28 @@ export class ResearchService {
     item?.controller.abort(); item?.hooks.close(); item?.bridge.close();
     const fileStopping = item?.files.close();
     const stopping = item?.runtime.stop();
-    if (task.autonomy?.jobId) await this.jobs.cancel(task.autonomy.jobId);
-    await stopping;
-    await fileStopping;
-    if (task.autonomy?.jobId && !task.autonomy.result) {
-      this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); });
+    let cleanupError: unknown;
+    try {
+      const recovery = this.recovering.get(id);
+      if (recovery) { this.recovering.delete(id); await recovery.catch(() => {}); }
+      if (task.autonomy?.jobId) {
+        await this.jobs.cancel(task.autonomy.jobId);
+        await stopResearchJob(task.autonomy.jobId);
+      }
+    } catch (error) {
+      cleanupError = error;
+      this.context.store.update(id, (s) => { s.autonomy!.reason = (error as Error).message; });
+    } finally {
+      await stopping;
+      await fileStopping;
+      if (task.autonomy?.jobId && !task.autonomy.result) {
+        this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); });
+      }
+      this.instances.delete(id);
     }
-    this.instances.delete(id);
+    if (cleanupError) throw cleanupError;
   }
+
   async resume(id: string): Promise<void> {
     await this.pause(id, "准备继续");
     if (this.closed || this.instances.size >= 4) throw new Error("自主任务容量已满");
@@ -274,6 +300,12 @@ export class ResearchService {
       const state = task.autonomy!;
       if (state.jobId && !state.result) {
         this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; });
+        const recovery = stopResearchJob(state.jobId).catch((error) => {
+          this.context.store.update(task.id, (s) => { s.autonomy!.reason = (error as Error).message; });
+          throw error;
+        });
+        this.recovering.set(task.id, recovery);
+        void recovery.catch(() => {});
       } else if (state.approvalId) {
         this.context.store.update(task.id, (s) => { delete s.autonomy!.approvalId; delete s.autonomy!.authorizedPlan; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "重启后授权已失效"; });
       } else if (!["PAUSED", "FAILED", "COMPLETED"].includes(state.phase) && task.status !== "archived") this.start(task.id, "recovered");
@@ -290,8 +322,13 @@ export class ResearchService {
     this.graphAbort.abort();
     this.closed = true;
     this.graphs.clear();
-    for (const id of [...this.instances.keys()]) await this.pause(id, "服务停止，手动继续后恢复");
+    const failures: unknown[] = [];
+    for (const id of [...this.instances.keys()]) {
+      try { await this.pause(id, "服务停止，手动继续后恢复"); } catch (error) { failures.push(error); }
+    }
     await this.jobs.close();
+    await Promise.allSettled(this.recovering.values());
+    if (failures.length) throw new Error("TERMINAL_CLEANUP_FAILED：部分科研终端未确认回收，请核对内置终端");
   }
 }
 let instance: ResearchService | undefined;

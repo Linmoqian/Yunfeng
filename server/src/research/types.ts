@@ -5,6 +5,9 @@
 export interface Fact { key: string; value: unknown; timestamp: string; source: string }
 export interface State { facts: Fact[]; events: unknown[]; constraints: string[]; memory: unknown[] }
 export type Step = { action: "focus_component"; component: "research-graph"; target: string }
+  | { action: "read_file"; path: string; start_line?: number; line_count?: number }
+  | { action: "patch_file"; path: string; old_text: string; new_text: string }
+  | { action: "read_horizon"; domain: import("./horizon.js").HorizonDomain }
   | { action: "write_file"; path: string; content: string }
   | { action: "run_command"; program: string; args: string[] }
   | { action: "update_component"; component: "research"; patch: import("./components.js").ResearchPatch };

@@ -21,7 +21,7 @@ export async function target(lane: Lane, root: string, resume = false, hybridEnv
   const args = lane === "rustPipe" ? [root] : [nodeWorker, root];
   if (resume) args.push("--resume");
   const hybrid = lane === "hybridPipe" || lane === "hybridSingle";
-  if (hybrid) assert.equal(hybridEnv?.YUNFENG_RESEARCH_NATIVE, "2", "混合对照需要支持批量操作的真实桌面私有通道");
+  if (hybrid) assert.ok(["2", "3"].includes(hybridEnv?.YUNFENG_RESEARCH_NATIVE ?? ""), "混合对照需要支持批量操作的真实桌面私有通道");
   const env = { ...process.env };
   delete env.YUNFENG_RESEARCH_NATIVE;
   if (hybrid) Object.assign(env, hybridEnv, { YUNFENG_RESEARCH_NATIVE: lane === "hybridSingle" ? "1" : "2" });

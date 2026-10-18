@@ -19,7 +19,7 @@ if (!process.argv[2]) throw new Error("需要尚不存在的独立输出目录")
 const hybrid = process.argv[3] === "--hybrid";
 if (process.argv[3] && !hybrid) throw new Error("仅支持 --hybrid 可选参数");
 const hybridEnv = hybrid ? { YUNFENG_RESEARCH_NATIVE: process.env.YUNFENG_RESEARCH_NATIVE, YUNFENG_APP_PORT: process.env.YUNFENG_APP_PORT, YUNFENG_APP_TOKEN: process.env.YUNFENG_APP_TOKEN } : undefined;
-if (hybrid) assert.equal(hybridEnv!.YUNFENG_RESEARCH_NATIVE, "2", "需要由支持批量操作的 Rust 私有通道宿主启动");
+if (hybrid) assert.ok(["2", "3"].includes(hybridEnv!.YUNFENG_RESEARCH_NATIVE ?? ""), "需要由支持批量操作的 Rust 私有通道宿主启动");
 // 基线必须隔离父进程注入的原生标识，只有混合组子进程接收能力与凭据。
 delete process.env.YUNFENG_RESEARCH_NATIVE;
 const selectedLanes: Lane[] = [...lanes, ...(hybrid ? ["hybridSingle" as const, "hybridPipe" as const] : [])];

@@ -34,6 +34,72 @@ fn research_files_require_auth_and_reject_sensitive_paths() {
     assert_eq!(rejected["error"]["code"], "RESEARCH_IO_FAILED");
     assert!(!rejected.to_string().contains(root.path().to_str().unwrap()));
 }
+
+#[test]
+fn research_argv_is_literal_idempotent_visible_and_cancellable_by_job() {
+    let root = tempfile::tempdir().unwrap();
+    let runtime = Runtime::default();
+    let bridge = AgentBridge::start(runtime.clone(), None).unwrap();
+    let start = json!({"action":"run","cwd":root.path(),"program":"/usr/bin/printf",
+        "args":["%s\n","$(touch injected); 空 格"],"jobId":"job:0"});
+    assert_eq!(
+        call(&bridge, "wrong", start.clone())["error"]["code"],
+        "FORBIDDEN"
+    );
+    let first = call(&bridge, &bridge.token, start.clone());
+    let id = first["result"]["id"].as_str().unwrap();
+    assert_eq!(call(&bridge, &bridge.token, start)["result"]["id"], id);
+    assert_eq!(
+        runtime
+            .action(Request::List)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let conflict = json!({"action":"run","cwd":root.path(),"program":"/bin/sleep","args":["30"],"jobId":"job:0"});
+    assert_eq!(
+        call(&bridge, &bridge.token, conflict)["error"]["code"],
+        "CONFLICT"
+    );
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let chunk = runtime.get(id).unwrap().read(0).unwrap();
+        if chunk.closed && chunk.exit_code.is_some() {
+            assert_eq!(chunk.exit_code, Some(0));
+            assert!(chunk.agent);
+            assert!(String::from_utf8(chunk.data)
+                .unwrap()
+                .contains("$(touch injected); 空 格"));
+            break;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(!root.path().join("injected").exists());
+    assert!(runtime.get(id).unwrap().write("echo bypass\r").is_err());
+    let sleeping = call(
+        &bridge,
+        &bridge.token,
+        json!({"action":"run","cwd":root.path(),"program":"/bin/sleep","args":["30"],"jobId":"job:1"}),
+    );
+    let sleeping_id = sleeping["result"]["id"].as_str().unwrap();
+    assert!(call(
+        &bridge,
+        &bridge.token,
+        json!({"action":"stopJob","jobId":"job"})
+    )["error"]
+        .is_null());
+    let cancelled = runtime.get(sleeping_id).unwrap().read(0).unwrap();
+    assert!(cancelled.closed && cancelled.exit_code.is_some());
+    assert!(call(
+        &bridge,
+        &bridge.token,
+        json!({"action":"stopJob","jobId":"job"})
+    )["error"]
+        .is_null());
+}
 #[test]
 #[ignore = "requires server build and Node; run explicitly for cross-stack acceptance"]
 fn hybrid_typescript_orchestration_uses_real_rust_bridge() {
@@ -52,6 +118,27 @@ fn hybrid_typescript_orchestration_uses_real_rust_bridge() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(String::from_utf8_lossy(&output.stdout).contains("hybrid-research-passed"));
+    print!("{}", String::from_utf8_lossy(&output.stdout));
+}
+
+#[test]
+#[ignore = "requires server build and Node; real Rust PTY acceptance without LLM"]
+fn research_core_tools_authorization_cancel_and_recovery() {
+    let root = tempfile::tempdir().unwrap();
+    let bridge = AgentBridge::start(Runtime::default(), None).unwrap();
+    let script = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../server/scripts/research-live/core-tools-check.mjs");
+    let mut command = std::process::Command::new("node");
+    command.arg(script).arg(root.path());
+    bridge.configure(&mut command);
+    let output = command.output().unwrap();
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("core-tools-passed"));
     print!("{}", String::from_utf8_lossy(&output.stdout));
 }
 

@@ -1,5 +1,5 @@
 /* 观察真实项目与核验实验条件，路径始终限制在项目根内。
- * Created on 2026-10-15
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { lstat, realpath, readdir, readFile, stat } from "node:fs/promises";
@@ -10,6 +10,7 @@ import { freemem, totalmem, platform } from "node:os";
 import type { Condition, Result, State } from "./types.js";
 import { nativeResearchFiles } from "./native-files.js";
 import type { FileRead } from "./native-files.js";
+import { toolArbiter, toolResources } from "./tool-arbiter.js";
 const exec = promisify(execFile);
 const privatePart = /^(?:\.env(?:\..*)?|auth\.json|models\.json|credentials.*|.*\.(?:pem|key)|\.git|node_modules)$/i;
 
@@ -36,10 +37,12 @@ export async function projectPath(cwd: string, input: string): Promise<string> {
 export async function readProjectText(cwd: string, path: string): Promise<string> {
   const native = nativeResearchFiles();
   if (native) return native.read(cwd, path);
-  const file = await projectPath(cwd, path);
-  const info = await stat(file);
-  if (!info.isFile() || info.size > 65536) throw new Error("观察文件必须为不超过 64 KiB 的普通文件");
-  return readFile(file, "utf8");
+  return toolArbiter.run({ tool: "read", resources: toolResources(cwd, [path]), bytes: 65536 }, async () => {
+    const file = await projectPath(cwd, path);
+    const info = await stat(file);
+    if (!info.isFile() || info.size > 65536) throw new Error("观察文件必须为不超过 64 KiB 的普通文件");
+    return readFile(file, "utf8");
+  });
 }
 
 /** 一次观察范围显式提交；单个文件缺失保留该位置的错误，不丢弃其他真实事实。 */

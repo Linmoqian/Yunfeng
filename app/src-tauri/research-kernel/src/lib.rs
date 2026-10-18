@@ -5,4 +5,5 @@ mod checkpoint;
 pub mod execution;
 pub mod files;
 pub mod store;
+pub mod text;
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;

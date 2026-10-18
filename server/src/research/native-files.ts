@@ -4,10 +4,14 @@
  */
 import { desktopConnection, type DesktopCall } from "../agent/desktop-client.js";
 import type { Condition, Result } from "./types.js";
+import { toolArbiter, toolResources } from "./tool-arbiter.js";
 export type FileRead = { content: string; error?: never } | { error: string; content?: never };
 export type FileWrite = { path: string; content: string };
+export interface TextSlice { content: string; start_line: number; total_lines: number; truncated: boolean }
 type Evaluation = NonNullable<Result["evaluation"]>;
 type Request = { action: "read"; cwd: string; path: string }
+  | { action: "read_range"; cwd: string; path: string; start_line: number; line_count: number }
+  | { action: "patch"; cwd: string; path: string; old_text: string; new_text: string }
   | { action: "write"; cwd: string; path: string; content: string }
   | { action: "evaluate"; cwd: string; condition: Condition }
   | { action: "read_many"; cwd: string; paths: readonly string[] }
@@ -19,14 +23,21 @@ export function researchFileClient(call: DesktopCall<ResearchEnvelope>, batch = 
   async function send<T>(request: Request): Promise<T> {
     if (active >= 8) throw new Error("科研文件请求容量已满");
     active++;
-    submittedRequests++;
-    try { return await call<T>({ action: "research", request }); }
+    const write = ["write", "write_many", "patch"].includes(request.action);
+    const paths = "path" in request ? [request.path] : "paths" in request ? request.paths : "files" in request ? request.files.map((file) => file.path) : [request.condition.path];
+    const bytes = "content" in request ? Buffer.byteLength(request.content) : "files" in request ? request.files.reduce((sum, file) => sum + Buffer.byteLength(file.content), 0) : "new_text" in request ? Buffer.byteLength(request.new_text) : paths.length * 65536;
+    try { return await toolArbiter.run({ tool: write ? "modify" : "read", resources: toolResources(request.cwd, paths, write), bytes }, async () => {
+      submittedRequests++;
+      return call<T>({ action: "research", request });
+    }); }
     finally { active--; }
   }
   const read = (cwd: string, path: string) => send<string>({ action: "read", cwd, path });
   const write = (cwd: string, path: string, content: string) => send<null>({ action: "write", cwd, path, content });
   const evaluate = (cwd: string, condition: Condition) => send<Evaluation>({ action: "evaluate", cwd, condition });
   return { read, write, evaluate,
+    readRange: (cwd: string, path: string, start_line = 1, line_count = 200) => send<TextSlice>({ action: "read_range", cwd, path, start_line, line_count }),
+    patch: (cwd: string, path: string, old_text: string, new_text: string) => send<{ changed: boolean; bytes: number }>({ action: "patch", cwd, path, old_text, new_text }),
     get submittedRequests() { return submittedRequests; },
     async readMany(cwd: string, paths: readonly string[]): Promise<FileRead[]> {
       if (!paths.length || paths.length > 8) throw new Error("批量读取须为一到八个文件");
@@ -51,12 +62,12 @@ let cached: { port: string | undefined; token: string | undefined; version: stri
 export function nativeResearchFiles(env = process.env) {
   if (env.YUNFENG_RESEARCH_NATIVE === undefined) return undefined;
   const version = env.YUNFENG_RESEARCH_NATIVE;
-  if (version !== "1" && version !== "2") throw new Error("科研执行能力标识无效");
+  if (!["1", "2", "3"].includes(version)) throw new Error("科研执行能力标识无效");
   const port = env.YUNFENG_APP_PORT, token = env.YUNFENG_APP_TOKEN;
   if (cached && cached.port === port && cached.token === token && cached.version === version) return cached.client;
-  const call = desktopConnection<ResearchEnvelope>(port, token, "科研执行", version === "2" ? 4 * 1024 * 1024 : 512 * 1024);
+  const call = desktopConnection<ResearchEnvelope>(port, token, "科研执行", version !== "1" ? 4 * 1024 * 1024 : 512 * 1024);
   if (!call) throw new Error("科研执行连接未配置");
-  const client = researchFileClient(call, version === "2");
+  const client = researchFileClient(call, version !== "1");
   cached = { port, token, version, client };
   return client;
 }

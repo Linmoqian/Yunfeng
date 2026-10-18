@@ -97,7 +97,7 @@ TypeScript `server/src/agent/terminal-tool.ts` 使用当前安装 Pi SDK 的 `cr
 
 私有通道拒绝读取或停止人工终端。输入命令是明确的 Shell 脚本，直接作为单个 `-lc` 参数传递，不拼接目录或额外 Shell 字符串。默认及最长执行时间为300秒；取消、超时或读取失败后先 stop，再 release，清理失败会报告给 Agent。进程退出码与输出流结束均确认后才报告完成，非零码仍为失败。完成输出保留在工作台，达到总会话上限时按顺序回收已消费的 Agent 会话；人工终端和未消费的命令不回收，满额返回 LIMIT。
 
-当前只在 macOS 验收；Linux 使用同一 Unix 路径但尚未原生验证，Windows 暂不启用。正常退出应用会停止全部 PTY；server 意外被强制终止时，已启动的 PTY 仍由桌面拥有，需要在内置终端停止或退出应用，不会自动重放。
+当前只在 macOS 验收；Linux 使用同一 Unix 路径但尚未原生验证，Windows 暂不启用。正常退出应用会停止全部 PTY；server 意外被强制终止时，PTY 仍由桌面拥有；科研能力3在 Server 恢复时按持久化作业身份回收并暂停，无法确认回收时明确报错。开发终端仍需在内置终端停止或退出应用，命令均不自动重放。
 
 ## 调用示例
 
@@ -132,3 +132,7 @@ start 成功返回 `{ "id": "00000000-0000-4000-8000-000000000001" }`，错误�
 | 2026-10-14 | 0.1.0 | 新增 | 本机终端 SDK 与主窗口 IPC | 使用 terminalApi |
 
 迁移参考本地 LianAgent 的交互终端与标签组件；终端渲染按 [xterm.js 插件接口](https://xtermjs.org/docs/guides/using-addons/)，PTY 按 [portable-pty 0.9](https://docs.rs/portable-pty/0.9.0/portable_pty/) 接入。xterm.js 使用 MIT，portable-pty 使用 MIT；本次只新增终端所需依赖。
+
+## 科研结构化终端（2026-10-18）
+
+能力3增加私有 run(cwd,program,args,jobId) 与 stopJob(jobId)，复用同一 Runtime、读取游标、256 KiB缓存和四会话上限。run 不调用开发模式的 bash 包装；TS 在 execute 中验证完整命令参数、写入范围与计划授权。Agent 会话拒绝 Write，桌面保留只读回放和停止能力。字段、错误、幂等保留范围和恢复契约见 [科研核心工具](2026-10-18-research-tools.md)。

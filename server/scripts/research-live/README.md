@@ -63,3 +63,13 @@ YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-hybrid-comparison cargo test --r
 完整执行3轮、每组36环节，五组共540条记录，无真实 LLM，保留原环节ID与产物。组顺序轮换，每环节保留系统时间和单调时钟耗时；工作进程逐环节报告原生请求提交计数，固定流程每轮单项28次、批量18次，并断言计数。计数包含失败尝试，成功基准中与实际私有请求对应。
 
 测试宿主把连接仅注入混合组，不将令牌写入报告；记录宿主二进制指纹与 `hybridRustProfile`。应确认其为 release；省略 --release 将变为 debug，不能混作同构建性能对比。本基准与上一条服务闭环是不同验证范围，报告 scope 有明确说明。三轮不足以估计稳定尾延迟，不外推真实模型或训练收益。
+
+## 核心工具真实 Rust 联调（无 LLM）
+
+构建 Server 后，在仓库根执行：
+
+```sh
+cargo test --locked --manifest-path app/src-tauri/Cargo.toml research_core_tools_authorization -- --ignored --nocapture
+```
+
+`core-tools-check.mjs` 由 Rust 测试注入私有通道，运行范围读取、唯一原文修改、结构化 argv PTY 和视界投影；核验授权前无修改/启动、暂停后真实 PID 退出、授权失效、恢复后新计划批准、真实报告和组件验收、未知作业恢复回收。输出仅汇总计数和状态；临时项目自动清理，不读取真实任务数据、不请求 LLM。宿主 Runtime 输出与桌面使用同一缓存，脚本不启动窗口，不代表 UI 呈现验收。

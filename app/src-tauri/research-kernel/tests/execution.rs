@@ -69,3 +69,39 @@ fn bounded_batches_preserve_read_order_prevalidate_and_do_not_hide_partial_write
     );
     assert!(!root.path().join("never.json").exists());
 }
+
+#[test]
+fn range_reads_and_unique_patch_preserve_bytes_and_reject_conflicts() {
+    let root = tempfile::tempdir().unwrap();
+    let cwd = root.path().to_str().unwrap();
+    let file = root.path().join("sample.txt");
+    std::fs::write(&file, "一\r\nsecond\n末行").unwrap();
+    let range = call(
+        json!({"action":"read_range","cwd":cwd,"path":"sample.txt","start_line":2,"line_count":1}),
+    )
+    .unwrap();
+    assert_eq!(range["content"], "second\n");
+    assert_eq!(range["total_lines"], 3);
+    assert_eq!(range["truncated"], true);
+    let patch = json!({"action":"patch","cwd":cwd,"path":"sample.txt","old_text":"second","new_text":"替换"});
+    assert_eq!(call(patch.clone()).unwrap()["changed"], true);
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), "一\r\n替换\n末行");
+    assert!(call(patch).is_err());
+    std::fs::write(&file, "aaa").unwrap();
+    assert!(call(
+        json!({"action":"patch","cwd":cwd,"path":"sample.txt","old_text":"aa","new_text":"b"})
+    )
+    .is_err());
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), "aaa");
+    for path in ["../outside", ".env", "."] {
+        assert!(call(
+            json!({"action":"patch","cwd":cwd,"path":path,"old_text":"a","new_text":"b"})
+        )
+        .is_err());
+    }
+    assert!(call(
+        json!({"action":"read_range","cwd":cwd,"path":"sample.txt","start_line":0,"line_count":1})
+    )
+    .is_err());
+    assert!(call(json!({"action":"read_range","cwd":cwd,"path":"sample.txt","start_line":1,"line_count":1001})).is_err());
+}

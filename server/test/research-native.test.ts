@@ -26,10 +26,11 @@ test("文件调用有界，错误释放容量，未启用原生能力时保留�
   await assert.rejects(client.write("fixture", "data.json", "{}"), /容量已满/);
   await assert.rejects(client.readMany("fixture", ["data.json"]), /容量已满/);
   await assert.rejects(client.readMany("fixture", Array(9).fill("data.json")), /一到八个/);
+  await new Promise((resolve) => setImmediate(resolve));
   releases.splice(0).forEach((release) => release());
   await Promise.all(pending);
   assert.equal(requests.length, 8);
-  const again = client.read("fixture", "data.json"); releases.shift()!(); await again;
+  const again = client.read("fixture", "data.json"); await new Promise((resolve) => setImmediate(resolve)); releases.shift()!(); await again;
   const failed = researchFileClient(async () => { throw new Error("rejected"); });
   for (let i = 0; i < 9; i++) await assert.rejects(failed.read("fixture", "data.json"), /rejected/);
 });
@@ -109,6 +110,43 @@ test("相邻写入与末尾验收合并；组件操作截断批次，旧宿主�
     await legacy.readMany(root, ["a", "b"]);
     await legacy.writeMany(root, [write("a"), write("b")], { kind: "file_exists", path: "b" });
     assert.deepEqual(legacyCalls, ["read", "read", "write", "write", "evaluate"]);
+  } finally {
+    await jobs.close(); await new Promise<void>((resolve) => server.close(() => resolve()));
+    keys.forEach((key, index) => { if (before[index] === undefined) delete process.env[key]; else process.env[key] = before[index]; });
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("科研 PTY 启动响应丢失只按身份回收，回收未确认标为中断，不重放或回退", async () => {
+  const root = await mkdtemp(join(tmpdir(), "yf-pty-fault-"));
+  const keys = ["YUNFENG_RESEARCH_NATIVE", "YUNFENG_TERMINAL_PORT", "YUNFENG_TERMINAL_TOKEN"] as const;
+  const before = keys.map((key) => process.env[key]);
+  const requests: { action: string; jobId: string }[] = [];
+  let confirmCleanup = true;
+  const server = createServer((socket) => {
+    const lines = createInterface({ input: socket });
+    lines.once("line", (line) => {
+      const request = JSON.parse(line).request; requests.push(request);
+      if (request.action === "stopJob" && confirmCleanup) socket.end('{"result":null}\n');
+      else socket.destroy();
+      lines.close();
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const jobs = new JobExecutor();
+  try {
+    const address = server.address(); assert.ok(address && typeof address !== "string");
+    process.env.YUNFENG_RESEARCH_NATIVE = "3";
+    process.env.YUNFENG_TERMINAL_PORT = String(address.port); process.env.YUNFENG_TERMINAL_TOKEN = "fixture";
+    const run = (id: string) => new Promise<Result>((resolve) => jobs.start(id, root, { decision: "act", reason: "fault",
+      steps: [{ action: "run_command", program: process.execPath, args: ["-e", "require('node:fs').writeFileSync('fallback','bad')"] }],
+    }, async (value) => resolve(value)));
+    assert.equal((await run("confirmed")).status, "failed");
+    confirmCleanup = false;
+    const unknown = await run("unknown");
+    assert.equal(unknown.status, "interrupted"); assert.match(unknown.output!, /TERMINAL_CLEANUP_FAILED/);
+    assert.deepEqual(requests.map((r) => [r.action, r.jobId]), [["run", "confirmed:0"], ["stopJob", "confirmed:0"], ["run", "unknown:0"], ["stopJob", "unknown:0"]]);
+    await assert.rejects(readFile(join(root, "fallback")), { code: "ENOENT" });
   } finally {
     await jobs.close(); await new Promise<void>((resolve) => server.close(() => resolve()));
     keys.forEach((key, index) => { if (before[index] === undefined) delete process.env[key]; else process.env[key] = before[index]; });
