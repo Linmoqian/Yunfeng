@@ -421,6 +421,12 @@ test("实际 Pi 决策使用 Lin 配置，各阶段使用科学家身份且不�
     for (const request of requests) {
       const system = (request.messages as { role: string; content: unknown }[]).filter((message) => message.role === "system");
       assert.match(JSON.stringify(system), /用户身份为科学家，称呼用户为科学家/);
+      assert.match(JSON.stringify(system), /第一性原理/);
+      assert.match(JSON.stringify(system), /隐含前提和逻辑结构/);
+      assert.match(JSON.stringify(system), /可证伪条件和风险/);
+      assert.match(JSON.stringify(system), /至少对比两个独立信源/);
+      assert.match(JSON.stringify(system), /未检索，以下基于模型知识/);
+      assert.match(JSON.stringify(system), /不输出内部思维链，不新增字段或重复播报计划与反思/);
       assert.ok(!JSON.stringify(system).includes("工程师"));
       assert.ok(!request.tools || (request.tools as unknown[]).length === 0);
       assert.ok(!JSON.stringify(request).includes("UNTRUSTED_PROJECT_CONTEXT_MARKER"));
