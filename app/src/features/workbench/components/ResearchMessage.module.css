@@ -1,5 +1,5 @@
 /* 科研结果与计划的紧凑卡片，复用主题圆角、边框和品牌色。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 .card { min-width: 0; padding: 14px 16px; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-lg); background: var(--yf-bg-surface); }
@@ -10,7 +10,7 @@
 .body > :last-child { margin-bottom: 0; }
 .metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .metric { max-width: 100%; padding: 3px 9px; border: 1px solid var(--yf-border-divider); border-radius: 999px; background: var(--yf-bg-canvas); color: var(--yf-text-primary); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; -webkit-user-select: none; user-select: none; }
-.metric[data-status="passed"] { border-color: color-mix(in srgb, var(--yf-brand-primary) 18%, var(--yf-border-divider)); color: var(--yf-brand-primary); }
+.metric[data-status="passed"] { border-color: color-mix(in srgb, var(--yf-semantic-success) 25%, var(--yf-border-divider)); background: color-mix(in srgb, var(--yf-semantic-success) 7%, var(--yf-bg-surface)); color: color-mix(in srgb, var(--yf-semantic-success) 60%, var(--yf-text-primary)); }
 .metric[data-status="failed"] { color: var(--yf-semantic-error); font-weight: 600; }
 .method { margin-top: 12px; }
 .steps { margin: 12px 0; padding-left: 20px; font-size: 13px; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
@@ -22,3 +22,14 @@
 .reportText { white-space: pre-wrap; }
 .reportDetails { max-height: min(300px, 30vh); overflow: auto; }
 .reportOutput { margin: 8px 0 0; max-height: 260px; overflow: auto; white-space: pre-wrap; font: 12px/1.7 var(--font-mono); }
+
+.headline { margin: 0 0 12px; color: var(--yf-text-primary); font-size: 17px; font-weight: 600; line-height: 1.5; }
+.metrics .metric { font-size: 13px; font-weight: 500; padding: 4px 10px; }
+.metrics .metric[data-tone="accent"] { font-weight: 600; color: var(--yf-brand-primary); background: color-mix(in srgb, var(--yf-brand-primary) 6%, var(--yf-bg-surface)); }
+.metric[data-status="failed"] { border-color: color-mix(in srgb, var(--yf-semantic-error) 25%, var(--yf-border-divider)); background: color-mix(in srgb, var(--yf-semantic-error) 6%, var(--yf-bg-surface)); }
+.card[data-verdict="passed"] > .heading { color: color-mix(in srgb, var(--yf-semantic-success) 60%, var(--yf-text-primary)); }
+.card[data-verdict="failed"] > .heading { color: var(--yf-semantic-error); }
+.notice { margin-top: 12px; padding: 9px 12px; border-left: 2px solid var(--yf-semantic-warning); border-radius: 8px; background: color-mix(in srgb, var(--yf-semantic-warning) 6%, var(--yf-bg-surface)); color: var(--yf-text-primary); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.notice > :first-child { margin-top: 0; }
+.notice > :last-child { margin-bottom: 0; }
+.method .body { color: var(--yf-text-secondary); font-size: 12px; line-height: 1.8; }

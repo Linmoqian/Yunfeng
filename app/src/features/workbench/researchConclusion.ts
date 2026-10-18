@@ -1,5 +1,5 @@
 /* 从既有结论原文提取展示标签，不计算指标或推断验收结果。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 export type ConclusionMetric = { text: string; status?: "passed" | "failed" };
@@ -28,5 +28,11 @@ export function summarizeConclusion(body: string): { metrics: ConclusionMetric[]
     const text = /压缩|解压/.test(body) ? (passed ? "解压一致" : "解压不一致") : (passed ? "往返校验通过" : "往返校验失败");
     metrics.push({ text, status: passed ? "passed" : "failed" });
   }
-  return { metrics, notices: metrics.length ? sentences.filter((sentence) => negative.test(sentence)).map((sentence) => sentence.trim()) : [] };
+  const notices = metrics.length ? sentences.filter((sentence) => negative.test(sentence)).map((sentence) => {
+    // 只翻译既有实验的明确复核状态；不泛化删除未知限制、错误和不确定性。
+    if (/reviewApproved\s*=\s*false/.test(sentence) && /等待.*复核/.test(sentence)
+      && !/风险|失败|错误|异常|限制|仅|可能|疑似|估计|预计|预期|尚未/.test(sentence)) return "等待你复核，确认后继续。";
+    return sentence.trim();
+  }) : [];
+  return { metrics, notices: [...new Set(notices)] };
 }

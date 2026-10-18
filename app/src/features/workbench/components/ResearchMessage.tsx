@@ -1,5 +1,5 @@
 /* 科研消息的轻量分类呈现，展示原文，方法按需展开，授权步骤完整可见。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { CircleCheck, ClipboardList, FlaskConical, Info, TriangleAlert } from "lucide-react";
@@ -34,11 +34,14 @@ export function ResearchMessage({ text }: { text: string }) {
   const separateMethod = prefix && /写入|运行/.test(prefix) && !/风险|失败|限制|需|假设|未|待|错误|异常|不确定/.test(prefix);
   const summary = kind === "实验结论" ? summarizeConclusion(body) : null;
   const compact = Boolean(summary?.metrics.length);
-  return <section className={styles.card} data-kind={kind} aria-label={label}>
+  const verdict = summary?.metrics.some((metric) => metric.status === "failed") ? "failed" : summary?.metrics.some((metric) => metric.status === "passed") ? "passed" : undefined;
+  const headline = verdict === "failed" ? "本轮结果需要处理" : verdict === "passed" ? (/基线阶段已[^。]*完成/.test(body) ? "基线已完成" : "本轮结果已核验") : "本轮实验结果";
+  return <section className={styles.card} data-kind={kind} data-verdict={verdict} aria-label={label}>
     <div className={styles.heading}><Icon size={15} aria-hidden="true" /><span>{label}</span></div>
     {compact ? <>
-      <div className={styles.metrics} aria-label="关键指标">{summary!.metrics.map((metric) => <Capsule key={metric.text} className={styles.metric} status={metric.status}>{metric.text}</Capsule>)}</div>
-      {summary!.notices.map((notice, index) => <div className={styles.body} key={index}><Markdown text={notice} /></div>)}
+      <p className={styles.headline}>{headline}</p>
+      <div className={styles.metrics} aria-label="关键指标">{summary!.metrics.map((metric) => <Capsule key={metric.text} className={styles.metric} status={metric.status} tone={metric.status === "passed" ? "success" : metric.status === "failed" ? "danger" : "accent"}>{metric.text}</Capsule>)}</div>
+      {summary!.notices.map((notice, index) => <div className={styles.notice} role="note" key={index}><Markdown text={notice} /></div>)}
     </> : <div className={styles.body}><Markdown text={separateMethod ? body.slice(marker!.index) : body} /></div>}
     {(compact || separateMethod) && <Details className={styles.method} label={compact ? "详细过程" : "方式"}><div className={styles.body}><Markdown text={compact ? body : prefix} /></div></Details>}
   </section>;

@@ -1,5 +1,5 @@
 /* 科研分类展示核心回归：不丢指标、授权内容与原始未知步骤。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { afterEach, expect, test, vi } from "vitest";
@@ -64,4 +64,18 @@ test("科研授权步骤、完整写入内容与验收可见，确认仍使用�
   cleanup();
   render(<ResearchApprovalPlan message={'未知操作\n\n{"steps":[{"action":"unknown_action","payload":"需要完整核对的原文"}]}'} />);
   expect(screen.getByText(/需要完整核对的原文/)).toBeTruthy();
+});
+
+test("基线结论突出结果与复核，配置原文只在详情展开，未知风险不被翻译掉", async () => {
+  const body = '基线阶段已按约束完成：写入 .lin/experiments/config.json（stage=baseline, level=1）并运行 node benchmark.mjs，节点验收通过（baseline.json 存在）。实测结果：输入 68905 字节，level=1 压缩后 24426 字节，压缩比约 35.45%，roundtrip=true，解压字节与源码一致。当前 control.json 的 reviewApproved=false，按任务约束需暂停等待工程师复核，期间持续观察 control.json，不进入 optimize 阶段。';
+  render(<ResearchMessage text={`实验结论：${body}`} />);
+  expect(screen.getByText("基线已完成")).toBeTruthy();
+  expect(screen.getByText("等待你复核，确认后继续。")).toBeTruthy();
+  expect(screen.getByText("节点验收通过").getAttribute("data-tone")).toBe("success");
+  expect(screen.queryByText(/control.json/)).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "详细过程" }));
+  expect(screen.getByText(/reviewApproved=false/)).toBeTruthy();
+  cleanup();
+  render(<ResearchMessage text="实验结论：节点验收通过。当前 reviewApproved=false，等待人工复核，可能存在标签错误。" />);
+  expect(screen.getByText(/可能存在标签错误/)).toBeTruthy();
 });
