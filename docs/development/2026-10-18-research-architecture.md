@@ -42,7 +42,7 @@ flowchart TD
 
 当前依赖 `@earendil-works/pi-coding-agent` **1.2.0** 的嵌入式 SDK。包同时包含编码 CLI 和 SDK 导出，科研服务调用 `createAgentSessionFromServices` 在 Server 进程内创建会话。后续开发继续复用 SDK 的模型访问、认证、会话和资源接口，避免重复实现已有基础能力。
 
-`agent/sdk.ts` 统一适配 `.lin/agent` 配置；科研模型会话使用 `SessionManager.inMemory(cwd)`，显式禁用工具和资源自动发现。`reasoner.ts` 处理 decide、plan、reflect、relate、summarize，每次返回经过验证的结构化结果，最后释放会话。临时模型上下文由任务事实和检查点构建；科研长期状态由 TaskStore 保存。
+`agent/sdk.ts` 统一适配 `.lin/agent` 配置；科研模型会话使用 `SessionManager.inMemory(cwd)`，显式禁用工具和资源自动发现；选中的 skill 与内置事件扩展通过 `resources.ts` 接入。`reasoner.ts` 处理 decide、plan、reflect、relate、summarize，每次返回经过验证的结构化结果，最后释放会话。临时模型上下文由任务事实和检查点构建；科研长期状态由 TaskStore 保存。
 
 所有产生副作用的实验动作继续通过 `ProjectCore.execute` 与受控执行器。模型提交计划后，宿主验证权限、执行并独立验收。SDK 的工具调用循环、队列和会话事件仅描述一次模型工作，不能直接决定科研任务完成、增加预算或恢复未知作业。
 
@@ -51,9 +51,9 @@ SDK 文档说明 `agent_end` 仅结束一次底层运行，自动重试或排队
 ## 持续扩展的约束
 
 1. Hook 负责唤醒，Decision Engine 判断是否值得行动；没有新事实时进入 WAITING。暂停状态、恢复条件和资源预算继续由 Runtime 管理。
-2. Skill、上下文和扩展由宿主显式选择、控制信任和大小，再经 SDK 资源接口接入。当前科研会话禁用这些资源，尚未实现科研 skill 的选择性装载。接入时必须验证资源不会绕过执行权限和验收。
+2. Skill、上下文和扩展由宿主显式选择、控制信任和大小，再经 SDK 资源接口接入。当前支持创建任务时显式选择最多五个 skill，并将有界方法文本注入资源上下文；辅助脚本和引用文件不自动装载，磁盘扩展不自动运行。
 3. 新增实验、训练或实体设备能力通过受控执行适配器接入，完成与异常转换为 Hook 事件。当前已接入本地文件、作业、审批和生命周期事件；机器人与外部训练事件适配器尚未实现。
-4. Pi 扩展事件需要转换成宿主事件后再进入 Hook 层，明确来源、去重和任务归属。当前没有把 Pi 生命周期扩展直接接入科研 Hook。
+4. Pi 扩展事件需要转换成宿主事件后再进入 Hook 层，明确来源、去重和任务归属。当前 `PiResearchBridge` 转换生命周期通知但禁止其唤醒自身；`research:changed` 仅通知已观察文件变化，经过 Hook 合并与真实内容门控后再唤醒。
 5. 模型建议与本地确定性校验分别负责提案和约束。词向量只用于相关性召回；图关系、标题和摘要的调整继续经过服务端校验与保存。
 6. UI 审阅页的闭环样例用于体验状态和动画。真实 Runtime、真实模型和实验作业分别按实际运行证据验收。
 
@@ -66,3 +66,7 @@ SDK 文档说明 `agent_end` 仅结束一次底层运行，自动重试或排队
 - [科研模块说明](../../server/src/research/README.md)与[科研 API](../api/2026-10-15-research-runtime.md)。
 - [真实模型与本地源码压缩实验验收记录](2026-10-15-research-acceptance.md)。
 - 核心流程：在 `server/` 执行 `pnpm exec tsx --test test/research-runtime.test.ts test/research-decision.test.ts test/research-hooks.test.ts`。可控模型测试用于验证编排和恢复；真实模型效果需要独立实测。
+
+## 2026-10-18 代码验证
+
+`research-resources.test.ts` 使用实际 SDK 1.2.0 与本地模型替身，选择单个 skill，验证未选中文本和项目扩展不被载入，模型请求没有工具。真实 Node 作业读取 Runtime 源码并执行 gzip：level=1 为 3012 字节，level=9 为 2796 字节，减小约 7.17%，解压字节一致。先等待文件前置条件，基线结束后反思并等待人工复核；暂停、重建服务后恢复优化，日志核对两个阶段各执行一次，组件报告验收通过。数字取决于本次源码版本；模型替身只验证接线和阶段契约，不作为真实模型研究能力的证据。

@@ -1,5 +1,5 @@
 /* Yunfeng 的 Pi SDK 适配入口：以 Lin 命名空间加载配置和项目资源。
- * Created on 2026-10-15
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import "../environment.js";
@@ -31,6 +31,8 @@ if (sdk.CONFIG_DIR_NAME !== ".lin") {
 }
 
 export const {
+  createEventBus,
+  loadSkills,
   CONFIG_DIR_NAME,
   getAgentDir,
   createBashToolDefinition,
@@ -49,6 +51,8 @@ export const {
   initTheme,
 } = sdk;
 export type {
+  ExtensionFactory,
+  Skill,
   AgentSession,
   AgentSessionEvent,
   SlashCommandInfo,

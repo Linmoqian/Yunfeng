@@ -1,5 +1,5 @@
 /* 有界 Hook/Event Bus：合并通知、去重并等待当前运行单元释放，禁止模型轮询。
- * Created on 2026-10-15
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import type { ResearchCheckpoint } from "../types.js";
@@ -8,6 +8,7 @@ const hooks: ResearchHook[] = [
   { name: "lifecycle", accept: (e) => e.kind === "lifecycle" ? { started: "任务启动", resumed: "工程师继续任务", recovered: "服务恢复，重新观察项目" }[e.action] : undefined },
   { name: "job", accept: (e, s) => e.kind === "job_completed" && e.status !== "running" && e.jobId === s.jobId && s.result?.job_id === e.jobId && s.result.status === e.status ? `作业${e.status}，需要核验与反馈` : undefined },
   { name: "approval", accept: (e, s) => e.kind === "approval_granted" && !!s.authorizedPlan ? "具体计划已获授权" : undefined },
+  { name: "pi", accept: (e) => e.kind === "pi_extension" && e.action === "facts_changed" && e.paths.length > 0 ? "Pi 扩展通知观察文件变化" : undefined },
   { name: "file", accept: (e) => e.kind === "files_changed" && e.paths.length > 0 ? "观察文件内容发生变化" : undefined },
 ];
 export class HookLayer {
@@ -22,14 +23,14 @@ export class HookLayer {
     if (this.closed || this.seen.has(event.id) || ["PAUSED", "COMPLETED", "FAILED"].includes(this.read().phase)) return false;
     const handler = this.handlers.find((h) => h.accept(event, this.read()) !== undefined);
     if (!handler) return false;
-    const key = event.kind === "files_changed" ? "files" : event.kind === "job_completed" ? `job:${event.jobId}` : event.kind === "approval_granted" ? `approval:${event.requestId}` : `lifecycle:${event.action}`;
+    const key = event.kind === "pi_extension" ? "pi:files" : event.kind === "files_changed" ? "files" : event.kind === "job_completed" ? `job:${event.jobId}` : event.kind === "approval_granted" ? `approval:${event.requestId}` : `lifecycle:${event.action}`;
     if (!this.queue.has(key) && this.queue.size >= 32) return false;
     this.seen.add(event.id);
     if (this.seen.size > 128) this.seen.delete(this.seen.values().next().value!);
     const old = this.queue.get(key)?.event;
-    const merged = event.kind === "files_changed" ? { ...event, paths: [...new Set([...(old?.kind === "files_changed" ? old.paths : []), ...event.paths])].slice(0, 8) } : event;
+    const merged = event.kind === "pi_extension" ? { ...event, paths: [...new Set([...(old?.kind === "pi_extension" ? old.paths : []), ...event.paths])].slice(0, 8) } : event.kind === "files_changed" ? { ...event, paths: [...new Set([...(old?.kind === "files_changed" ? old.paths : []), ...event.paths])].slice(0, 8) } : event;
     this.queue.set(key, { hook: handler.name, reason: handler.accept(event, this.read())!, event: merged });
-    if (event.kind !== "files_changed") this.flush();
+    if (event.kind !== "files_changed" && event.kind !== "pi_extension") this.flush();
     else if (!this.timer) { this.timer = setTimeout(() => { this.timer = undefined; this.flush(); }, 50); this.timer.unref(); }
     return true;
   }

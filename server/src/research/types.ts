@@ -1,5 +1,5 @@
 /* 科研自治核心契约与可恢复检查点。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 export interface Fact { key: string; value: unknown; timestamp: string; source: string }
@@ -58,6 +58,8 @@ export interface ResearchCheckpoint {
   approvalId?: string;
   authorizedPlan?: string;
   decision?: import("./decision/types.js").DecisionState;
+  /** 显式选择的 skill 名称；省略时保持无 skill 的旧任务行为。 */
+  skills?: string[];
   decisionModel?: import("../task/types.js").TaskModelRef;
   trigger?: { signals: import("./hooks/types.js").HookSignal[]; receivedAt: string };
   permissions: { commands: { program: string; args: string[] }[]; writeRoots: string[] };

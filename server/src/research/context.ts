@@ -1,5 +1,5 @@
 /* 将 Hook 通知与最新项目事实组成决策上下文，通知本身不充当实验指标。
- * Created on 2026-10-15
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import type { TaskState } from "../task/types.js";
@@ -27,8 +27,8 @@ export async function buildContext(task: TaskState, memory: unknown[]): Promise<
 }
 /** 通知去重之后再次核对事实，事件排队期间已观察过的内容不触发模型。 */
 export function contextChanged(previous: State | undefined, current: State, signals: HookSignal[]): boolean {
-  if (!previous || signals.some((s) => s.event.kind !== "files_changed")) return true;
-  return signals.some(({ event }) => event.kind === "files_changed" && event.paths.some((path) => {
+  if (!previous || signals.some((s) => s.event.kind !== "files_changed" && s.event.kind !== "pi_extension")) return true;
+  return signals.some(({ event }) => (event.kind === "files_changed" || event.kind === "pi_extension") && event.paths.some((path) => {
     const key = `file:${path}`;
     const normalize = (value: unknown) => typeof value === "string" ? value : "unreadable";
     return normalize(previous.facts.find((f) => f.key === key)?.value) !== normalize(current.facts.find((f) => f.key === key)?.value);

@@ -1,6 +1,6 @@
 // 任务领域 API 客户端：/api/tasks 系列 + 兼容旧 /api/sessions 浏览。
 // 工作台以服务端真实任务状态为准，科研模式复用任务接口。
-// Created on 2026-10-16
+// Created on 2026-10-18
 // @author: https://github.com/Linmoqian
 
 import { fetchRead, recoveryDelay } from "./recovery.ts";
@@ -43,11 +43,13 @@ export interface TaskState {
     phase: "OBSERVING" | "PLANNING" | "EXECUTING" | "WAITING" | "REFLECTING" | "PAUSED" | "COMPLETED" | "FAILED";
     goal: string; reason: string; cycle: number; maxCycles: number; jobId?: string; approvalId?: string;
     decision?: ResearchDecisionState;
+    skills?: string[];
     decisionModel?: TaskModelRef;
     trigger?: { receivedAt: string; signals: { hook: string; reason: string;
       event: { id: string; occurredAt: string } & ({ kind: "lifecycle"; action: "started" | "resumed" | "recovered" }
         | { kind: "files_changed"; paths: string[] } | { kind: "job_completed"; jobId: string; status: "running" | "succeeded" | "failed" | "cancelled" | "interrupted" }
-        | { kind: "approval_granted"; requestId: string }) }[] };
+        | { kind: "approval_granted"; requestId: string }
+        | { kind: "pi_extension"; taskId: string; sessionId?: string; phase?: string; action: "agent_start" | "agent_settled" | "facts_changed"; paths: string[] }) }[] };
   };
   status: "running" | "waiting_input" | "waiting_approval" | "failed" | "completed" | "archived";
   phase: "understanding" | "planning" | "implementing" | "verifying" | "committing" | "done" | "unknown";
@@ -265,7 +267,7 @@ export async function createTask(
 export async function createConversation(
   model?: ModelSelection | null,
   message?: string,
-  options?: { mode: "development" | "research"; cwd?: string; decisionModel?: TaskModelRef; decisionBudget?: number },
+  options?: { mode: "development" | "research"; cwd?: string; decisionModel?: TaskModelRef; decisionBudget?: number; skills?: string[] },
 ): Promise<{ task: TaskState; sessionId: string }> {
   return createTaskRequest({ model, message, ...options });
 }
@@ -277,6 +279,7 @@ async function createTaskRequest({
   mode,
   decisionModel,
   decisionBudget,
+  skills,
 }: {
   cwd?: string;
   message?: string;
@@ -284,6 +287,7 @@ async function createTaskRequest({
   mode?: "development" | "research";
   decisionModel?: TaskModelRef;
   decisionBudget?: number;
+  skills?: string[];
 }): Promise<{ task: TaskState; sessionId: string }> {
   const response = await fetch("/api/tasks", {
     method: "POST",
@@ -295,6 +299,7 @@ async function createTaskRequest({
       ...(model ? { model: { provider: model.provider, modelId: model.modelId } } : {}),
       ...(decisionModel ? { decisionModel } : {}),
       ...(decisionBudget === undefined ? {} : { decisionBudget }),
+      ...(skills === undefined ? {} : { skills }),
     }),
   });
   const data = await readJson<{ task: TaskState; sessionId: string }>(response);

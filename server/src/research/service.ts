@@ -1,5 +1,5 @@
 /* 科研任务编排：复用 TaskStore、审批和 SSE，管理停止、恢复与文件事件。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { summarizeMissing } from "./decision/presentation.js";
@@ -11,6 +11,10 @@ import { realpath, stat } from "node:fs/promises";
 import { getTaskContext } from "../task/task-context.js";
 import { getMemoryContext } from "../plugins/memory/index.js";
 import { ProjectCore, planAuthorized } from "./core.js";
+import { PiResearchBridge } from "./hooks/pi-bridge.js";
+import { observedPaths } from "./context.js";
+import { parseResearchSkills, loadResearchSkills } from "./skills.js";
+import { getAgentDir } from "../agent/sdk.js";
 import { piReasoner } from "./reasoner.js";
 import { JobExecutor } from "./executor.js";
 import { ResearchRuntime } from "./runtime.js";
@@ -32,7 +36,7 @@ export function publicResearchTask(task: TaskState) {
 export class ResearchService {
   constructor(private readonly context = getTaskContext(), private readonly memory = getMemoryContext().service, private readonly reasoner = piReasoner, private readonly relevance = new RelevanceAnalyzer()) {}
   private readonly jobs = new JobExecutor();
-  private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; hooks: HookLayer; files: FileHooks }>();
+  private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; hooks: HookLayer; files: FileHooks; bridge: PiResearchBridge }>();
   private closed = false;
   private readonly graphRequests = new Set<string>();
   private readonly graphAbort = new AbortController();
@@ -67,7 +71,7 @@ export class ResearchService {
     if (!task.autonomy?.decision) throw new Error("目标树尚未建立");
     this.graphRequests.add(id);
     try {
-      const decision = await this.relevance.analyze(task.autonomy.decision, node, this.reasoner(task.cwd, task.autonomy.decisionModel ?? task.model), this.graphAbort.signal);
+      const decision = await this.relevance.analyze(task.autonomy.decision, node, this.reasoner(task.cwd, task.autonomy.decisionModel ?? task.model, { skills: task.autonomy.skills }), this.graphAbort.signal);
       check();
       if (JSON.stringify(decision) === JSON.stringify(task.autonomy.decision)) return;
       this.context.store.update(id, (state) => { state.autonomy!.decision = decision; });
@@ -85,7 +89,7 @@ export class ResearchService {
     if (!task.autonomy?.decision || this.graphRequests.size >= 4) throw new Error("节点摘要暂不可用");
     this.graphRequests.add(id);
     try {
-      const decision = await summarizeMissing(task.autonomy.decision, this.reasoner(task.cwd, task.autonomy.decisionModel ?? task.model), AbortSignal.any([this.graphAbort.signal, AbortSignal.timeout(45_000)]));
+      const decision = await summarizeMissing(task.autonomy.decision, this.reasoner(task.cwd, task.autonomy.decisionModel ?? task.model, { skills: task.autonomy.skills }), AbortSignal.any([this.graphAbort.signal, AbortSignal.timeout(45_000)]));
       check(false);
       if (JSON.stringify(decision) === JSON.stringify(task.autonomy.decision)) return;
       this.context.store.update(id, (state) => { state.autonomy!.decision = decision; });
@@ -98,6 +102,8 @@ export class ResearchService {
     const root = await realpath(cwd);
     if (!(await stat(root)).isDirectory()) throw new Error("科研范围必须是项目目录");
     if (this.closed || this.instances.size >= 4) throw new Error("自主任务容量已满，先暂停一个任务");
+    const skills = parseResearchSkills(options.skills);
+    await loadResearchSkills(root, getAgentDir(), skills);
     const maxCycles = options.maxCycles ?? 20;
     if (!Number.isInteger(maxCycles) || Number(maxCycles) < 1 || Number(maxCycles) > 1000) throw new Error("轮次预算必须在 1 到 1000 之间");
     const decisionBudget = options.decisionBudget ?? 10;
@@ -118,7 +124,7 @@ export class ResearchService {
     const task = this.context.store.create({ cwd: root, sessionId: `research-${randomUUID()}`, title: goal.slice(0, 60), source: "task" });
     this.context.store.update(task.id, (s) => {
       s.mode = "research"; s.model = model; s.activeToolNames = ["observe", "plan", "execute", "reflect"];
-      s.autonomy = { schemaVersion: 1, goal, phase: "OBSERVING", cycle: 0, maxCycles: Number(maxCycles), reason: "开始观察项目", permissions: { commands: parsedCommands, writeRoots }, decision: createDecision(goal, decisionBudget), ...(strategyModel ? { decisionModel: strategyModel } : {}) };
+      s.autonomy = { schemaVersion: 1, goal, phase: "OBSERVING", cycle: 0, maxCycles: Number(maxCycles), reason: "开始观察项目", ...(skills.length ? { skills } : {}), permissions: { commands: parsedCommands, writeRoots }, decision: createDecision(goal, decisionBudget), ...(strategyModel ? { decisionModel: strategyModel } : {}) };
     });
     await this.message(task.id, goal, "user");
     this.start(task.id);
@@ -138,8 +144,10 @@ export class ResearchService {
     const files = new FileHooks(() => task, (event) => { hooks.publish(event); }, (error) => {
       void this.pause(id, `项目 Hook 失效：${error.message}`).then(() => this.context.hub.emit(id, "task_updated", publicResearchTask(task))).catch((failure) => console.error("[research] Hook 停止失败", (failure as Error).message));
     });
-    const executeReason = this.reasoner(task.cwd, task.model);
-    const strategy = this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model);
+    const bridge = new PiResearchBridge(id, () => observedPaths(task), (event) => hooks.publish(event));
+    const resources = { skills: task.autonomy?.skills, bridge };
+    const executeReason = this.reasoner(task.cwd, task.model, resources);
+    const strategy = this.reasoner(task.cwd, task.autonomy?.decisionModel ?? task.model, resources);
     const core = new ProjectCore(() => this.context.store.get(id)!, executeReason, this.memory, this.jobs, controller.signal, async (result) => {
       if (await runtime.receive(result)) hooks.publish(researchEvent({ kind: "job_completed", jobId: result.job_id, status: result.status }));
     }, strategy, async (patch, signal) => {
@@ -183,12 +191,12 @@ export class ResearchService {
       requestApproval: (plan) => this.requestApproval(id, plan),
       settled: () => hooks.flush(),
     });
-    this.instances.set(id, { runtime, controller, hooks, files });
+    this.instances.set(id, { runtime, controller, hooks, files, bridge });
     const listener = this.context.hub.subscribeTask(id, (event) => {
       if (event.type === "task_updated") files.refresh();
       if (["COMPLETED", "FAILED", "PAUSED"].includes(task.autonomy!.phase)) {
         controller.abort();
-        hooks.close();
+        hooks.close(); bridge.close();
         void Promise.all([runtime.stop(), files.close()]).finally(() => { if (this.instances.get(id)?.runtime === runtime) this.instances.delete(id); });
       }
     });
@@ -235,12 +243,16 @@ export class ResearchService {
     await this.context.hub.emit(id, "task_updated", publicResearchTask(task));
     return { ok: true };
   }
+  /** 本地受信适配器报告观察文件变化；暂停或不在观察范围时返回 false。 */
+  notify(id: string, paths: readonly string[]): boolean {
+    return this.instances.get(id)?.bridge.notify(paths) ?? false;
+  }
   async pause(id: string, reason: string): Promise<void> {
     const item = this.instances.get(id), task = this.context.store.get(id)!;
     this.context.store.update(id, (s) => { s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = reason; s.status = "waiting_input"; delete s.autonomy!.authorizedPlan; });
     this.context.runtime.invalidateInterventionsForTask(id);
     this.context.store.update(id, (s) => { delete s.autonomy!.approvalId; });
-    item?.controller.abort(); item?.hooks.close();
+    item?.controller.abort(); item?.hooks.close(); item?.bridge.close();
     const fileStopping = item?.files.close();
     const stopping = item?.runtime.stop();
     if (task.autonomy?.jobId) await this.jobs.cancel(task.autonomy.jobId);

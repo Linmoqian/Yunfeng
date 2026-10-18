@@ -2,7 +2,7 @@
 
 架构依据见 [Pi SDK 与自研 Runtime 的边界](../../../docs/development/2026-10-18-research-architecture.md)。Pi SDK 提供嵌入式模型与会话能力，科研的长期调度、任务树、执行、验收、记忆和恢复由 Yunfeng 自研模块负责。
 
-`ProjectCore` 实现 `observe → plan → execute → reflect`，`ResearchRuntime` 管理检查点与事件唤醒，`ResearchService` 接入现有任务、审批、记忆和 SSE。[Decision Layer](decision/README.md) 由结构化模型提案和规则组成，维护目标树、排序、预算与下一节点；Pi 为该节点规划并反思。模型每次使用无工具、无扩展的临时会话，配置来自 Lin SDK 适配层。
+`ProjectCore` 实现 `observe → plan → execute → reflect`，`ResearchRuntime` 管理检查点与事件唤醒，`ResearchService` 接入现有任务、审批、记忆和 SSE。[Decision Layer](decision/README.md) 由结构化模型提案和规则组成，维护目标树、排序、预算与下一节点；Pi 为该节点规划并反思。模型每次使用无工具的临时会话，配置来自 Lin SDK 适配层；资源加载限定为显式 skill 与宿主内置事件桥。
 
 `project.ts` 负责真实文件、Git 与数值验收，`validation.ts` 校验模型输出，`executor.ts` 管理受控写入和无 shell 命令。[Hook 层](hooks/README.md) 合并生命周期、文件、授权与作业事件，`context.ts` 重新读取事实后构建上下文，再由决策层判断价值。Runtime 每个事件批次运行一次，没有定时模型轮询；繁忙时保留通知，等待期间保留监听。
 
@@ -17,5 +17,11 @@
 默认可写项目 `.lin/experiments/` 内文件，命令需要完整参数预授权或具体计划确认。该权限清单不是操作系统沙箱，获准程序具有本机权限。POSIX 使用进程组回收子进程；Windows 当前仅保证直接子进程退出，后代进程尚需原生验收。
 
 核心验证：在 `server/` 执行 `pnpm exec tsx --test test/research-runtime.test.ts test/research-decision.test.ts test/research-hooks.test.ts`。测试使用可控决策，实际执行临时项目中的 Node 作业、文件事件与取消，覆盖闭环、授权、路径限制、恢复、规则选点、Hook 合并与关闭、无行动价值时继续等待；另以实际 Pi SDK 和本地模拟模型接口核对 decide/plan/reflect 的隔离路径。这不代表真实模型或训练质量验收。公开契约见 [科研任务 API](../../../docs/api/2026-10-15-research-runtime.md)。
+
+创建科研任务可传 `skills: ["experimental-design"]`，最多五个名称。按项目 `.lin/skills`、项目 `.agents/skills`、Lin Agent 的 `skills` 目录依次解析；每个选中目录须有同名、有效的 `SKILL.md`，单文件最多 32 KiB、正文总计最多 64 KiB。路径越界、无效元信息、缺失和重复选择会拒绝创建。只注入选中的说明文本，不运行其脚本或自动加载引用资源；所有实验副作用继续经过 execute。名称保存到检查点，恢复时重新核验文件，缺失或失效会停止对应模型阶段。
+
+`resources.ts` 使用空的内存资源设置调用 SDK loader，仅装载选中 skill 和 `PiResearchBridge` 内置扩展，避免解析用户配置的资源包。桥将 `agent_start/agent_settled` 转为带任务、临时会话与阶段来源的本地通知；这些生命周期通知不进入模型唤醒队列。Pi 扩展可通过共享的 `pi.events.emit("research:changed", {paths:["control.json"]})` 报告变化，受信本地适配器可调用 `service.notify(taskId, ["control.json"])`。只接收当前观察范围内最多八个文件；通知经 Hook 合并后重读文件，事实未变不消费模型轮次。返回 true 表示入队，不能代表实验成功。暂停、关闭与任务结束回收事件订阅，恢复时创建新桥。没有开放任意扩展文件加载或 HTTP 事件注入接口。
+
+新增资源验证：在 `server/` 执行 `pnpm exec tsx --test test/research-resources.test.ts test/research-hooks.test.ts`。资源集成测试用实际 Pi SDK、本地模型替身与真实源码 gzip 作业验证选择、生命周期、无变化通知过滤、执行、反思、组件发布和暂停后重建恢复；不代表真实模型决策质量验收。
 
 真实模型验收记录见 [源码压缩实验验收](../../../docs/development/2026-10-15-research-acceptance.md)。默认模型与凭据可由仓库根 `.env` 提供，加载规则见 [Server 说明](../../README.md)；不动态读取 `.pi`。模型认证失败须修复配置后手动继续；模型列表中的“可用”只表示本地配置被识别，不代表上游认证成功。

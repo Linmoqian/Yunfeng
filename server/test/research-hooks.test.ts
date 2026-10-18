@@ -1,5 +1,5 @@
 /* Hook 核心验收：事件合并、背压、过期通知、事实门控与关闭回收。
- * Created on 2026-10-15
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import assert from "node:assert/strict";
@@ -47,4 +47,34 @@ test("文件通知不能充当事实，内容未变不触发模型，作业结�
   const changed = structuredClone(state); changed.facts[0]!.value = "after";
   assert.equal(contextChanged(state, changed, signals), true);
   assert.equal(contextChanged(state, state, [{ hook: "job", reason: "结果", event: researchEvent({ kind: "job_completed", jobId: "job", status: "failed" }) }]), true);
+});
+
+test("Pi 通知绑定任务、合并已观察路径，暂停和关闭后拒绝，未变化事实不消费模型", async () => {
+  const { PiResearchBridge } = await import("../src/research/hooks/pi-bridge.js");
+  const state = checkpoint(), batches: HookSignal[][] = [];
+  let ready = false;
+  const hooks = new HookLayer(() => state, () => ready, (events) => { batches.push(events); return true; });
+  const bridge = new PiResearchBridge("task-a", () => ["README.md", "report.json"], (event) => hooks.publish(event));
+  try {
+    bridge.eventBus.emit("research:changed", { taskId: "task-b", paths: ["README.md"], evaluation: { passed: true } });
+    assert.equal(bridge.notify(["report.json"]), true);
+    assert.equal(bridge.notify([".env"]), false);
+    assert.equal(hooks.pendingCount, 1);
+    ready = true; hooks.flush();
+    assert.equal(batches.length, 1);
+    const event = batches[0]![0]!.event;
+    assert.equal(event.kind, "pi_extension");
+    if (event.kind !== "pi_extension") throw new Error("通知来源错误");
+    assert.equal(event.taskId, "task-a");
+    assert.deepEqual(event.paths, ["README.md", "report.json"]);
+    assert.ok(!("evaluation" in event));
+    const facts: State = { facts: [], events: [], constraints: [], memory: [] };
+    assert.equal(contextChanged(facts, facts, batches[0]!), false);
+    state.phase = "PAUSED";
+    assert.equal(bridge.notify(["README.md"]), false);
+    state.phase = "WAITING"; bridge.close();
+    assert.equal(bridge.notify(["README.md"]), false);
+    bridge.eventBus.emit("research:changed", { paths: ["README.md"] });
+    assert.equal(hooks.pendingCount, 0);
+  } finally { bridge.close(); hooks.close(); }
 });

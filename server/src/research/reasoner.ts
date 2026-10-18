@@ -1,8 +1,9 @@
 /* 使用 Lin 配置下的 Pi 进行结构化决策，隔离普通工具和扩展。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
-import { createAgentSessionFromServices, DefaultResourceLoader, getAgentDir, ModelRuntime, SessionManager, SettingsManager } from "../agent/sdk.js";
+import { createAgentSessionFromServices, getAgentDir, ModelRuntime, SessionManager, SettingsManager } from "../agent/sdk.js";
+import { researchResources, type ResearchResources } from "./resources.js";
 import { join } from "node:path";
 import { resolveVisibleModels, selectInitialModelScope } from "../model-scope.js";
 import type { TaskModelRef } from "../task/types.js";
@@ -66,15 +67,15 @@ summary 面向工程师，最多两三句，只说明本次新增实测结果、
 summary 与 next_question 不复述 Hook、Runtime 调度、内部阶段、文件配置路径、命令参数或原始 JSON；这些细节只进入 knowledge_update。
 反思必须依据执行结果和实测验收，原因不确定时标为假设；提出下一问题，不擅自修改原目标。`;
 
-export function piReasoner(cwd: string, model?: TaskModelRef): Reasoner {
+export function piReasoner(cwd: string, model?: TaskModelRef, options: ResearchResources = {}): Reasoner {
   return async (phase, context, signal) => {
     signal.throwIfAborted();
     const agentDir = getAgentDir();
     const settings = SettingsManager.create(cwd, agentDir);
     const modelRuntime = await ModelRuntime.create({ authPath: join(agentDir, "auth.json"), modelsPath: join(agentDir, "models.json"), signal });
-    const resourceLoader = new DefaultResourceLoader({ cwd, agentDir, settingsManager: settings, noExtensions: true, noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
-    // 不 reload：默认加载器即使禁用扩展也会解析已配置资源包，科研决策无需安装或发现这些资源。
-    resourceLoader.getSystemPrompt = () => phase === "decide" ? decisionContract : phase === "relate" ? relationContract : phase === "summarize" ? summaryContract : contract;
+    const resourceLoader = await researchResources(cwd, agentDir, phase,
+      phase === "decide" ? decisionContract : phase === "relate" ? relationContract : phase === "summarize" ? summaryContract : contract, options);
+    signal.throwIfAborted();
     const services = { cwd, agentDir, settingsManager: settings, modelRuntime, resourceLoader, diagnostics: [] };
     const scope = await resolveVisibleModels(services.modelRuntime, settings.getEnabledModels());
     const provider = settings.getDefaultProvider(), modelId = settings.getDefaultModel();

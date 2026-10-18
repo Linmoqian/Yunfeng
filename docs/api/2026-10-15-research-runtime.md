@@ -28,6 +28,7 @@
 | model | body | object | 否 | 项目环境或 Lin 默认模型 | provider、modelId 字符串 | 当前节点的 Pi 规划/反思模型 |
 | decisionModel | body | object | 否 | 同 model；未指定时使用默认模型 | provider、modelId 非空，分别 ≤200 字符 | 独立决策模型，用于目标树局部提案；可配置小模型 |
 | decisionBudget | body | number | 否 | 10 | 有限数值，0 < 值 ≤1000 | 相对估计成本总预算；不表示金额或 GPU 时间 |
+| skills | body | string[] | 否 | [] | 最多 5 个唯一名称，匹配 `[a-z0-9][a-z0-9-]{0,63}` | 显式选择科研方法文本；不会授予工具或命令权限 |
 | maxCycles | body | integer | 否 | 20 | 1–1000 轮 | 本次规划预算 |
 | permissions.commands | body | object[] | 否 | [] | 最多 20 项；program ≤500 字符；args 最多 32 项，每项 ≤2000 字符，无 NUL | 完整程序和参数精确匹配的预授权命令 |
 | permissions.writeRoots | body | string[] | 否 | [".lin/experiments"] | 最多 8 个项目内相对目录，每项 ≤500 字符 | 自动写入范围，不覆盖目录自身 |
@@ -60,6 +61,7 @@
 | autonomy.learning | object | 否 | summary、knowledge_update、next_question | 最近候选学习；最多 8 条知识更新 |
 | autonomy.permissions | object | 是 | 同请求清单 | 当前执行范围 |
 | autonomy.decision | object | 新任务是；旧任务规划后是 | mission、nodes、horizon、selectedId、budget、reason | 持久化目标树及决策依据 |
+| autonomy.skills | string[] | 否 | 同请求的名称列表 | 暂停与服务恢复后沿用选择；旧任务省略等同 [] |
 | autonomy.decisionModel | object | 否 | 同请求模型 | 显式指定的决策模型 |
 | autonomy.trigger | object | 接收首个 Hook 批次后是 | receivedAt、signals，最多 32 项 | 最近触发原因；通知不能充当实测指标 |
 
@@ -77,7 +79,29 @@
 
 计划、决策评分与作业原始输出属于 `role=tool` 的过程记录，对话默认过滤。`role=assistant` 仅播报实际实验结论、失败后的处理事项与一次最终验收通知；无副作用的中间核验不追加反思消息。反思与下一问题仍写入检查点和候选记忆。用户消息保留。历史快照将旧助手角色的固定过程前缀映射为 tool，不改写原事件；客户端过滤旧 SSE 补发的对应前缀、历史自动追问、连续同文结论和紧接实验结论的完成流程复述。运行卡显示简短阶段进展，内部依据和目录在详情中查看；失败、人工问题与具体计划授权保持可见。
 
-`trigger.signals` 每项包含 hook、reason、event。event 有 id、occurredAt，以及 kind：lifecycle（action=started/resumed/recovered）、files_changed（最多八个项目内 paths）、job_completed（jobId、status）、approval_granted（requestId）。这些事件来自受信任的本地适配器；没有新增 HTTP 事件注入接口。Hook 筛选通知，Context Builder 重读真实状态，Decision Layer 判断是否值得行动。具体模块见 [Hook 说明](../../server/src/research/hooks/README.md)。
+`trigger.signals` 每项包含 hook、reason、event。event 有 id、occurredAt，以及 kind：lifecycle（action=started/resumed/recovered）、files_changed（最多八个项目内 paths）、job_completed（jobId、status）、approval_granted（requestId）、pi_extension（action=facts_changed、taskId、paths）。这些事件来自受信任的本地适配器；没有新增 HTTP 事件注入接口。Hook 筛选通知，Context Builder 重读真实状态，Decision Layer 判断是否值得行动。具体模块见 [Hook 说明](../../server/src/research/hooks/README.md)。
+
+## 选择科研 skill 与 Pi 事件
+
+```json
+{"mode":"research","message":"设计并验证本地实验","skills":["experimental-design"]}
+```
+
+名称按项目 `.lin/skills/<名称>/SKILL.md`、项目 `.agents/skills/<名称>/SKILL.md`、Lin Agent 的 `skills/<名称>/SKILL.md` 顺序解析，首个存在文件优先。拒绝越出对应资源根的链接、非普通文件、无效或不同名的 SDK 元信息；单文件≤32 KiB，所选正文总计≤64 KiB。创建时校验失败沿用 task_create_failed / HTTP 500，不创建任务。恢复时重新加载并核验已保存的名称，资源失效会使模型阶段失败并停止任务，不静默丢弃选择。资源文本会发送给所选模型。
+
+仅选中文本注入 Pi 资源上下文；未选中 skill、引用文件和辅助脚本不自动载入。模型直接工具保持禁用，脚本或文件修改须生成既有 execute 计划并通过权限、授权和实测验收。任意磁盘扩展和资源包不会自动执行。
+
+受信任的服务内调用：
+
+```typescript
+const accepted = getResearchService().notify(taskId, ["control.json"]);
+// 内置 Pi 扩展使用同一任务的 EventBus：
+pi.events.emit("research:changed", { paths: ["control.json"] });
+```
+
+该入口只接收最多八个当前观察文件名称，不接收任务状态、指标、验收或执行步骤。任务身份由宿主闭包绑定。`accepted=true` 表示通知已接收，随后合并、重新观察并交给决策层；事实不变时不请求模型。暂停、完成、关闭、不存在运行实例或路径不在观察范围时返回 false。没有新增 HTTP 接口、授权类型或外部执行能力。
+
+内置扩展还转换 `agent_start` / `agent_settled` 生命周期通知，附 taskId、sessionId、phase；Hook 默认拒绝其唤醒，因此不进入持久化 trigger，不增加任务轮次。`pi_extension/facts_changed` 才可入队，随既有 TaskStore / SSE 保存最近触发批次。瞬时队列不保证跨重启恢复；恢复后重新观察项目。
 
 ## 科研组件更新
 
@@ -111,7 +135,7 @@ Pi 计划可加入 `{"action":"update_component","component":"research","patch":
 | 400 / bad_request | 无效 mode、缺失目录、非法 commands 或 decision | 修正后 | 更正请求字段 |
 | 404 / task_not_found | 任务不存在 | 否 | 刷新列表 |
 | 404 / intervention_not_found | 授权不存在、已处理或暂停后失效 | 否 | 等待新的具体计划 |
-| 500 / task_create_failed | 项目不是目录、目标/权限/预算无效、容量满或初始化失败 | 条件满足后 | 查看 message，修正配置或释放容量后重试一次 |
+| 500 / task_create_failed | 项目不是目录、目标/权限/预算/skill 选择无效、容量满或初始化失败 | 条件满足后 | 查看 message，修正配置或释放容量后重试一次 |
 | 500 / command_failed | 科研不支持该命令、补充目标过长或容量满 | 条件满足后 | 更正命令；保留检查点后手动继续 |
 
 模型输出无效、决策超时或执行提交失败通过 FAILED 阶段报告，HTTP 创建成功不代表随后实验成功。禁止客户端自动无限重试创建或继续。
@@ -200,6 +224,8 @@ Pi plan 示例（验收当前选中的节点）：
 | 2026-10-15 | 0.1.0 | 修复 | 项目环境配置、模型结构纠正与滚动节点身份 | 无持久化字段变更；显式任务模型继续优先 |
 | 2026-10-15 | 0.1.0 | 修复 | 科研过程消息按工具记录过滤，反思面向用户 | 沿用已有消息角色；历史事件不改写，兼容旧快照与补发 |
 | 2026-10-16 | 0.1.0 | 兼容扩展 | execute 发布任务专属科研组件，展示报告进度、指标和结论 | 新增可选 autonomy.component 与计划步骤；旧检查点无需迁移 |
+
+| 2026-10-18 | 0.1.0 | 兼容扩展 | 显式科研 skills 与 Pi 内置事件桥 | skills 可选，旧任务不加载；通知只引用当前观察文件，自身生命周期不唤醒 |
 
 2026-10-16 验证：Server 构建与前端 TypeScript 通过，18 项服务端核心测试和 5 项 React 核心测试通过。macOS 开发应用中，真实 Pi 按 execute 计划发布基线报告（实验 1/2），暂停并重启后快照保留；继续后执行一次优化并发布实验 2/2，压缩体积从 8686 降至 7736 字节（减少 10.94%），解压一致且 completed==1。日志仅有 baseline、optimize 各一次，最终结论由胶囊与报告摘要展示，对话未重复输出同轮反思。原生展开详情、Enter 收起通过；重载时仍存在既有 HTTP 502，需要一次手动重连。其他桌面平台和长命令内的实时报告刷新尚未验收。
 
