@@ -8,6 +8,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { freemem, totalmem, platform } from "node:os";
 import type { Condition, Result, State } from "./types.js";
+import { nativeResearchFiles } from "./native-files.js";
 const exec = promisify(execFile);
 const privatePart = /^(?:\.env(?:\..*)?|auth\.json|models\.json|credentials.*|.*\.(?:pem|key)|\.git|node_modules)$/i;
 
@@ -32,6 +33,8 @@ export async function projectPath(cwd: string, input: string): Promise<string> {
 }
 
 export async function readProjectText(cwd: string, path: string): Promise<string> {
+  const native = nativeResearchFiles();
+  if (native) return native.read(cwd, path);
   const file = await projectPath(cwd, path);
   const info = await stat(file);
   if (!info.isFile() || info.size > 65536) throw new Error("观察文件必须为不超过 64 KiB 的普通文件");
@@ -64,6 +67,8 @@ export async function observeProject(cwd: string, paths: string[], memory: unkno
 export async function evaluate(cwd: string, condition?: Condition): Promise<NonNullable<Result["evaluation"]>> {
   if (!condition) return { passed: false, reason: "缺少验收条件" };
   try {
+    const native = nativeResearchFiles();
+    if (native) return await native.evaluate(cwd, condition);
     const file = await projectPath(cwd, condition.path);
     if (condition.kind === "file_exists") {
       const passed = (await stat(file)).isFile();

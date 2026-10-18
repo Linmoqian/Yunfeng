@@ -52,7 +52,13 @@ pub fn project_path(cwd: &Path, input: &str) -> Result<PathBuf> {
 }
 /// 仅读取普通 UTF-8 文本，最多 64 KiB；增长中的文件同样受上限约束。
 pub fn read_text(cwd: &Path, path: &str) -> Result<String> {
-    let file = fs::File::open(project_path(cwd, path)?)?;
+    let target = project_path(cwd, path)?;
+    // 先拒绝 FIFO/设备，避免打开特殊文件时阻塞共用执行通道；打开后仍复核。
+    let before = fs::metadata(&target)?;
+    if !before.is_file() || before.len() > 65536 {
+        return Err("观察文件超过上限或不是普通文件".into());
+    }
+    let file = fs::File::open(target)?;
     let info = file.metadata()?;
     if !info.is_file() || info.len() > 65536 {
         return Err("观察文件超过上限或不是普通文件".into());

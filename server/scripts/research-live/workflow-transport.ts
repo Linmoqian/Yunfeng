@@ -12,15 +12,19 @@ export const binary = fileURLToPath(new URL("../../../app/src-tauri/research-ker
 export const nodeWorker = fileURLToPath(new URL("./native-worker.mjs", import.meta.url));
 export type Reply = { value: any; innerMs?: number };
 export type Target = { call: (request: Request) => Promise<Reply>; close: () => Promise<void> };
-export async function target(lane: Lane, root: string, resume = false): Promise<Target> {
+export async function target(lane: Lane, root: string, resume = false, hybridEnv?: NodeJS.ProcessEnv): Promise<Target> {
   if (lane === "nodeDirect") {
     const { fixtureHandler } = await import(new URL("./native-worker.mjs", import.meta.url).href);
     const handler = await fixtureHandler(root, { resume });
     return { call: async (request) => ({ value: await handler.call({ ...request, at }) }), close: async () => handler.close() };
   }
-  const args = lane === "nodePipe" ? [nodeWorker, root] : [root];
+  const args = lane === "rustPipe" ? [root] : [nodeWorker, root];
   if (resume) args.push("--resume");
-  const child = spawn(lane === "nodePipe" ? process.execPath : binary, args, { stdio: ["pipe", "pipe", "pipe"] });
+  if (lane === "hybridPipe") assert.equal(hybridEnv?.YUNFENG_RESEARCH_NATIVE, "1", "混合对照需要真实桌面私有通道");
+  const env = { ...process.env };
+  delete env.YUNFENG_RESEARCH_NATIVE;
+  if (lane === "hybridPipe") Object.assign(env, hybridEnv);
+  const child = spawn(lane === "rustPipe" ? binary : process.execPath, args, { env, stdio: ["pipe", "pipe", "pipe"] });
   const lines = createInterface({ input: child.stdout });
   let pending: { resolve: (value: any) => void; reject: (error: Error) => void } | undefined;
   let stderr = "";

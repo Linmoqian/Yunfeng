@@ -13,6 +13,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+yunfeng-research-kernel = { path = "research-kernel" }
 yunfeng-team = { path = "../../team-service", default-features = false, features = ["node"] }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 serde = { version = "1", features = ["derive"] }

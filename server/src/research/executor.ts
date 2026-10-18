@@ -3,10 +3,8 @@
  * @author: https://github.com/Linmoqian
  */
 import { spawn } from "node:child_process";
-import { mkdir, rename, writeFile, unlink } from "node:fs/promises";
-import { dirname } from "node:path";
-import { randomUUID } from "node:crypto";
-import { projectPath, evaluate } from "./project.js";
+import { evaluate } from "./project.js";
+import { writeExecutionFile } from "./execution-files.js";
 import type { Plan, Result, Step } from "./types.js";
 import type { ResearchPatch } from "./components.js";
 
@@ -62,16 +60,7 @@ export class JobExecutor {
             await updateComponent(step.patch, controller.signal);
             output = (output + `\n已更新科研组件：${step.patch.source}`).slice(-65536);
           } else {
-            const target = await projectPath(cwd, step.path);
-            await mkdir(dirname(target), { recursive: true });
-            await projectPath(cwd, step.path);
-            const temporary = `${target}.${randomUUID()}.tmp`;
-            try {
-              await writeFile(temporary, step.content, { flag: "wx" });
-              controller.signal.throwIfAborted();
-              await projectPath(cwd, step.path);
-              await rename(temporary, target);
-            } finally { await unlink(temporary).catch(() => {}); }
+            await writeExecutionFile(cwd, step.path, step.content, controller.signal);
             output += `已写入 ${step.path}\n`;
           }
         }

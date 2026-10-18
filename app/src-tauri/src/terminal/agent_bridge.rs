@@ -24,6 +24,9 @@ struct Envelope {
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
+    Research {
+        request: yunfeng_research_kernel::execution::Request,
+    },
     Component {
         request: crate::component_sharing::agent::Request,
     },
@@ -50,6 +53,14 @@ struct Handler {
 }
 impl Handler {
     fn dispatch(&mut self, action: Action) -> Result<Value> {
+        if let Action::Research { request } = action {
+            return yunfeng_research_kernel::execution::execute(request).map_err(|_| {
+                error(
+                    "RESEARCH_IO_FAILED",
+                    "科研文件执行失败，请核对路径与实测产物",
+                )
+            });
+        }
         if let Action::Component { request } = action {
             let app = self
                 .app
@@ -84,6 +95,7 @@ impl Handler {
             Action::Read { id, .. } | Action::Stop { id } | Action::Release { id } => id,
             Action::Start { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
             Action::Component { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
+            Action::Research { .. } => return Err(error("INVALID_INPUT", "操作不可用")),
         };
         if !self.owned.contains(id) {
             return Err(error("FORBIDDEN", "该终端不属于 Agent"));
@@ -161,6 +173,7 @@ impl AgentBridge {
         })
     }
     pub fn configure(&self, command: &mut std::process::Command) {
+        command.env("YUNFENG_RESEARCH_NATIVE", "1");
         command.env("YUNFENG_APP_PORT", self.address.port().to_string());
         command.env("YUNFENG_APP_TOKEN", &self.token);
         command.env("YUNFENG_TERMINAL_PORT", self.address.port().to_string());
@@ -180,3 +193,7 @@ impl Drop for AgentBridge {
 #[cfg(all(test, unix))]
 #[path = "agent_bridge_tests.rs"]
 mod tests;
+
+#[cfg(all(test, unix))]
+#[path = "research_bridge_tests.rs"]
+mod research_tests;

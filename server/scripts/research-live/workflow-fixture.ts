@@ -7,7 +7,7 @@ import { join } from "node:path";
 export type Request = Record<string, any>;
 export const at = "2026-10-18T00:00:00.000Z";
 export const lanes = ["nodeDirect", "nodePipe", "rustPipe"] as const;
-export type Lane = typeof lanes[number];
+export type Lane = typeof lanes[number] | "hybridPipe";
 export async function prepareWorkflow(root: string) {
   await mkdir(join(root, ".lin/experiments"), { recursive: true });
   const task = { schemaVersion: 1, id: "workflow-task", sessionId: "workflow", cwd: root, title: "固定文件统计流程", source: "task", mode: "research", status: "waiting_input", phase: "unknown", currentAction: "", activeToolNames: [], pendingApprovalIds: [], createdAt: at, updatedAt: at, lastEventSeq: 0,

@@ -43,3 +43,21 @@ pnpm exec tsx scripts/research-live/workflow-compare.ts /absolute/path/to/new-wo
 每个环节记录 UTC 系统时间、`Date.now()` 墙上时间差，以及 `process.hrtime.bigint()` 系统单调时钟纳秒差。毫秒墙上时钟可能记录 0，耗时对照使用单调时钟；Rust 内部耗时另外记录，主表始终包含序列化和管道完整往返。规则决策/反思由共用脚本固定返回，表中标记“共用脚本”，不代表两种语言或真实模型的推理速度。夹具业务时间固定以核对跨语言结果，计时时钟始终来自真实系统。
 
 `workflow-comparison.json` 保留全部 3 轮逐步结果、范围、中位数、源码和二进制指纹；`workflow-comparison.md` 是完整逐步表。报告另列扣除生命周期后的耗时，含脚本校验的总时间和环节累计分开。计时过程中不插入证据文件写入；各组完成后保留 `timings.json`、失败时部分计时、实验文件、SQLite 和事件日志。每个环节的结果均跨组核对，检查暂停前后状态一致、两阶段实际统计、事件连续及双方数据库交叉读取。固定编排没有运行生产 Pi Hook/决策桥或完整科研调度器。详见 [本次记录](../../../docs/development/2026-10-18-research-fixed-workflow.md)。
+
+## TS 编排与 Rust 执行联调
+
+先构建 Server；在仓库根显式运行实际 Rust 私有通道与 TS ResearchService 的闭环验收：
+
+```sh
+cargo test --locked --manifest-path app/src-tauri/Cargo.toml hybrid_typescript_orchestration -- --ignored --nocapture
+```
+
+该入口不启动窗口、不读取真实团队/任务数据、不请求真实模型；Rust 测试注入现有桌面连接，TS 服务运行真实 Hook、权限、作业、反思与暂停重建恢复。两阶段文件写入和验收经过 Rust，规则替代模型，统计与指标为固定本地夹具。Node 只重建服务实例，Rust 通道宿主持续存在；不是桌面进程重启或 Pi 模型验收。
+
+固定工作流另可增加 `hybridPipe` 第四组：Node 工作进程继续编排和持久化，文件调用通过真实桌面私有 TCP 到 Rust，包含父子管道与 Rust TCP 两次进程边界。普通基线组清除原生能力标识，防止被父进程配置污染。构建 Rust release worker 后在仓库根执行，输出目录必须不存在：
+
+```sh
+YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-hybrid-comparison cargo test --locked --manifest-path app/src-tauri/Cargo.toml hybrid_workflow_three_round_comparison -- --ignored --nocapture
+```
+
+仍然完整执行3轮、每组36环节，共432条记录，无真实 LLM。测试宿主把连接仅注入混合组，不将令牌写入报告；增加宿主二进制指纹与 `hybridRustProfile`。默认 cargo test 的 Rust 通道宿主为 debug，而独立 Rust worker 为 release；该计时可检查实际链路开销，不能当作 release 语言性能排名。它与上一条服务闭环是不同验证范围，报告 scope 有明确说明。

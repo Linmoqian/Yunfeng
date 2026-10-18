@@ -4880,8 +4880,19 @@ dependencies = [
  "tempfile",
  "url",
  "uuid",
+ "yunfeng-research-kernel",
  "yunfeng-team",
  "zip",
+]
+
+[[package]]
+name = "yunfeng-research-kernel"
+version = "0.1.0"
+dependencies = [
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]

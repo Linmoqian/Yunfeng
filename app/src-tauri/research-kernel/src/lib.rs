@@ -2,6 +2,7 @@
 //! Created on 2026-10-18
 //! @author: https://github.com/Linmoqian
 mod checkpoint;
+pub mod execution;
 pub mod files;
 pub mod store;
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
