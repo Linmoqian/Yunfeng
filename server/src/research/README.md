@@ -1,5 +1,7 @@
 # 本地科研 Runtime
 
+架构依据见 [Pi SDK 与自研 Runtime 的边界](../../../docs/development/2026-10-18-research-architecture.md)。Pi SDK 提供嵌入式模型与会话能力，科研的长期调度、任务树、执行、验收、记忆和恢复由 Yunfeng 自研模块负责。
+
 `ProjectCore` 实现 `observe → plan → execute → reflect`，`ResearchRuntime` 管理检查点与事件唤醒，`ResearchService` 接入现有任务、审批、记忆和 SSE。[Decision Layer](decision/README.md) 由结构化模型提案和规则组成，维护目标树、排序、预算与下一节点；Pi 为该节点规划并反思。模型每次使用无工具、无扩展的临时会话，配置来自 Lin SDK 适配层。
 
 `project.ts` 负责真实文件、Git 与数值验收，`validation.ts` 校验模型输出，`executor.ts` 管理受控写入和无 shell 命令。[Hook 层](hooks/README.md) 合并生命周期、文件、授权与作业事件，`context.ts` 重新读取事实后构建上下文，再由决策层判断价值。Runtime 每个事件批次运行一次，没有定时模型轮询；繁忙时保留通知，等待期间保留监听。

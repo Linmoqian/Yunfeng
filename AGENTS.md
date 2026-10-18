@@ -126,3 +126,7 @@ npm create tauri-app@latest
 优先复用应用已有自动化接口，让 Agent 或程序通过少量、直观的调用更新权威状态、触发现有组件渲染及操作组件。保持 API 简约、易调用，沿用现有权限与校验；新增组件能力同步维护调用类型、核心测试与接口文档。组件交互入口见 [组件 API](docs/api/2026-10-14-component-sharing.md)：开发 Agent 使用 `app_component`，受信程序使用 `server/src/agent/component-client.ts`。
 
 科研 Agent 通过 execute 的 `update_component` 步骤发布当前任务的报告进度、指标和结论，见[科研组件更新](docs/api/2026-10-15-research-runtime.md#科研组件更新)。字段从真实项目报告读取，验收由 Runtime 附加；展示快照沿用既有 TaskStore 与 SSE，不建立独立科研状态源。
+
+## 科研架构与 Pi SDK
+
+科研模式使用 Pi 的嵌入式 SDK，自研 Runtime、Hook、Context、Decision Engine、受控执行、验收、记忆和恢复。具体职责与当前缺口见 [科研架构](docs/development/2026-10-18-research-architecture.md)。新增能力先查安装版本的 Pi SDK 开发文档与导出声明；SDK 接入集中于适配边界，领域阶段沿用结构化契约。科研任务的长期状态沿用 TaskStore，所有实验副作用经过 execute，完成状态须由真实验收产生。Skill 和扩展按宿主信任与权限显式接入。
