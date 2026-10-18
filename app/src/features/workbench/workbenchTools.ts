@@ -1,9 +1,11 @@
 /* LianAgent 工作台模块目录，能力运行由后续服务接入。
- * Created on 2026-10-13
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { Activity, FilePenLine, FolderOpen, MonitorSmartphone, Terminal } from "lucide-react";
+import { GitCompareArrows } from "lucide-react";
 export const WORKBENCH_TOOLS = [
+  { id: "evaluation", label: "Agent 评估", description: "同条件比较验收、调用开销与执行路径", icon: GitCompareArrows },
   { id: "terminal", label: "终端", description: "本机 Shell、多会话与交互输入输出", icon: Terminal },
   { id: "resources", label: "资源", description: "图片、视频、文件与分析结果", icon: FolderOpen },
   { id: "resourceMonitor", label: "计算机资源", description: "CPU、内存与运行状态", icon: Activity },

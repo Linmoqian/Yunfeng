@@ -1,5 +1,5 @@
 /* 中央分支图沿用轻量胶囊和主题色，节点详情按需浮现。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 .graph { display: flex; flex-direction: column; flex: 1; min-height: 240px; height: 100%; }
@@ -9,21 +9,10 @@
 .canvas { flex: 1; min-height: 200px; position: relative; }
 .canvas :global(.react-flow) { background: transparent; }
 .canvas :global(.react-flow__handle) { width: 2px; height: 2px; opacity: 0; pointer-events: none; }
-.node { width: 220px; height: 80px; border: 1px solid var(--yf-border-divider); border-radius: 16px; background: var(--yf-bg-canvas); box-shadow: 0 2px 8px #00000004; }
-.node[data-kind="mission"], .node[data-current="true"] { border-color: var(--yf-brand-primary); }
-.node[data-kind="mission"] { background: color-mix(in srgb, var(--yf-brand-primary) 5%, var(--yf-bg-canvas)); }
-.nodeButton { display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 100%; height: 100%; border: 0; border-radius: inherit; padding: 10px 14px; background: transparent; color: var(--yf-text-primary); text-align: left; cursor: pointer; font: inherit; }
-.nodeButton:hover { background: color-mix(in srgb, var(--yf-brand-primary) 4%, transparent); }
-.nodeButton:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 3px; }
-.nodeLabel { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; line-height: 1.3; }
-.nodeMeta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; color: var(--yf-text-tertiary); font-size: 11px; line-height: 1.4; }
 .empty { display: grid; place-items: center; height: 100%; color: var(--yf-text-tertiary); font-size: 12px; padding: 20px; }
 .warning { position: absolute; top: 0; left: 16px; color: var(--yf-text-tertiary); font-size: 11px; }
 @media (pointer: coarse) { .toolbar :global(.ant-btn) { min-width: 44px; min-height: 44px; } }
 
-.node[data-agent="true"] { outline: 2px solid color-mix(in srgb, var(--yf-brand-primary) 35%, transparent); outline-offset: 4px; }
-
-.node[data-expanded="true"] { border-color: var(--yf-brand-primary); }
 .satellites { display: flex; justify-content: center; gap: 6px; width: 220px; }
 .below { flex-wrap: wrap; }
 .metricRow { display: flex; justify-content: center; gap: 6px; width: 100%; min-width: 0; }

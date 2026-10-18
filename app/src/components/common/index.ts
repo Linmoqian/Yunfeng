@@ -1,8 +1,9 @@
 /* 云枫 UI 公共入口；只依赖 React、Motion、Ant Design、主题与静态资源。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 export { Capsule, type CapsuleProps } from "./Capsule";
+export { BranchNode, type BranchNodeProps } from "./BranchNode";
 export { ProgressCapsule, type ProgressCapsuleProps } from "./ProgressCapsule";
 export { MapleCloudLoading, type MapleCloudLoadingProps } from "./MapleCloudLoading";
 export { Details, type DetailsProps } from "./Details";

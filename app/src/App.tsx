@@ -1,5 +1,5 @@
 /* 应用路由与共享指针提示的组装入口。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { lazy, Suspense } from "react";
@@ -17,6 +17,7 @@ const TaskboardPage = lazy(() => import("./routes/taskboard/TaskboardPage").then
   default: module.TaskboardPage,
 })));
 const UiLibraryPage = import.meta.env.DEV ? lazy(() => import("./routes/ui-library/UiLibraryPage").then((module) => ({ default: module.UiLibraryPage }))) : null;
+const EvaluationPanel = lazy(() => import("./features/evaluation/EvaluationPanel").then((module) => ({ default: module.EvaluationPanel })));
 
 // 路由：工作台为单一页面，task/session 深链接通过 URL query 承载（见 syncUrl）。
 // 引入 React Router 以建立可扩展的路由边界，后续如新增独立页面直接在 children 扩展。
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
       </Suspense>
     ),
   },
+  { id: "evaluation", path: "/evaluation", element: <Suspense fallback={null}><EvaluationPanel /></Suspense> },
 ]);
 
 export function App() {

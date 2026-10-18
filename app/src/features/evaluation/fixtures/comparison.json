@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 1,
+  "id": "f437c5c2-c822-4289-9ee4-3967b7958a48",
+  "createdAt": "2026-10-18T10:35:21.508Z",
+  "source": "fixture",
+  "evaluator": "exact-answer-v1",
+  "repeats": 3,
+  "runs": [
+    {
+      "id": "199ab93c-7be6-43fa-af29-f67d4d94d936",
+      "candidate": "raw",
+      "label": "单次响应",
+      "model": "fixture-responder-v1",
+      "repeat": 1,
+      "condition": "2b0f4bbfac7692e4fbc69b55f9d0221508fda9eafd6421096fb2dcdc1b268278",
+      "task": {
+        "task_id": "evidence-sum",
+        "title": "实验记录核验",
+        "category": "tool-use",
+        "instruction": "读取实验记录 sample-01，计算两组计数的总和，仅输出总数。",
+        "input": {
+          "record": "sample-01"
+        },
+        "tools": [
+          "read_record"
+        ],
+        "constraints": {
+          "max_steps": 4,
+          "max_time": 5
+        },
+        "ground_truth": {
+          "answer": "42"
+        }
+      },
+      "status": "completed",
+      "verdict": {
+        "status": "failed",
+        "reason": "答案与独立标注不一致"
+      },
+      "durationMs": 5.715416999999999,
+      "modelCalls": [
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.03891699999999787,
+          "status": "succeeded"
+        }
+      ],
+      "toolCalls": [],
+      "usage": {
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0
+      },
+      "result": {
+        "taskId": "evidence-sum",
+        "agentName": "raw",
+        "success": true,
+        "finalAnswer": "无法访问实验记录",
+        "trace": {
+          "taskId": "evidence-sum",
+          "agentName": "raw",
+          "steps": []
+        },
+        "usage": {
+          "promptTokens": 0,
+          "completionTokens": 0,
+          "totalTokens": 0
+        },
+        "durationMs": 0.09275000000000233
+      }
+    },
+    {
+      "id": "1fdd8cc9-4f71-486d-b92a-56c13adb8792",
+      "candidate": "tool-loop",
+      "label": "工具循环",
+      "model": "fixture-responder-v1",
+      "repeat": 1,
+      "condition": "2b0f4bbfac7692e4fbc69b55f9d0221508fda9eafd6421096fb2dcdc1b268278",
+      "task": {
+        "task_id": "evidence-sum",
+        "title": "实验记录核验",
+        "category": "tool-use",
+        "instruction": "读取实验记录 sample-01，计算两组计数的总和，仅输出总数。",
+        "input": {
+          "record": "sample-01"
+        },
+        "tools": [
+          "read_record"
+        ],
+        "constraints": {
+          "max_steps": 4,
+          "max_time": 5
+        },
+        "ground_truth": {
+          "answer": "42"
+        }
+      },
+      "status": "completed",
+      "verdict": {
+        "status": "passed",
+        "reason": "答案与独立标注一致"
+      },
+      "durationMs": 0.24179200000000023,
+      "modelCalls": [
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.007958999999999605,
+          "status": "succeeded"
+        },
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.015833000000000652,
+          "status": "succeeded"
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "read_record",
+          "durationMs": 0.013749999999998153,
+          "status": "succeeded"
+        }
+      ],
+      "usage": {
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0
+      },
+      "result": {
+        "taskId": "evidence-sum",
+        "agentName": "tool-loop",
+        "success": true,
+        "finalAnswer": "42",
+        "trace": {
+          "taskId": "evidence-sum",
+          "agentName": "tool-loop",
+          "steps": [
+            {
+              "kind": "action",
+              "action": {
+                "id": "read-1",
+                "name": "read_record",
+                "arguments": {
+                  "id": "sample-01"
+                }
+              },
+              "index": 1,
+              "timestamp": 0.03083300000000122
+            },
+            {
+              "kind": "observation",
+              "observation": "{\"counts\":[19,23]}",
+              "toolCallId": "read-1",
+              "durationMs": 0.026541999999999177,
+              "index": 2,
+              "timestamp": 0.05970800000000054
+            }
+          ]
+        },
+        "usage": {
+          "promptTokens": 0,
+          "completionTokens": 0,
+          "totalTokens": 0
+        },
+        "durationMs": 0.08316699999999955
+      }
+    },
+    {
+      "id": "57673286-10e3-4bae-8193-38d75660c8d3",
+      "candidate": "tool-loop",
+      "label": "工具循环",
+      "model": "fixture-responder-v1",
+      "repeat": 2,
+      "condition": "2b0f4bbfac7692e4fbc69b55f9d0221508fda9eafd6421096fb2dcdc1b268278",
+      "task": {
+        "task_id": "evidence-sum",
+        "title": "实验记录核验",
+        "category": "tool-use",
+        "instruction": "读取实验记录 sample-01，计算两组计数的总和，仅输出总数。",
+        "input": {
+          "record": "sample-01"
+        },
+        "tools": [
+          "read_record"
+        ],
+        "constraints": {
+          "max_steps": 4,
+          "max_time": 5
+        },
+        "ground_truth": {
+          "answer": "42"
+        }
+      },
+      "status": "completed",
+      "verdict": {
+        "status": "passed",
+        "reason": "答案与独立标注一致"
+      },
+      "durationMs": 0.06862500000000082,
+      "modelCalls": [
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.0032919999999982963,
+          "status": "succeeded"
+        },
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.0075830000000003395,
+          "status": "succeeded"
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "read_record",
+          "durationMs": 0.0012079999999983215,
+          "status": "succeeded"
+        }
+      ],
+      "usage": {
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0
+      },
+      "result": {
+        "taskId": "evidence-sum",
+        "agentName": "tool-loop",
+        "success": true,
+        "finalAnswer": "42",
+        "trace": {
+          "taskId": "evidence-sum",
+          "agentName": "tool-loop",
+          "steps": [
+            {
+              "kind": "action",
+              "action": {
+                "id": "read-1",
+                "name": "read_record",
+                "arguments": {
+                  "id": "sample-01"
+                }
+              },
+              "index": 1,
+              "timestamp": 0.007334000000000174
+            },
+            {
+              "kind": "observation",
+              "observation": "{\"counts\":[19,23]}",
+              "toolCallId": "read-1",
+              "durationMs": 0.0030409999999996273,
+              "index": 2,
+              "timestamp": 0.010958999999999719
+            }
+          ]
+        },
+        "usage": {
+          "promptTokens": 0,
+          "completionTokens": 0,
+          "totalTokens": 0
+        },
+        "durationMs": 0.02245900000000134
+      }
+    },
+    {
+      "id": "3f9feca5-8a23-4661-b5df-bc28b0b60d7c",
+      "candidate": "raw",
+      "label": "单次响应",
+      "model": "fixture-responder-v1",
+      "repeat": 2,
+      "condition": "2b0f4bbfac7692e4fbc69b55f9d0221508fda9eafd6421096fb2dcdc1b268278",
+      "task": {
+        "task_id": "evidence-sum",
+        "title": "实验记录核验",
+        "category": "tool-use",
+        "instruction": "读取实验记录 sample-01，计算两组计数的总和，仅输出总数。",
+        "input": {
+          "record": "sample-01"
+        },
+        "tools": [
+          "read_record"
+        ],
+        "constraints": {
+          "max_steps": 4,
+          "max_time": 5
+        },
+        "ground_truth": {
+          "answer": "42"
+        }
+      },
+      "status": "completed",
+      "verdict": {
+        "status": "failed",
+        "reason": "答案与独立标注不一致"
+      },
+      "durationMs": 0.039915999999998064,
+      "modelCalls": [
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.003208000000000766,
+          "status": "succeeded"
+        }
+      ],
+      "toolCalls": [],
+      "usage": {
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0
+      },
+      "result": {
+        "taskId": "evidence-sum",
+        "agentName": "raw",
+        "success": true,
+        "finalAnswer": "无法访问实验记录",
+        "trace": {
+          "taskId": "evidence-sum",
+          "agentName": "raw",
+          "steps": []
+        },
+        "usage": {
+          "promptTokens": 0,
+          "completionTokens": 0,
+          "totalTokens": 0
+        },
+        "durationMs": 0.006000000000000227
+      }
+    },
+    {
+      "id": "43d1943f-82d3-4979-8645-91de6751eeba",
+      "candidate": "raw",
+      "label": "单次响应",
+      "model": "fixture-responder-v1",
+      "repeat": 3,
+      "condition": "2b0f4bbfac7692e4fbc69b55f9d0221508fda9eafd6421096fb2dcdc1b268278",
+      "task": {
+        "task_id": "evidence-sum",
+        "title": "实验记录核验",
+        "category": "tool-use",
+        "instruction": "读取实验记录 sample-01，计算两组计数的总和，仅输出总数。",
+        "input": {
+          "record": "sample-01"
+        },
+        "tools": [
+          "read_record"
+        ],
+        "constraints": {
+          "max_steps": 4,
+          "max_time": 5
+        },
+        "ground_truth": {
+          "answer": "42"
+        }
+      },
+      "status": "completed",
+      "verdict": {
+        "status": "failed",
+        "reason": "答案与独立标注不一致"
+      },
+      "durationMs": 0.04125000000000156,
+      "modelCalls": [
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.0023340000000011685,
+          "status": "succeeded"
+        }
+      ],
+      "toolCalls": [],
+      "usage": {
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0
+      },
+      "result": {
+        "taskId": "evidence-sum",
+        "agentName": "raw",
+        "success": true,
+        "finalAnswer": "无法访问实验记录",
+        "trace": {
+          "taskId": "evidence-sum",
+          "agentName": "raw",
+          "steps": []
+        },
+        "usage": {
+          "promptTokens": 0,
+          "completionTokens": 0,
+          "totalTokens": 0
+        },
+        "durationMs": 0.005124999999999602
+      }
+    },
+    {
+      "id": "ec52639c-3bb9-4898-bd46-5f8c46836a8c",
+      "candidate": "tool-loop",
+      "label": "工具循环",
+      "model": "fixture-responder-v1",
+      "repeat": 3,
+      "condition": "2b0f4bbfac7692e4fbc69b55f9d0221508fda9eafd6421096fb2dcdc1b268278",
+      "task": {
+        "task_id": "evidence-sum",
+        "title": "实验记录核验",
+        "category": "tool-use",
+        "instruction": "读取实验记录 sample-01，计算两组计数的总和，仅输出总数。",
+        "input": {
+          "record": "sample-01"
+        },
+        "tools": [
+          "read_record"
+        ],
+        "constraints": {
+          "max_steps": 4,
+          "max_time": 5
+        },
+        "ground_truth": {
+          "answer": "42"
+        }
+      },
+      "status": "completed",
+      "verdict": {
+        "status": "passed",
+        "reason": "答案与独立标注一致"
+      },
+      "durationMs": 0.06829199999999958,
+      "modelCalls": [
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.004541999999997159,
+          "status": "succeeded"
+        },
+        {
+          "name": "fixture-responder-v1",
+          "durationMs": 0.003999999999997783,
+          "status": "succeeded"
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "read_record",
+          "durationMs": 0.0014170000000000016,
+          "status": "succeeded"
+        }
+      ],
+      "usage": {
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0
+      },
+      "result": {
+        "taskId": "evidence-sum",
+        "agentName": "tool-loop",
+        "success": true,
+        "finalAnswer": "42",
+        "trace": {
+          "taskId": "evidence-sum",
+          "agentName": "tool-loop",
+          "steps": [
+            {
+              "kind": "action",
+              "action": {
+                "id": "read-1",
+                "name": "read_record",
+                "arguments": {
+                  "id": "sample-01"
+                }
+              },
+              "index": 1,
+              "timestamp": 0.010541999999997387
+            },
+            {
+              "kind": "observation",
+              "observation": "{\"counts\":[19,23]}",
+              "toolCallId": "read-1",
+              "durationMs": 0.0032499999999977547,
+              "index": 2,
+              "timestamp": 0.015499999999999403
+            }
+          ]
+        },
+        "usage": {
+          "promptTokens": 0,
+          "completionTokens": 0,
+          "totalTokens": 0
+        },
+        "durationMs": 0.023082999999999743
+      }
+    }
+  ]
+}

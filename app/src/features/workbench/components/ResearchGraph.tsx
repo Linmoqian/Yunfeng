@@ -1,5 +1,5 @@
 /* 科研中央关系图：读取 Runtime 快照，保留缩放位置并按需查看节点。
- * Created on 2026-10-17
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import { useMemo, useRef, useState } from "react";
@@ -16,19 +16,17 @@ import { ResearchNodeCapsules } from "./ResearchNodeCapsules";
 import { researchNodeInfo, type NodeInfo } from "../researchNodeInfo";
 import { layoutResearchGraph, researchNodeText, researchNodeStatus, type ResearchGraphItem } from "../researchGraph";
 import styles from "./ResearchGraph.module.css";
+import { BranchNode } from "../../../components/common/BranchNode";
 
 type GraphNode = Node<ResearchGraphItem & { agent?: boolean; expanded: boolean; info: NodeInfo; relevance: RelevanceControl; onInspect: (id: string) => void }, "research">;
 function ResearchNode({ data }: NodeProps<GraphNode>) {
   const text = researchNodeText(data);
-  return <div className={styles.node} data-status={data.status} data-current={data.current} data-agent={data.agent} data-kind={data.kind} data-expanded={data.expanded}>
+  return <BranchNode title={text.title} summary={text.summary} status={data.status} current={data.current} agent={data.agent} kind={data.kind} expanded={data.expanded}
+    label={`${text.title} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`} onClick={() => data.onInspect(data.id)}>
     <ResearchNodeCapsules expanded={data.expanded} info={data.info} relevance={data.relevance} />
     <Handle id="in-left" type="target" position={Position.Left} /><Handle id="in-right" type="target" position={Position.Right} />
-    <button type="button" className={`${styles.nodeButton} nodrag nopan`} onClick={() => data.onInspect(data.id)} aria-label={`${text.title} · ${data.kind === "mission" ? "研究目标" : data.kind === "group" ? "分组" : researchNodeStatus[data.status]}`}>
-      <span className={styles.nodeLabel} title={text.title}>{text.title}</span>
-      <span className={styles.nodeMeta} title={text.summary}>{text.summary}</span>
-    </button>
     <Handle id="out-left" type="source" position={Position.Left} /><Handle id="out-right" type="source" position={Position.Right} />
-  </div>;
+  </BranchNode>;
 }
 const nodeTypes = { research: ResearchNode };
 const options = { hideAttribution: true };

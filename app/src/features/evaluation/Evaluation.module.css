@@ -1,0 +1,41 @@
+/* 云枫评估：宽松画布、克制的胶囊与默认收起的过程。
+ * Created on 2026-10-18
+ * @author: https://github.com/Linmoqian
+ */
+.panel { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: auto; background: var(--yf-bg-canvas); color: var(--yf-text-primary); container: evaluation / inline-size; }
+.header { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 28px 30px 18px; user-select: none; }
+.eyebrow { color: var(--yf-text-tertiary); font-size: 10px; letter-spacing: .1em; }
+.header h1 { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin: 8px 0; }
+.header p, .details p, .empty p { color: var(--yf-text-secondary); font-size: 12px; line-height: 1.7; }
+.header p { margin: 0; }
+.actions, .pills { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 0 30px 12px; }
+.filters :global(.ant-select) { min-width: 260px; max-width: 100%; }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; flex: 1 0 540px; min-height: 540px; border-top: 1px solid var(--yf-border-divider); }
+.canvas { position: relative; min-width: 0; height: 100%; min-height: 420px; }
+.canvas :global(.react-flow__handle) { width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+.canvas :global(.react-flow__edge-path) { stroke: var(--yf-border-default); stroke-width: 1; }
+.canvas :global(.react-flow__controls) { box-shadow: none; display: flex; gap: 3px; border-radius: 12px; overflow: hidden; }
+.canvas :global(.react-flow__controls-button) { border: 0; color: var(--yf-text-secondary); background: var(--yf-bg-surface); }
+.details { padding: 24px 22px; border-left: 1px solid var(--yf-border-divider); min-width: 0; overflow: auto; }
+.details h2 { font-size: 18px; margin: 9px 0 16px; }
+.details h3 { font-size: 12px; font-weight: 500; color: var(--yf-text-secondary); }
+.details :global(.ant-select) { width: 100%; margin: 12px 0; }
+.details .note, .sampleNote { color: var(--yf-text-tertiary); font-size: 11px; line-height: 1.7; }
+.sampleNote { margin: 0; padding: 0 30px 14px; }
+.metrics { margin: 18px 0; font-size: 12px; }
+.metrics > div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; }
+.metrics dt { color: var(--yf-text-tertiary); }
+.metrics dd { margin: 0; font-variant-numeric: tabular-nums; }
+.verdict { padding-top: 10px; }
+.details .answer { white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.trace { padding-left: 18px; font-size: 12px; }
+.trace li { margin-bottom: 14px; overflow-wrap: anywhere; }
+.trace span { display: block; margin-top: 4px; color: var(--yf-text-tertiary); }
+.error { padding: 0 24px; color: var(--yf-semantic-error); font-size: 12px; overflow-wrap: anywhere; }
+.details .error { padding: 0; color: var(--yf-semantic-error); }
+.footer { display: flex; justify-content: space-between; gap: 10px; padding: 12px 30px; color: var(--yf-text-tertiary); font-size: 10px; border-top: 1px solid var(--yf-border-divider); user-select: none; }
+.empty { flex: 1; min-height: 360px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--yf-text-tertiary); }
+.empty h2 { font: 22px var(--font-display); color: var(--yf-text-primary); }
+@media (max-width: 900px) { .body { display: flex; flex-direction: column; flex: 1 0 auto; } .details { border-left: 0; border-top: 1px solid var(--yf-border-divider); overflow: visible; flex: none; } .canvas { height: 560px; flex: none; } .header { align-items: flex-start; flex-direction: column; } .footer { flex-direction: column; } }
+@container evaluation (max-width: 900px) { .body { display: flex; flex-direction: column; flex: 1 0 auto; } .details { border-left: 0; border-top: 1px solid var(--yf-border-divider); overflow: visible; flex: none; } .canvas { height: 560px; flex: none; } .header { align-items: flex-start; flex-direction: column; } .footer { flex-direction: column; } }
