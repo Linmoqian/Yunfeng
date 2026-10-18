@@ -1,5 +1,6 @@
-// 任务展示层：把真实 TaskState 映射为工作台分组。
-// 阶段 1：状态由后端领域状态提供，前端不再根据 session 是否运行推断“完成”。
+// 任务展示层：以服务端状态和模式组织会话，旧会话不推断科研身份。
+// Created on 2026-10-19
+// @author: https://github.com/Linmoqian
 
 import type { SessionSnapshot, TaskState } from "../../services/taskService";
 
@@ -26,6 +27,7 @@ export interface TaskSummary {
   status: TaskState["status"] | "history";
   phase: TaskState["phase"];
   cwd: string;
+  mode?: TaskState["mode"];
 }
 
 export interface TaskSectionGroup {
@@ -85,6 +87,7 @@ export function taskToSummary(task: TaskState): TaskSummary {
     status: task.status,
     phase: task.phase,
     cwd: task.cwd,
+    mode: task.mode ?? "development",
   };
 }
 

@@ -1,5 +1,5 @@
 /* 会话组织核心交互：折叠、搜索、置顶、真实加载与错误恢复入口。
- * Created on 2026-10-17
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { App } from "antd";
@@ -85,4 +85,29 @@ test("深链接所选旧会话在列表到达后展开项目，保留旧会话�
   expect(await screen.findByRole("menuitem", { name: "置顶会话" })).toBeTruthy();
   expect(screen.queryByRole("menuitem", { name: "重命名" })).toBeNull();
   expect(screen.queryByRole("menuitem", { name: "归档" })).toBeNull();
+});
+
+test("模式筛选保留状态与真实标签，外部打开隐藏会话时恢复可见且不修改会话", async () => {
+  const mixed = [{ ...tasks[0], mode: "research" as const }, { ...tasks[1], mode: "development" as const }];
+  const p = props({ tasks: mixed, activeId: "done" });
+  const result = render(view(p));
+  expect(within(screen.getByRole("button", { name: "打开任务：压缩实验" })).getByLabelText("科研会话")).toBeTruthy();
+  expect(within(screen.getByRole("button", { name: "打开任务：检查模型" })).getByLabelText("开发会话")).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "科研会话 1" }));
+  expect(screen.getByRole("button", { name: "科研会话 1" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.queryByRole("button", { name: "打开任务：检查模型" })).toBeNull();
+  expect(screen.getByRole("region", { name: "已完成" })).toBeTruthy();
+  expect(p.onOpen).not.toHaveBeenCalled();
+  result.rerender(view({ ...p, activeId: "run" }));
+  expect(screen.getByRole("button", { name: "全部会话 2" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "打开任务：检查模型" }).getAttribute("aria-current")).toBe("page");
+  await userEvent.click(screen.getByRole("button", { name: "科研会话 1" }));
+  result.rerender(view({ ...p, activeId: "run", archived: true, tasks: mixed.map((task) => ({ ...task, section: "archived", status: "archived" })) }));
+  expect(screen.getByRole("button", { name: "打开任务：压缩实验" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "打开任务：检查模型" })).toBeNull();
+  result.rerender(view({ ...p, activeId: "run", search: "检查", tasks: [mixed[1]] }));
+  expect(screen.getByText("没有匹配的科研会话")).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "全部会话 1" }));
+  await userEvent.click(screen.getByRole("button", { name: "打开任务：检查模型" }));
+  expect(p.onOpen).toHaveBeenCalledExactlyOnceWith(mixed[1]);
 });

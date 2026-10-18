@@ -1,9 +1,13 @@
+// 会话展示映射与分组核心回归。
+// Created on 2026-10-19
+// @author: https://github.com/Linmoqian
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildTaskSections,
   selectMostRecentActiveTask,
   sessionToLegacySummary,
+  taskToSummary,
   type TaskSummary,
 } from "../src/features/workbench/taskPresentation.ts";
 import type { TaskState } from "../src/services/taskService.ts";
@@ -58,6 +62,13 @@ test("sessionToLegacySummary 把旧会话标记为 history 且不推断完成", 
   assert.equal(legacy.isLegacy, true);
   assert.equal(legacy.status, "history");
   assert.equal(legacy.section, "legacy");
+  assert.equal(legacy.mode, undefined);
+});
+
+test("会话模式来自任务事实，旧任务遵循开发默认值且不按标题猜测科研", () => {
+  assert.equal(taskToSummary(taskState({ mode: "research", title: "你好" })).mode, "research");
+  assert.equal(taskToSummary(taskState({ mode: "development", title: "科研实验" })).mode, "development");
+  assert.equal(taskToSummary(taskState({})).mode, "development");
 });
 
 test("buildTaskSections 按介入优先级分组，并隐藏空分组", () => {

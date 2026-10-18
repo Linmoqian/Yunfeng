@@ -1,5 +1,5 @@
 /* 导航的分组胶囊、会话状态与加载骨架，复用现有主题变量。
- * Created on 2026-10-17
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 .group { margin: 6px 0 10px; }
@@ -14,6 +14,15 @@
 .reveal { display: grid; }
 .revealContent { min-height: 0; overflow: hidden; }
 .row { position: relative; margin-bottom: 2px; }
+.rowTitle { flex: 1; min-width: 0; }
+.row .modeBadge { flex: none; padding: 1px 5px; border-radius: 999px; background: var(--yf-bg-secondary); color: var(--yf-text-tertiary); font-size: 10px; line-height: 16px; }
+.row .modeBadge[data-mode="research"] { background: color-mix(in srgb, var(--yf-brand-primary) 8%, transparent); color: var(--yf-brand-primary); }
+.modes { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 2px 0 10px; }
+.modes button { display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 3px 7px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--yf-text-secondary); font: inherit; font-size: 11px; cursor: pointer; transition: background 140ms ease-out, color 140ms ease-out; }
+.modes button[aria-pressed="true"] { border-color: var(--yf-border-divider); background: var(--yf-bg-surface); color: var(--yf-brand-primary); }
+.modes button:hover { background: var(--yf-bg-secondary); }
+.modes button:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
+[data-compact="true"] .modes { display: none; }
 .row[data-active="true"] { box-shadow: inset 0 0 0 1px var(--yf-border-divider); }
 .row[data-active="true"]::before { position: absolute; left: 0; top: 11px; bottom: 11px; width: 2px; border-radius: 2px; content: ""; background: var(--yf-brand-primary); }
 .row .statusIcon[data-tone="running"] { color: var(--yf-brand-primary); animation: spin 1.8s linear infinite; }
@@ -27,4 +36,4 @@
 .groupToggle:hover, .loadState button:hover { background: var(--yf-bg-secondary); }
 .groupToggle:focus-visible, .loadState button:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 2px; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .chevron { transition: none; } .row .statusIcon[data-tone="running"] { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .chevron, .modes button { transition: none; } .row .statusIcon[data-tone="running"] { animation: none; } }

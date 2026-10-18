@@ -1,5 +1,5 @@
 /* 会话行保留原任务操作，置顶与状态使用轻量标识。
- * Created on 2026-10-16
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { App, Dropdown, Input, type MenuProps } from "antd";
@@ -17,6 +17,7 @@ interface NavigationTaskRowProps extends Pick<WorkspaceNavigationProps, "onOpen"
 export function NavigationTaskRow({ task, active, pinned, onPin, ...actions }: NavigationTaskRowProps) {
   const { modal } = App.useApp();
   const reduced = useReducedMotion();
+  const modeLabel = task.mode === "research" ? "科研" : task.isLegacy && !task.mode ? "历史" : "开发";
   const StatusIcon = task.section === "running" ? LoaderCircle : task.section === "completed" ? Check
     : task.section === "attention" || task.section === "waiting_approval" ? CircleAlert : task.section === "waiting" ? Clock3 : MessageSquare;
   const menu: MenuProps = { items: [
@@ -34,8 +35,9 @@ export function NavigationTaskRow({ task, active, pinned, onPin, ...actions }: N
   return <motion.div layout={reduced ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduced ? 0 : 0.14 }}>
     <Dropdown trigger={["contextMenu"]} menu={menu}><div className={`${shell.conversationRow} ${styles.row}`} data-active={active || undefined}>
       <button type="button" className={shell.navButton} onClick={() => actions.onOpen(task)} aria-current={active ? "page" : undefined}
-        aria-label={`打开任务：${task.title}`} title={`${task.title}\n${task.statusLabel}${task.attentionReason ? ` · ${task.attentionReason}` : ""}`}>
-        {task.isLegacy ? <MapleStatusMark /> : <StatusIcon size={14} className={styles.statusIcon} data-tone={task.section} aria-hidden="true" />}<span>{task.title}</span>
+        aria-label={`打开任务：${task.title}`} title={`${task.title}\n${modeLabel} · ${task.statusLabel}${task.attentionReason ? ` · ${task.attentionReason}` : ""}`}>
+        {task.isLegacy ? <MapleStatusMark /> : <StatusIcon size={14} className={styles.statusIcon} data-tone={task.section} aria-hidden="true" />}<span className={styles.rowTitle}>{task.title}</span>
+        <span className={styles.modeBadge} data-mode={task.mode} aria-label={`${modeLabel}会话`}>{modeLabel}</span>
       </button>
       {pinned && <Pin data-navigation-pin size={11} className={styles.pin} aria-label="已置顶" />}
       <Dropdown trigger={["click"]} menu={menu}>

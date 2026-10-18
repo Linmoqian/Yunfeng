@@ -1,5 +1,5 @@
 /* LianAgent 工作区导航：项目树、会话、团队与设置入口。
- * Created on 2026-10-16
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { App, Input } from "antd";
@@ -11,6 +11,7 @@ import yuncongCloud from "../../../assets/generated/yuncong-cloud.png";
 import { NavigationGroup, NavigationReveal } from "./NavigationGroup";
 import { NavigationTaskRow } from "./NavigationTaskRow";
 import { NavigationLoadState } from "./NavigationLoadState";
+import { NavigationModes, type ConversationFilter } from "./NavigationModes";
 import { buildTaskSections } from "../taskPresentation";
 import styles from "./WorkspaceShell.module.css";
 
@@ -28,6 +29,7 @@ export function WorkspaceNavigation(props: WorkspaceNavigationProps) {
   const [localProjects, setLocalProjects] = useState<string[]>([]);
   const [pinned, setPinned] = useState<string[]>([]);
   const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [modeFilter, setModeFilter] = useState<ConversationFilter>("all");
   const groups = useMemo(() => {
     const grouped = new Map<string, TaskSummary[]>();
     for (const task of props.tasks) {
@@ -46,8 +48,15 @@ export function WorkspaceNavigation(props: WorkspaceNavigationProps) {
   }
   const sorted = (tasks: TaskSummary[]) => [...tasks].sort((a, b) => Number(pinned.includes(b.id)) - Number(pinned.includes(a.id)) || Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   const personal = props.tasks.filter((task) => !task.isLegacy && (props.archived ? task.section === "archived" : task.section !== "archived"));
-  const pinnedTasks = sorted(personal.filter((task) => pinned.includes(task.id)));
-  const personalSections = buildTaskSections(personal.filter((task) => !pinned.includes(task.id)), props.archived);
+  const visible = personal.filter((task) => modeFilter === "all" || (task.mode ?? "development") === modeFilter);
+  const pinnedTasks = sorted(visible.filter((task) => pinned.includes(task.id)));
+  const personalSections = buildTaskSections(visible.filter((task) => !pinned.includes(task.id)), props.archived);
+  const activeTask = personal.find((task) => task.id === props.activeId);
+  const activeMode = activeTask ? activeTask.mode ?? "development" : undefined;
+  useEffect(() => {
+    // 外部打开会话时让所选会话可见；手动筛选不切换当前会话或输入模式。
+    setModeFilter((current) => activeMode && current !== "all" && current !== activeMode ? "all" : current);
+  }, [props.activeId, activeMode]);
   const activeGroup = pinnedTasks.some((task) => task.id === props.activeId) ? "pinned" : personalSections.find((group) => group.tasks.some((task) => task.id === props.activeId))?.id;
   const activeProject = groups.find((group) => group.tasks.some((task) => task.id === props.activeId))?.id;
   useEffect(() => {
@@ -72,9 +81,11 @@ export function WorkspaceNavigation(props: WorkspaceNavigationProps) {
     <div className={styles.records} aria-busy={props.loading || undefined}>
       <div className={styles.sectionLabel}><MessageSquare size={14} /><strong>{props.archived ? "归档会话" : "个人会话"}</strong><span>{!props.tasks.length && (props.loading || props.error) ? "—" : personal.length}</span><button type="button" className={styles.iconButton} aria-label={props.archived ? "返回活动会话" : "查看归档会话"} onClick={() => props.onArchivedChange(!props.archived)}><Archive size={14} /></button></div>
       <NavigationLoadState loading={props.loading} error={props.error} hasItems={props.tasks.length > 0} onRetry={props.onRetry} />
+      {personal.length > 0 && <NavigationModes tasks={personal} value={modeFilter} onChange={setModeFilter} />}
       {pinnedTasks.length > 0 && <NavigationGroup label="置顶" count={pinnedTasks.length} open={searching || !collapsed.includes("pinned")} onToggle={() => toggle("pinned")}>{pinnedTasks.map(row)}</NavigationGroup>}
       {personalSections.map((section) => <NavigationGroup key={section.id} label={section.label} count={section.tasks.length} tone={section.id}
         open={searching || !collapsed.includes(section.id)} onToggle={() => toggle(section.id)}>{section.tasks.map(row)}</NavigationGroup>)}
+      {personal.length > 0 && !visible.length && <div className={styles.empty}>没有匹配的{modeFilter === "research" ? "科研" : "开发"}会话</div>}
       <div className={styles.sectionLabel}><img src={yuncongCloud} alt="" width={18} height={18} /><strong>云丛</strong><span>{groups.length + localProjects.length}</span><button type="button" className={styles.iconButton} onClick={newProject} aria-label="新建项目"><FolderPlus size={14} /></button></div>
       {groups.map((group) => {
         const open = expanded.includes(group.id) || searching;
