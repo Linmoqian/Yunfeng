@@ -1,5 +1,5 @@
 /* 有界目标树、确定性评分、滚动选择和执行预算；无模型调用或系统副作用。
- * Created on 2026-10-15
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { moveRelations } from "./relations.js";
@@ -48,7 +48,7 @@ export function decide(previous: DecisionState, proposal: DecisionProposal): Dec
     if (aliases.has(candidate.key) && aliases.get(candidate.key) !== node.id) throw new Error("候选 key 不能覆盖目标或已有节点身份");
     aliases.set(candidate.key, node.id);
     if (!existing) {
-      if (state.nodes.length >= 100) throw new DecisionBlocked("目标树已达到 100 个节点上限，请工程师缩小范围");
+      if (state.nodes.length >= 100) throw new DecisionBlocked("目标树已达到 100 个节点上限，请科学家缩小范围");
       state.nodes.push(node);
     }
     if (candidate.presentation) node.presentation = candidate.presentation;
@@ -62,7 +62,7 @@ export function decide(previous: DecisionState, proposal: DecisionProposal): Dec
   state.horizon = eligible.sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id)).slice(0, 5).map((n) => n.id);
   if (proposal.decision === "select") {
     state.selectedId = state.horizon[0];
-    if (!state.selectedId) state.reason = "没有可执行候选：检查预算、已完成任务或重复失败，需要工程师补充方向";
+    if (!state.selectedId) state.reason = "没有可执行候选：检查预算、已完成任务或重复失败，需要科学家补充方向";
   }
   return state;
 }

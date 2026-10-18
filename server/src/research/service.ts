@@ -239,7 +239,7 @@ export class ResearchService {
     this.context.runtime.resolveIntervention(id, requestId, approved);
     this.context.store.update(id, (s) => { delete s.autonomy!.approvalId; if (approved) s.autonomy!.authorizedPlan = JSON.stringify(s.autonomy!.plan); });
     if (approved) this.instances.get(id)?.hooks.publish(researchEvent({ kind: "approval_granted", requestId }));
-    else await this.pauseTask(id, "工程师拒绝了实验计划");
+    else await this.pauseTask(id, "科学家拒绝了实验计划");
     return true;
   }
   command(id: string, command: TaskCommand): Promise<unknown> {
@@ -256,7 +256,7 @@ export class ResearchService {
       await this.message(id, message, "user");
       await this.resumeTask(id);
     } else if (["abort", "complete", "archive"].includes(command.type)) {
-      await this.pauseTask(id, "工程师主动停止");
+      await this.pauseTask(id, "科学家主动停止");
       if (command.type !== "abort") this.context.store.update(id, (s) => { s.status = command.type === "archive" ? "archived" : "completed"; });
     } else if (command.type === "retry" || command.type === "reopen") await this.resumeTask(id);
     else if (command.type === "setModel") {

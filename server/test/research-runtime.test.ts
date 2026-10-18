@@ -369,7 +369,7 @@ test("连续失败耗尽节点尝试后暂停，模型重新提案不能重置�
   } finally { await ctx.close(); }
 });
 
-test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载项目扩展", { timeout: 45000 }, async () => {
+test("实际 Pi 决策使用 Lin 配置，各阶段使用科学家身份且不加载工具或项目扩展", { timeout: 45000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "yf-pi-research-"));
   const agentDir = join(root, ".lin/agent"), cwd = join(root, "project");
   const requests: Record<string, unknown>[] = [];
@@ -385,7 +385,7 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
     const last = data.messages.at(-1).content;
     const context = JSON.parse(typeof last === "string" ? last : last.map((part: { text?: string }) => part.text ?? "").join(""));
     const invalid = { decision: "act", reason: "配置", steps: [{ action: "write_file", path: "config.json", content: { value: 1 } }], success_condition: { kind: "file_exists", path: "config.json" } };
-    const content = JSON.stringify(context.phase === "decide" ? { decision: "wait", reason: "等待候选事实", candidates: [] } : context.phase === "plan" ? (++planRequests === 1 ? invalid : { decision: "wait", reason: "等待真实项目事件", steps: [] }) : learning);
+    const content = JSON.stringify(context.phase === "decide" ? { decision: "wait", reason: "等待候选事实", candidates: [] } : context.phase === "plan" ? (++planRequests === 1 ? invalid : { decision: "wait", reason: "等待真实项目事件", steps: [] }) : context.phase === "relate" ? { matches: [] } : context.phase === "summarize" ? { presentations: [{ node: "mission", title: "本地实验", summary: "验证真实项目结果。" }] } : learning);
     const frame = (delta: object, finish_reason: string | null) => `data: ${JSON.stringify({ id: "stub", object: "chat.completion.chunk", created: 0, model: "research-local", choices: [{ index: 0, delta, finish_reason }] })}\n\n`;
     res.writeHead(200, { "Content-Type": "text/event-stream" });
     res.end(frame({ role: "assistant", content }, null) + frame({}, "stop") + "data: [DONE]\n\n");
@@ -408,15 +408,20 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
       assert.equal((await reason('decide', { goal: '局部决策' }, AbortSignal.timeout(15000))).decision, 'wait');
       assert.equal((await reason('plan', { goal: '本地验收' }, AbortSignal.timeout(15000))).decision, 'wait');
       assert.ok((await reason('reflect', { result: { status: 'succeeded' } }, AbortSignal.timeout(15000))).summary);
+      assert.deepEqual((await reason('relate', {}, AbortSignal.timeout(15000))).matches, []);
+      assert.equal((await reason('summarize', { nodes: [{ id: 'mission', objective: '本地实验' }] }, AbortSignal.timeout(15000))).presentations[0].node, 'mission');
       await assert.rejects(reason('decide', { goal: 'REJECT_AUTH' }, AbortSignal.timeout(15000)), (error) => error.message.includes('HTTP 401') && error.message.includes('认证失败') && !error.message.includes('private-credential'));
       console.log('pi-research-isolation-ok');
     `;
     const envFile = join(root, "empty.env"); await writeFile(envFile, "");
     const child = await promisify(execFile)(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], { cwd: new URL("../", import.meta.url), env: { ...process.env, YUNFENG_ENV_FILE: envFile, YUNFENG_AGENT_DIR: agentDir, YUNFENG_DATA_DIR: join(root, "data") }, timeout: 35000 });
     assert.match(child.stdout, /pi-research-isolation-ok/);
-    assert.equal(requests.length, 5);
+    assert.equal(requests.length, 7);
     assert.equal(planRequests, 2);
     for (const request of requests) {
+      const system = (request.messages as { role: string; content: unknown }[]).filter((message) => message.role === "system");
+      assert.match(JSON.stringify(system), /用户身份为科学家，称呼用户为科学家/);
+      assert.ok(!JSON.stringify(system).includes("工程师"));
       assert.ok(!request.tools || (request.tools as unknown[]).length === 0);
       assert.ok(!JSON.stringify(request).includes("UNTRUSTED_PROJECT_CONTEXT_MARKER"));
     }
@@ -430,7 +435,7 @@ test("科研澄清与模型失败作为可见答复保存，等待时不重复�
     const ctx = await fixture(async () => { throw new Error("不应执行实验规划"); }, condition, async () => {
       decisions += 1;
       if (failure) throw new Error("科研模型服务暂不可用");
-      return { decision: "ask", reason: "工程师，请说明研究目标和验收条件。", candidates: [] };
+      return { decision: "ask", reason: "科学家，请说明研究目标和验收条件。", candidates: [] };
     });
     try {
       const stopped = ctx.phase(failure ? "FAILED" : "PAUSED");

@@ -1,11 +1,11 @@
 /* 有界 Hook/Event Bus：合并通知、去重并等待当前运行单元释放，禁止模型轮询。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import type { ResearchCheckpoint } from "../types.js";
 import type { HookSignal, ResearchEvent, ResearchHook } from "./types.js";
 const hooks: ResearchHook[] = [
-  { name: "lifecycle", accept: (e) => e.kind === "lifecycle" ? { started: "任务启动", resumed: "工程师继续任务", recovered: "服务恢复，重新观察项目" }[e.action] : undefined },
+  { name: "lifecycle", accept: (e) => e.kind === "lifecycle" ? { started: "任务启动", resumed: "科学家继续任务", recovered: "服务恢复，重新观察项目" }[e.action] : undefined },
   { name: "job", accept: (e, s) => e.kind === "job_completed" && e.status !== "running" && e.jobId === s.jobId && s.result?.job_id === e.jobId && s.result.status === e.status ? `作业${e.status}，需要核验与反馈` : undefined },
   { name: "approval", accept: (e, s) => e.kind === "approval_granted" && !!s.authorizedPlan ? "具体计划已获授权" : undefined },
   { name: "pi", accept: (e) => e.kind === "pi_extension" && e.action === "facts_changed" && e.paths.length > 0 ? "Pi 扩展通知观察文件变化" : undefined },

@@ -70,7 +70,7 @@ export class ProjectCore implements AgentCore {
     tree = decide(tree, proposal); this.decision = tree;
     if (tree.mission.condition && (await evaluate(task.cwd, tree.mission.condition)).passed) return complete();
     if (proposal.decision === "wait") return { decision: "wait", reason: proposal.reason, steps: [], observe_paths: [...(tree.mission.condition ? [tree.mission.condition.path] : []), ...proposal.observe_paths].slice(0, 8) };
-    if (proposal.decision !== "select" || !tree.selectedId || !tree.mission.condition) return { decision: "pause", reason: !tree.mission.condition ? `需要工程师明确长期目标的实测验收条件：${proposal.reason}` : proposal.decision === "complete" ? "决策模型声明完成，但长期目标实测验收未通过" : tree.reason, steps: [] };
+    if (proposal.decision !== "select" || !tree.selectedId || !tree.mission.condition) return { decision: "pause", reason: !tree.mission.condition ? `需要科学家明确长期目标的实测验收条件：${proposal.reason}` : proposal.decision === "complete" ? "决策模型声明完成，但长期目标实测验收未通过" : tree.reason, steps: [] };
     if (this.relate) { tree = await this.relate(tree, tree.selectedId, this.signal); this.decision = tree; }
     const node = tree.nodes.find((n) => n.id === tree.selectedId)!;
     const plan = parsePlan(await this.reason("plan", { goal: node.objective, mission: tree.mission, node, state, previous: checkpoint.learning, permissions: checkpoint.permissions }, AbortSignal.any([this.signal, AbortSignal.timeout(120_000)])));
