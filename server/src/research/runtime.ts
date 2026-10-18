@@ -29,7 +29,11 @@ export class ResearchRuntime {
     if (this.stopped || this.active || !signals.length) return false;
     this.active = true;
     this.pumping = this.turn(signals).catch(async (error) => {
-      if (!this.stopped) await this.phase(error instanceof DecisionBlocked ? "PAUSED" : "FAILED", (error as Error).message);
+      if (!this.stopped) {
+        const reason = error instanceof Error ? error.message : String(error);
+        await this.ports.message(`需要处理：${reason}`);
+        await this.phase(error instanceof DecisionBlocked ? "PAUSED" : "FAILED", reason);
+      }
     }).finally(() => { this.pumping = null; this.active = false; if (!this.stopped) this.ports.settled(); });
     return true;
   }
@@ -73,10 +77,14 @@ export class ResearchRuntime {
     const steps = plan.steps.map((step) => step.action === "write_file" ? `写入 ${step.path}` : step.action === "patch_file" ? `精确修改 ${step.path}` : step.action === "read_file" ? `读取 ${step.path}` : step.action === "read_horizon" ? `读取视界 ${step.domain}` : step.action === "focus_component" ? `聚焦节点 ${step.target}` : step.action === "update_component" ? `更新科研组件，报告 ${step.patch.source}` : `运行 ${step.program}，参数 ${JSON.stringify(step.args)}`).join("\n");
     await this.ports.message(`计划：${plan.reason}${steps ? `\n\n步骤：\n${steps}` : ""}${plan.success_condition ? `\n\n验收条件：${JSON.stringify(plan.success_condition)}` : ""}`);
     if (plan.decision === "wait") { await this.phase("WAITING", plan.reason); return; }
-    if (plan.decision === "pause") { await this.phase("PAUSED", plan.reason); return; }
+    if (plan.decision === "pause") {
+      await this.ports.message(`需要处理：${plan.reason}`);
+      await this.phase("PAUSED", plan.reason); return;
+    }
     if (!await this.ports.authorize(plan)) {
       await this.phase("WAITING", "等待实验计划授权");
       await this.ports.requestApproval(plan);
+      await this.ports.message("需要处理：实验计划已准备好，请确认执行授权后继续。");
       return;
     }
     await this.execute(plan);

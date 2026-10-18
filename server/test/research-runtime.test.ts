@@ -1,5 +1,5 @@
 /* 自主闭环的核心验收：真实作业、事件等待、权限、中断恢复和取消。
- * Created on 2026-10-16
+ * Created on 2026-10-18
  * @author: https://github.com/Linmoqian
  */
 import assert from "node:assert/strict";
@@ -283,6 +283,7 @@ test("未授权计划展示具体步骤，批准后只执行一次，旧授权�
     assert.equal(await ctx.service.resolve(task.id, requestId, true), true);
     await completed;
     assert.equal(await ctx.service.resolve(task.id, requestId, true), false);
+    assert.equal(ctx.service.conversation(task.id).context.messages.filter((m) => m!.role === "assistant" && m!.content.includes("请确认执行授权")).length, 1);
     assert.equal(task.autonomy!.authorizedPlan, undefined);
     assert.equal(JSON.parse(await readFile(join(ctx.cwd, "report.json"), "utf8")).accuracy, 0.934);
   } finally { await ctx.close(); }
@@ -417,4 +418,27 @@ test("实际 Pi 决策使用 Lin 配置，模型请求没有工具且不加载�
     }
     await assert.rejects(readFile(marker), { code: "ENOENT" });
   } finally { endpoint.closeAllConnections(); await new Promise<void>((resolve) => endpoint.close(() => resolve())); await rm(root, { recursive: true, force: true }); }
+});
+
+test("科研澄清与模型失败作为可见答复保存，等待时不重复唤醒", { timeout: 10000 }, async () => {
+  for (const failure of [false, true]) {
+    let decisions = 0;
+    const ctx = await fixture(async () => { throw new Error("不应执行实验规划"); }, condition, async () => {
+      decisions += 1;
+      if (failure) throw new Error("科研模型服务暂不可用");
+      return { decision: "ask", reason: "工程师，请说明研究目标和验收条件。", candidates: [] };
+    });
+    try {
+      const stopped = ctx.phase(failure ? "FAILED" : "PAUSED");
+      const task = await ctx.service.create(ctx.cwd, "你好啊", undefined, {});
+      await stopped;
+      const messages = ctx.service.conversation(task.id).context.messages.filter((message) => message!.role === "assistant");
+      assert.equal(messages.length, 1);
+      assert.match(messages[0]!.content, failure ? /需要处理：科研模型服务暂不可用/ : /需要处理：.*请说明研究目标/);
+      assert.equal(decisions, 1);
+      assert.equal(task.autonomy!.jobId, undefined);
+      const restored = new TaskStore({ dataDir: join(ctx.root, "data") });
+      assert.ok(restored.readEvents(task.id, 0).some((event) => event.type === "message_completed" && JSON.stringify(event.data).includes("需要处理：")));
+    } finally { await ctx.close(); }
+  }
 });
