@@ -13,32 +13,48 @@ import { TaskStore } from '../../dist/task/task-store.js';
 import { TaskEventHub } from '../../dist/task/task-event-hub.js';
 import { JobExecutor } from '../../dist/research/executor.js';
 
-export async function fixtureHandler(root) {
+export async function fixtureHandler(root, { resume = false } = {}) {
   const dataDir = join(root, 'data'); await mkdir(dataDir, { recursive: true });
   const seed = JSON.parse(await readFile(join(root, 'task.json'), 'utf8'));
-  const graph = new ResearchGraphStore(dataDir); graph.save(seed);
+  const graph = new ResearchGraphStore(dataDir); if (!resume) graph.save(seed);
   let at = '2026-10-18T00:00:00.000Z', job = 0;
   const store = new TaskStore({ dataDir, now: () => at }), hub = new TaskEventHub(store), jobs = new JobExecutor();
+  const write = (request) => new Promise((resolve, reject) => {
+    jobs.start(`native-compare-${job++}`, root, { decision: 'act', reason: 'measure', steps: [{ action: 'write_file', path: request.path, content: request.content }], success_condition: request.condition }, async (result) => {
+      if (result.status === 'succeeded') resolve(result.evaluation); else reject(new Error('write rejected'));
+    });
+  });
   return { close: () => jobs.close(), async call(request) {
     at = request.at ?? at;
     switch (request.op) {
       case 'ping': return request.payload;
       case 'read': return readProjectText(root, request.path);
       case 'evaluate': return evaluate(root, request.condition);
-      case 'write': return new Promise((resolve, reject) => {
-        jobs.start(`native-compare-${job++}`, root, { decision: 'act', reason: 'measure', steps: [{ action: 'write_file', path: request.path, content: request.content }], success_condition: request.condition }, async (result) => {
-          if (result.status === 'succeeded') resolve(result.evaluation); else reject(new Error('write rejected'));
-        });
-      });
-      case 'checkpoint': store.update(seed.id, (state) => { state.autonomy.reason = request.reason; }); return null;
-      case 'event': return { seq: (await hub.emit(seed.id, 'task_updated', { phase: 'WAITING' })).seq };
+      case 'write': return write(request);
+      case 'experiment': {
+        const config = JSON.parse(await readProjectText(root, '.lin/experiments/config.json'));
+        if (!['baseline', 'optimize'].includes(config.stage)) throw new Error('invalid fixture stage');
+        const samples = JSON.parse(await readProjectText(root, 'samples.json'));
+        const selected = samples.filter((sample) => config.stage === 'baseline' || sample.keep);
+        const sum = selected.reduce((total, sample) => total + sample.value, 0);
+        const report = { count: selected.length, sum, mean: sum / selected.length, completed: 1 };
+        const path = `.lin/experiments/${config.stage}.json`;
+        await write({ path, content: JSON.stringify(report), condition: { kind: 'file_exists', path } });
+        return report;
+      }
+      case 'checkpoint': store.update(seed.id, (state) => {
+        state.autonomy.reason = request.reason;
+        for (const key of ['phase', 'cycle']) if (request[key] !== undefined) state.autonomy[key] = request[key];
+        if (request.nodeStatus) Object.assign(state.autonomy.decision.nodes[0], { status: request.nodeStatus });
+      }); return null;
+      case 'event': return { seq: (await hub.emit(seed.id, 'task_updated', { phase: request.phase ?? 'WAITING' })).seq };
       case 'snapshot': return graph.readAll().find((task) => task.id === seed.id);
       default: throw new Error('unsupported fixture operation');
     }
   } };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const handler = await fixtureHandler(process.argv[2]);
+  const handler = await fixtureHandler(process.argv[2], { resume: process.argv[3] === '--resume' });
   process.stdout.write('{"ready":true}\n');
   try {
     for await (const line of createInterface({ input: process.stdin })) {

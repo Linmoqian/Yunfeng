@@ -29,3 +29,17 @@ pnpm exec tsx scripts/research-live/performance.ts /absolute/path/to/performance
 ## Rust 对照
 
 新增独立 [Rust 科研核心](../../../app/src-tauri/research-kernel/README.md)，构建并执行后在全新目录生成 `comparison.json`、SQLite 和日志。`native-worker.mjs` 复用当前 `server/dist` 生产代码，运行前需要 `pnpm --dir server build`；`native-compare.ts` 记录进程内调用、双方 JSON 管道完整往返、核心内部计时、冷启动及采样 RSS。默认每项 5 次预热和 100 次测量，无模型请求。脚本 RSS 与二进制定位按 macOS/Linux 设计，当前仅验收 macOS arm64。详见 [结果与限制](../../../docs/development/2026-10-18-research-rust-comparison.md)。
+
+## 固定复杂工作流对照（无 LLM）
+
+先构建 Server 与 Rust release，在 `server/` 执行：
+
+```sh
+pnpm exec tsx scripts/research-live/workflow-compare.ts /absolute/path/to/new-workflow-comparison
+```
+
+固定执行 3 轮，每轮依次完成 Node 进程内、Node 管道、Rust 管道三组相同的 36 环节流程；每轮轮换组别先后，无预热、无随机步骤、无模型请求。包含 100 节点落库、等待条件、脚本注入 Hook 输入、固定规则决策、配置写入、真实样本文件统计、指标验收、反思候选落盘、暂停、实例关闭恢复与第二阶段筛选。统计夹具用 256 条确定样本；它不是训练实验或算法质量评价。Node 管道与 Rust 管道均真退出并重启；Node 进程内只重建领域实例。暂停没有人为等待时间。
+
+每个环节记录 UTC 系统时间、`Date.now()` 墙上时间差，以及 `process.hrtime.bigint()` 系统单调时钟纳秒差。毫秒墙上时钟可能记录 0，耗时对照使用单调时钟；Rust 内部耗时另外记录，主表始终包含序列化和管道完整往返。规则决策/反思由共用脚本固定返回，表中标记“共用脚本”，不代表两种语言或真实模型的推理速度。夹具业务时间固定以核对跨语言结果，计时时钟始终来自真实系统。
+
+`workflow-comparison.json` 保留全部 3 轮逐步结果、范围、中位数、源码和二进制指纹；`workflow-comparison.md` 是完整逐步表。报告另列扣除生命周期后的耗时，含脚本校验的总时间和环节累计分开。计时过程中不插入证据文件写入；各组完成后保留 `timings.json`、失败时部分计时、实验文件、SQLite 和事件日志。每个环节的结果均跨组核对，检查暂停前后状态一致、两阶段实际统计、事件连续及双方数据库交叉读取。固定编排没有运行生产 Pi Hook/决策桥或完整科研调度器。详见 [本次记录](../../../docs/development/2026-10-18-research-fixed-workflow.md)。

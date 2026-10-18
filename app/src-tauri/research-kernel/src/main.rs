@@ -7,15 +7,18 @@ use std::io::{self, BufRead, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use yunfeng_research_kernel::{files, store::GraphStore, Result};
+mod worker_experiment;
 struct Worker {
     root: PathBuf,
     task: Value,
     store: GraphStore,
 }
 impl Worker {
-    fn new(root: PathBuf) -> Result<Self> {
+    fn new(root: PathBuf, resume: bool) -> Result<Self> {
         let seed: Value = serde_json::from_slice(&fs::read(root.join("task.json"))?)?;
-        GraphStore::new(&root.join("data"))?.save(&seed)?;
+        if !resume {
+            GraphStore::new(&root.join("data"))?.save(&seed)?;
+        }
         let store = GraphStore::new(&root.join("data"))?;
         let task = store.read(seed["id"].as_str().ok_or("缺少任务身份")?)?;
         Ok(Self { root, task, store })
@@ -39,6 +42,14 @@ impl Worker {
             Some("checkpoint") => {
                 let mut next = self.task.clone();
                 next["autonomy"]["reason"] = request["reason"].clone();
+                for key in ["phase", "cycle"] {
+                    if let Some(value) = request.get(key) {
+                        next["autonomy"][key] = value.clone();
+                    }
+                }
+                if let Some(status) = request.get("nodeStatus") {
+                    next["autonomy"]["decision"]["nodes"][0]["status"] = status.clone();
+                }
                 next["updatedAt"] = at.into();
                 self.store.save(&next)?;
                 self.task = next;
@@ -47,7 +58,11 @@ impl Worker {
             Some("event") => {
                 let id = self.task["id"].as_str().ok_or("缺少任务身份")?;
                 let seq = self.task["lastEventSeq"].as_u64().ok_or("缺少事件游标")? + 1;
-                let event = json!({"id":uuid::Uuid::new_v4().to_string(),"taskId":id,"seq":seq,"occurredAt":at,"type":"task_updated","data":{"phase":"WAITING"}});
+                let phase = request
+                    .get("phase")
+                    .cloned()
+                    .unwrap_or_else(|| json!("WAITING"));
+                let event = json!({"id":uuid::Uuid::new_v4().to_string(),"taskId":id,"seq":seq,"occurredAt":at,"type":"task_updated","data":{"phase":phase}});
                 let folder = self.root.join("data/tasks").join(id);
                 fs::create_dir_all(&folder)?;
                 let mut file = OpenOptions::new()
@@ -63,6 +78,7 @@ impl Worker {
                 self.task["updatedAt"] = at.into();
                 Ok(json!({"seq":seq}))
             }
+            Some("experiment") => worker_experiment::run(&self.root),
             Some("snapshot") => self
                 .store
                 .read(self.task["id"].as_str().ok_or("缺少任务身份")?),
@@ -89,7 +105,10 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let root = std::env::args().nth(1).ok_or("需要独立临时目录")?;
-    let mut worker = Worker::new(fs::canonicalize(Path::new(&root))?)?;
+    let mut worker = Worker::new(
+        fs::canonicalize(Path::new(&root))?,
+        std::env::args().nth(2).as_deref() == Some("--resume"),
+    )?;
     let mut output = io::BufWriter::new(io::stdout().lock());
     writeln!(output, "{{\"ready\":true}}")?;
     output.flush()?;

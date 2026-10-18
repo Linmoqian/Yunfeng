@@ -20,3 +20,5 @@ pnpm --dir server exec tsx scripts/research-live/native-compare.ts /absolute/pat
 比较脚本调用当前生产 Node 实现，并分别记录进程内 Node、Node 管道、Rust 内部和 Rust 完整管道的 p50/p95，测量冷启动与采样 RSS。窗口、审批、取消、未知作业恢复与长时间训练仍由现有 Runtime 提供，未在 Rust 核心中重写。现阶段不宣称两套完整 Runtime 等价。
 
 结果和边界见 [对照记录](../../../docs/development/2026-10-18-research-rust-comparison.md)。
+
+按固定复杂流程完整执行三轮，使用 `pnpm --dir server exec tsx scripts/research-live/workflow-compare.ts /absolute/path/to/new-workflow-comparison`，逐环节记录真实系统时间与单调时钟耗时。私有 worker 的 `--resume` 读取既有数据库，跳过初始种子写入；`experiment` 仅为固定样本统计夹具，读取配置与样本、落盘指标并核验产物，不注册生产工具。流程及范围见 [固定工作流记录](../../../docs/development/2026-10-18-research-fixed-workflow.md)。
