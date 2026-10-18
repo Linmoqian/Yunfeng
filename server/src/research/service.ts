@@ -18,6 +18,7 @@ import { getAgentDir } from "../agent/sdk.js";
 import { piReasoner } from "./reasoner.js";
 import { JobExecutor } from "./executor.js";
 import { ResearchRuntime } from "./runtime.js";
+import { LifecycleLane, unresolvedJob } from "./lifecycle.js";
 import { projectPath } from "./project.js";
 import { record, step, text } from "./validation.js";
 import { createDecision } from "./decision/engine.js";
@@ -41,6 +42,7 @@ export class ResearchService {
   private readonly jobs = new JobExecutor();
   private readonly instances = new Map<string, { runtime: ResearchRuntime; controller: AbortController; hooks: HookLayer; files: FileHooks; bridge: PiResearchBridge }>();
   private closed = false;
+  private readonly lifecycle = new LifecycleLane();
   private readonly recovering = new Map<string, Promise<void>>();
   private readonly graphRequests = new Set<string>();
   private readonly graphAbort = new AbortController();
@@ -116,6 +118,7 @@ export class ResearchService {
     if (this.closed || this.instances.size >= 4) throw new Error("自主任务容量已满，先暂停一个任务");
     const skills = parseResearchSkills(options.skills);
     await loadResearchSkills(root, getAgentDir(), skills);
+    if (this.closed) throw new Error("科研服务已停止");
     const maxCycles = options.maxCycles ?? 20;
     if (!Number.isInteger(maxCycles) || Number(maxCycles) < 1 || Number(maxCycles) > 1000) throw new Error("轮次预算必须在 1 到 1000 之间");
     const decisionBudget = options.decisionBudget ?? 10;
@@ -133,6 +136,7 @@ export class ResearchService {
     });
     const writeRoots = roots.map((value) => text(value, 500));
     for (const path of writeRoots) await projectPath(root, path);
+    if (this.closed) throw new Error("科研服务已停止");
     const task = this.context.store.create({ cwd: root, sessionId: `research-${randomUUID()}`, title: goal.slice(0, 60), source: "task" });
     this.context.store.update(task.id, (s) => {
       s.mode = "research"; s.model = model; s.activeToolNames = ["observe", "plan", "execute", "reflect"];
@@ -225,30 +229,38 @@ export class ResearchService {
     this.context.store.update(id, (s) => { s.autonomy!.approvalId = item.id; });
     await this.context.hub.emit(id, "task_updated", publicResearchTask(this.context.store.get(id)!));
   }
-  async resolve(id: string, requestId: string, approved: boolean): Promise<boolean> {
+  resolve(id: string, requestId: string, approved: boolean): Promise<boolean> {
+    return this.lifecycle.run(id, () => this.resolveApproval(id, requestId, approved));
+  }
+  private async resolveApproval(id: string, requestId: string, approved: boolean): Promise<boolean> {
+    if (this.closed) return false;
     const task = this.context.store.get(id);
     if (!task?.autonomy || task.autonomy.approvalId !== requestId || !this.context.store.listInterventions(id).some((i) => i.id === requestId && i.status === "pending")) return false;
     this.context.runtime.resolveIntervention(id, requestId, approved);
     this.context.store.update(id, (s) => { delete s.autonomy!.approvalId; if (approved) s.autonomy!.authorizedPlan = JSON.stringify(s.autonomy!.plan); });
     if (approved) this.instances.get(id)?.hooks.publish(researchEvent({ kind: "approval_granted", requestId }));
-    else await this.pause(id, "工程师拒绝了实验计划");
+    else await this.pauseTask(id, "工程师拒绝了实验计划");
     return true;
   }
-  async command(id: string, command: TaskCommand): Promise<unknown> {
+  command(id: string, command: TaskCommand): Promise<unknown> {
+    return this.lifecycle.run(id, () => this.applyCommand(id, command));
+  }
+  private async applyCommand(id: string, command: TaskCommand): Promise<unknown> {
+    if (this.closed) throw new Error("科研服务已停止");
     const task = this.context.store.get(id)!;
     if (["prompt", "steer", "followUp"].includes(command.type)) {
       const message = text((command as { message: string }).message, 10000);
       const goal = text(`${task.autonomy!.goal}\n补充指令：${message}`, 10000);
-      await this.pause(id, "更新目标");
+      await this.pauseTask(id, "更新目标");
       this.context.store.update(id, (s) => { s.autonomy!.goal = goal; });
       await this.message(id, message, "user");
-      await this.resume(id);
+      await this.resumeTask(id);
     } else if (["abort", "complete", "archive"].includes(command.type)) {
-      await this.pause(id, "工程师主动停止");
+      await this.pauseTask(id, "工程师主动停止");
       if (command.type !== "abort") this.context.store.update(id, (s) => { s.status = command.type === "archive" ? "archived" : "completed"; });
-    } else if (command.type === "retry" || command.type === "reopen") await this.resume(id);
+    } else if (command.type === "retry" || command.type === "reopen") await this.resumeTask(id);
     else if (command.type === "setModel") {
-      await this.pause(id, "模型已切换，请继续任务");
+      await this.pauseTask(id, "模型已切换，请继续任务");
       this.context.store.update(id, (s) => { s.model = { provider: command.provider, modelId: command.modelId }; });
     } else if (command.type === "getQueue" || command.type === "clearQueue") return { steering: [], followUp: [] };
     else throw new Error("科研模式仅通过四个核心接口运行，此命令不适用");
@@ -259,14 +271,18 @@ export class ResearchService {
   notify(id: string, paths: readonly string[]): boolean {
     return this.instances.get(id)?.bridge.notify(paths) ?? false;
   }
-  async pause(id: string, reason: string): Promise<void> {
+  pause(id: string, reason: string): Promise<void> {
+    return this.lifecycle.run(id, () => this.pauseTask(id, reason));
+  }
+  private async pauseTask(id: string, reason: string): Promise<void> {
     const item = this.instances.get(id), task = this.context.store.get(id)!;
-    this.context.store.update(id, (s) => { s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = reason; s.status = "waiting_input"; delete s.autonomy!.authorizedPlan; });
+    this.context.store.update(id, (s) => { s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = reason; s.status = "waiting_input"; s.currentAction = `已暂停：${reason}`; delete s.autonomy!.authorizedPlan; });
     this.context.runtime.invalidateInterventionsForTask(id);
     this.context.store.update(id, (s) => { delete s.autonomy!.approvalId; });
     item?.controller.abort(); item?.hooks.close(); item?.bridge.close();
     const fileStopping = item?.files.close();
     const stopping = item?.runtime.stop();
+    this.publishState(task);
     let cleanupError: unknown;
     try {
       const recovery = this.recovering.get(id);
@@ -277,39 +293,57 @@ export class ResearchService {
       }
     } catch (error) {
       cleanupError = error;
-      this.context.store.update(id, (s) => { s.autonomy!.reason = (error as Error).message; });
+      this.context.store.update(id, (s) => { s.autonomy!.reason = (error as Error).message; s.currentAction = `已暂停：${s.autonomy!.reason}`; });
+      this.publishState(task);
     } finally {
       await stopping;
       await fileStopping;
-      if (task.autonomy?.jobId && !task.autonomy.result) {
+      if (unresolvedJob(task.autonomy!)) {
         this.context.store.update(id, (s) => { s.autonomy!.result = { job_id: s.autonomy!.jobId!, status: "interrupted", output: "作业未返回结果，核对项目后继续", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); });
+        this.publishState(task);
       }
       this.instances.delete(id);
     }
     if (cleanupError) throw cleanupError;
   }
 
-  async resume(id: string): Promise<void> {
-    await this.pause(id, "准备继续");
+  resume(id: string): Promise<void> {
+    return this.lifecycle.run(id, () => this.resumeTask(id));
+  }
+  private async resumeTask(id: string): Promise<void> {
+    if (this.closed) throw new Error("科研服务已停止");
+    const instance = this.instances.get(id);
+    if (instance && !instance.controller.signal.aborted) return;
+    await this.pauseTask(id, "准备继续");
     if (this.closed || this.instances.size >= 4) throw new Error("自主任务容量已满");
     this.context.store.update(id, (s) => { s.autonomy!.phase = "OBSERVING"; s.autonomy!.maxCycles = Math.max(s.autonomy!.maxCycles, s.autonomy!.cycle + 20); });
     this.start(id, "resumed");
   }
   recover(): void {
+    if (this.closed) return;
     for (const task of this.context.store.findAll().filter((s) => s.mode === "research" && s.autonomy?.schemaVersion === 1)) {
+      if (task.status === "archived" || this.instances.has(task.id) || this.recovering.has(task.id)) continue;
       const state = task.autonomy!;
-      if (state.jobId && !state.result) {
-        this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; });
-        const recovery = stopResearchJob(state.jobId).catch((error) => {
-          this.context.store.update(task.id, (s) => { s.autonomy!.reason = (error as Error).message; });
+      if (unresolvedJob(state)) {
+        this.context.runtime.invalidateInterventionsForTask(task.id);
+        this.context.store.update(task.id, (s) => { s.autonomy!.result = { job_id: state.jobId!, status: "interrupted", output: "服务重启，作业结果未知；不会自动重跑", completedAt: new Date().toISOString() }; settleResearchReports(s.autonomy!, s.autonomy!.result); delete s.autonomy!.approvalId; delete s.autonomy!.authorizedPlan; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "作业中断，核对后继续"; s.status = "waiting_input"; s.currentAction = "已暂停：作业中断，核对后继续"; });
+        const recovery = stopResearchJob(state.jobId!).catch((error) => {
+          this.context.store.update(task.id, (s) => { s.autonomy!.reason = (error as Error).message; s.currentAction = `已暂停：${s.autonomy!.reason}`; });
+          this.publishState(task);
           throw error;
         });
         this.recovering.set(task.id, recovery);
         void recovery.catch(() => {});
-      } else if (state.approvalId) {
-        this.context.store.update(task.id, (s) => { delete s.autonomy!.approvalId; delete s.autonomy!.authorizedPlan; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "重启后授权已失效"; });
-      } else if (!["PAUSED", "FAILED", "COMPLETED"].includes(state.phase) && task.status !== "archived") this.start(task.id, "recovered");
+        this.publishState(task);
+      } else if (state.approvalId || state.authorizedPlan) {
+        this.context.runtime.invalidateInterventionsForTask(task.id);
+        this.context.store.update(task.id, (s) => { delete s.autonomy!.approvalId; delete s.autonomy!.authorizedPlan; s.autonomy!.phase = "PAUSED"; s.autonomy!.reason = "重启后授权已失效"; s.status = "waiting_input"; s.currentAction = "已暂停：重启后授权已失效"; });
+        this.publishState(task);
+      } else if (!["PAUSED", "FAILED", "COMPLETED"].includes(state.phase)) this.start(task.id, "recovered");
     }
+  }
+  private publishState(task: TaskState): void {
+    void this.context.hub.emit(task.id, "task_updated", publicResearchTask(task)).catch(() => console.error("[research] 生命周期状态通知失败"));
   }
   conversation(id: string) {
     const messages = this.context.store.readEvents(id, 0).filter((e) => e.type === "message_completed").map((e) => (e.data as { message?: { id: string; role: string; content: string } }).message).filter(Boolean);
@@ -321,6 +355,7 @@ export class ResearchService {
   async close(): Promise<void> {
     this.graphAbort.abort();
     this.closed = true;
+    await this.lifecycle.drain();
     this.graphs.clear();
     const failures: unknown[] = [];
     for (const id of [...this.instances.keys()]) {

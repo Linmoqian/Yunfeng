@@ -1,5 +1,5 @@
 /* 事件驱动外层 Runtime：等待期间不占用模型循环，恢复不重放副作用。
- * Created on 2026-10-18
+ * Created on 2026-10-19
  * @author: https://github.com/Linmoqian
  */
 import { randomUUID } from "node:crypto";
@@ -22,7 +22,7 @@ export class ResearchRuntime {
   private active = false;
   private stopped = false;
   constructor(private readonly core: AgentCore, private readonly ports: Ports) {}
-  private phase(phase: ResearchPhase, reason: string) { return this.ports.save((s) => { s.phase = phase; s.reason = reason; }); }
+  private phase(phase: ResearchPhase, reason: string) { return this.stopped ? Promise.resolve() : this.ports.save((s) => { s.phase = phase; s.reason = reason; }); }
   get busy(): boolean { return this.active; }
   /** Hook 层一次交付一个合并批次；繁忙时由有界事件队列保留通知。 */
   trigger(signals: HookSignal[]): boolean {
@@ -81,7 +81,9 @@ export class ResearchRuntime {
       await this.ports.message(`需要处理：${plan.reason}`);
       await this.phase("PAUSED", plan.reason); return;
     }
-    if (!await this.ports.authorize(plan)) {
+    const authorized = await this.ports.authorize(plan);
+    if (this.stopped) return;
+    if (!authorized) {
       await this.phase("WAITING", "等待实验计划授权");
       await this.ports.requestApproval(plan);
       await this.ports.message("需要处理：实验计划已准备好，请确认执行授权后继续。");
@@ -90,6 +92,7 @@ export class ResearchRuntime {
     await this.execute(plan);
   }
   private async execute(plan: Plan): Promise<void> {
+    if (this.stopped) return;
     const jobId = randomUUID();
     // 在触发副作用之前持久化身份，崩溃后只标记中断，不自动重跑。
     await this.ports.save((s) => { reserveExecution(s, plan, jobId); s.jobId = jobId; s.phase = "EXECUTING"; s.reason = "提交实验作业"; });
@@ -99,11 +102,15 @@ export class ResearchRuntime {
   }
   async receive(result: Result): Promise<boolean> {
     const state = this.ports.read().autonomy;
-    if (state?.jobId !== result.job_id || state.result) return false;
+    if (result.status === "running" || state?.jobId !== result.job_id || state.result) return false;
+    let accepted = false;
     await this.ports.save((s) => {
-      if (!s.result) s.result = result;
+      if (s.jobId !== result.job_id || s.result) return;
+      s.result = result;
+      accepted = true;
       settleResearchReports(s, result);
     });
+    if (!accepted) return false;
     await this.ports.message(`实验结果：${result.status}\n\n${result.output ?? ""}\n\n验收：${result.evaluation?.reason ?? "未完成"}`);
     return true;
   }
