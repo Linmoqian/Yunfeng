@@ -15,3 +15,10 @@
 .queueStage :global(.ant-input) { border-radius: 13px; padding: 9px 12px; font-size: 12px; }
 .queueStage li button { flex: none; border: 0; padding: 4px; background: transparent; }
 @media (pointer: coarse) { .queueStage li button { min-width: 44px; min-height: 44px; } }
+
+.connectionStage { position: relative; height: 118px; margin-top: 12px; }
+.connectionPhase { color: var(--yf-text-tertiary); font-size: 11px; }
+.sortRow { position: relative; border-radius: 8px; background: var(--yf-bg-canvas); }
+.queueStage .sortHandle { touch-action: none; cursor: grab; color: var(--yf-text-tertiary); }
+.queueStage .sortHandle:active { cursor: grabbing; }
+.queueStage li button:disabled { opacity: .35; cursor: default; }

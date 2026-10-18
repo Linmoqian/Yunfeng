@@ -18,6 +18,11 @@ test("队列组字不入队，移除前项保留后项节点，清空后能再�
   await userEvent.click(screen.getByRole("button", { name: "添加样例" }));
   await userEvent.click(screen.getByRole("button", { name: "添加样例" }));
   const retained = screen.getByText("核对实验记录 2");
+  const handle = screen.getByRole("button", { name: "排序消息：核对实验记录 2" });
+  handle.focus(); await userEvent.keyboard("{ArrowUp}");
+  const list = screen.getByRole("list", { name: "样例排队消息" });
+  expect(list.textContent?.indexOf("核对实验记录 2")).toBeLessThan(list.textContent?.indexOf("核对实验记录 1") ?? 0);
+  expect(document.activeElement).toBe(handle);
   await userEvent.click(screen.getByRole("button", { name: "移除消息：核对实验记录 1" }));
   expect(screen.getByText("核对实验记录 2")).toBe(retained);
   expect(document.activeElement).toBe(input);

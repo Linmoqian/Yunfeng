@@ -5,9 +5,10 @@
 import { useState } from "react";
 import { ArrowLeft, Check, ChevronRight, FlaskConical, RotateCw } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Capsule, Details, MapleCloudLoading, ProgressCapsule, interactionStyles, useYunfengMotion } from "../../components/common";
+import { Capsule, Details, ProgressCapsule, interactionStyles, useYunfengMotion } from "../../components/common";
 import styles from "./UiLibraryPage.module.css";
 import { ModeSample, CapsuleSample, QueueSample } from "./InteractionSamples";
+import { ConnectionSample } from "./ConnectionSample";
 import { DragPlayground } from "./DragPlayground";
 
 export function UiLibraryPage() {
@@ -24,7 +25,7 @@ export function UiLibraryPage() {
       <section id="queue" className={`${styles.sample} ${styles.wide}`}><h2>消息排队</h2><QueueSample key={reset} /></section>
       <section id="progress" className={styles.sample}><h2>真实进度</h2><div className={styles.row}><ProgressCapsule label="任务" current={completed} total={5} /><ProgressCapsule label="文稿" current={1280} unit="字" /><button className={interactionStyles.pressable} type="button" onClick={() => setCompleted((value) => (value + 1) % 6)}><ChevronRight size={14} />推进</button></div><p>已知总量才显示进度；数值立即更新。</p></section>
       <section id="details" className={styles.sample}><h2>按需展开</h2><Capsule tone="accent" value={revision}>提升 14.4% · 样例</Capsule><Details><p>这里放方法、过程和原始记录。更新胶囊时保留展开状态。</p><button className={interactionStyles.pressable} type="button" onClick={() => setRevision((value) => value + 1)}><RotateCw size={13} />触发反馈</button></Details></section>
-      <section id="loading" className={styles.sample}><h2>枫叶与云</h2><div className={styles.row}><MapleCloudLoading compact /><span>正在连接 · 样例</span></div><p>加载不模拟进度。短暂读取不闪现，恢复后稳定收起。</p></section>
+      <section id="loading" className={styles.sample}><h2>重连与加载</h2><ConnectionSample key={reset} /></section>
       <section id="drag" className={`${styles.sample} ${styles.wide}`}><h2>拖放体验</h2><DragPlayground key={reset} /></section>
     </div>
     <footer className={styles.footer}>系统减少动态效果：{reduced ? "已启用" : "未启用"} · Motion / Ant Design / Yunfeng Token</footer>
