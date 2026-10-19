@@ -1,6 +1,6 @@
 # Yunfeng 文档索引
 
-本目录按当前实现、接口契约、工程规范和历史记录组织文档。复审日期：2026-10-15。
+本目录按当前实现、接口契约、工程规范和历史记录组织文档。2026-10-19 核对入口、科研职责、会话模式和维护命令；历史验收保留原日期与限制。
 
 ## 当前说明
 
@@ -8,6 +8,11 @@
 - [LianAgent 资源接入](development/2026-10-15-lianagent-import.md)：依赖选择、技能来源与角色执行边界。
 - [项目 README](../README.md)：目录与可执行命令。
 - [Server README](../server/README.md)：Pi SDK 适配与独立配置。
+- [科研架构](development/2026-10-18-research-architecture.md)：Pi SDK 与自研 Runtime、Hook、决策、执行、验收和恢复。
+- [工具设计原则](development/2026-10-18-tool-design-principles.md)：读取、修改、终端、视界及调用仲裁。
+- [云枫 UI 使用规范](development/2026-10-17-ui-library.md)：动画、胶囊和交互复用；开发审阅入口 `/dev/ui`。
+- [团队节点](../team-service/README.md)：本机多节点启动、自动同步与断线恢复验证。
+- [Agent 评估](api/agent-eval-report.md)：工作台 `/evaluation` 导入和比较评估报告。
 
 变更实现时同步相应契约；历史记录保留当时结论，不作为当前能力说明。
 
@@ -30,8 +35,10 @@
 
 - [backend-api.md](./api/backend-api.md)：yunfeng-server 任务 / 会话 / 审批 API
 - [科研自主任务](api/2026-10-15-research-runtime.md)：本地四阶段闭环、事件等待、授权、记忆与恢复。
+- [科研执行边界](api/2026-10-18-research-execution.md)、[核心工具](api/2026-10-18-research-tools.md)、[文献检索](api/2026-10-19-research-literature.md)：TS 编排与 Rust 执行、权重仲裁、来源保留及双源比较约束。
 - [gateway.md](./api/gateway.md)：yunfeng-gateway 代理路径、认证与事件流
 - [组件共享](api/2026-10-14-component-sharing.md)、[本地协作](api/2026-10-14-collaboration-action.md)、[终端](api/2026-10-14-terminal-action.md)
+- [组件聚焦](api/2026-10-16-component-focus.md)、[交互反馈](api/2026-10-16-component-interaction.md)、[单轮文件统计](api/2026-10-16-round-changes.md)
 - [团队节点与成员接口](api/2026-10-17-team-node.md)、[成员继承 SDK](../team-service/sdk/README.md)
 - [文稿图片](api/2026-10-14-paper-assets.md)、[PDF 导出](api/2026-10-14-paper-pdf.md)
 
@@ -58,6 +65,13 @@
 - [本地协作迁移](development/2026-10-14-collaboration-migration.md)
 - [论文写作接入](development/2026-10-14-paper-writing.md)
 - [原生交互审计](development/interaction-audit-2026-10-14.md)
+- [科研真实模型与暂停恢复](development/2026-10-18-research-live-acceptance.md)、[四工具闭环](development/2026-10-18-research-core-tools-live.md)、[文献检索闭环](development/2026-10-19-research-literature-live.md)
+
+## 文档维护
+
+说明与接口以当前源码、配置和真实验收为依据。修改能力时同步权威契约，其他入口引用该契约；历史记录保留当时环境和局限。`TODO.md` 中完成项标记完成并保留历史，当前待办写明剩余动作和验收条件。
+
+在仓库根目录运行 `pnpm check:docs`；检查器自身回归使用 `pnpm test:docs`。检查范围包含 `docs/` 的 Markdown/MDX、根目录规则文档与各应用模块 README，跳过依赖、构建产物、第三方源码和技能正文。仅检查普通内联链接的本地文件目标，不验证远程服务、标题锚点、引用式链接或能力事实。`docs/01` 至 `04` 历史对话中的 `../pi/` 检出链接按原话保留，其余失效链接仍报错。
 
 ## 归档约定
 

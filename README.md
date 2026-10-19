@@ -26,6 +26,8 @@ Yunfeng 是本地优先的个人 Agent 工作台。桌面 React 界面通过 HTT
 
 首页提供开发与科研模式。科研模式面向本地项目，由决策层维护目标树、评分与预算，每轮选择一个任务交给 Pi 规划。观察、执行与反思形成闭环，等待作业或文件事件后继续，经验写入候选记忆。项目范围、执行授权与恢复规则见[科研任务契约](docs/api/2026-10-15-research-runtime.md)。
 
+会话列表按后端保存的模式显示“开发 / 科研”标签，支持模式筛选，状态分组、置顶和归档继续沿用。筛选只影响列表，不修改当前会话或输入模式。科研的自研调度与 SDK 边界见[科研架构](docs/development/2026-10-18-research-architecture.md)。
+
 ## 快速开始
 
 根目录使用 pnpm workspace；完整后端编排需要 Node 24 及 Rust/Tauri 开发环境。
@@ -61,7 +63,7 @@ TUI 在独立 workspace 内运行：`cd yunfeng-cli` 后执行 `pnpm install`、
 
 | 范围 | 从仓库根目录执行 |
 | --- | --- |
-| 文档本地链接 | `pnpm check:docs` |
+| 文档本地链接与检查器回归 | `pnpm check:docs`、`pnpm test:docs` |
 | 桌面前端 | `pnpm --dir app exec tsc --noEmit`、`pnpm --dir app test` |
 | Server | `pnpm --filter yunfeng-server build`、`pnpm --filter yunfeng-server test` |
 | Gateway | `pnpm --filter yunfeng-gateway test` |
@@ -72,6 +74,8 @@ TUI 在独立 workspace 内运行：`cd yunfeng-cli` 后执行 `pnpm install`、
 | TUI | 在 `yunfeng-cli/` 执行 `pnpm test`、`pnpm smoke` |
 
 实际验证结果属于对应任务记录；命令列表不代表全部能力已经验收。
+
+云端统一保留 `main`，开发与推送约定见 [Git 工作流](docs/development/git-workflow.md)。
 
 ## 文档入口
 
