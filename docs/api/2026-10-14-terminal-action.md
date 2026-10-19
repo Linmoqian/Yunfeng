@@ -18,7 +18,7 @@
 
 ## 请求
 
-SDK：`app/src/features/workbench/services/terminal.ts`。字段位于 `request`，未知字段拒绝。
+SDK：`app/desktop/src/features/workbench/services/terminal.ts`。字段位于 `request`，未知字段拒绝。
 
 | 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |

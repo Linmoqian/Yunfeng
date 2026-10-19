@@ -29,7 +29,7 @@ Agent 目录优先级为 `YUNFENG_AGENT_DIR` > `LIN_CODING_AGENT_DIR` > `<YUNFEN
 
 ## 启动与更新
 
-- 桌面：在 `app/` 执行 `pnpm tauri dev`，统一启动 Vite 和 Tauri。
+- 桌面：在 `app/desktop/` 执行 `pnpm tauri dev`，统一启动 Vite 和 Tauri。
 - 前端 TSX/CSS：Vite HMR 更新。
 - Rust：重新编译并重启应用，核对实例数和 IPC 恢复。
 - Node Server：桌面优先执行构建产物；改源码后运行 Server 构建，并重启对应服务。
@@ -39,8 +39,8 @@ Agent 目录优先级为 `YUNFENG_AGENT_DIR` > `LIN_CODING_AGENT_DIR` > `<YUNFEN
 ## 现有边界
 
 - `server-rpc/` 是另一条 Pi 子进程实验链，不属于当前桌面启动路径，也未承诺与 Lin 目录隔离规则相同。
-- `yunfeng-cli/` 当前是 TUI/CLI 组件演示，普通消息使用模拟回复。
-- `yunfeng-mobile/` 是历史原型；移动开发入口为 `mobile-app/`。
+- `app/cli/` 当前是 TUI/CLI 组件演示，普通消息使用模拟回复。
+- `app/mobile/legacy/` 是历史原型；移动开发入口为 `app/mobile/`。
 - 首页“科研”启动本地自主 Runtime：Decision Layer 维护目标树与最多五个候选窗口，用规则评分、预算和尝试上限选择一个节点。Pi 使用无工具的临时 SDK 会话返回决策、计划、反思、关系与摘要，长期状态由宿主保存。TS 负责调度与编排；桌面 Rust 承担受控文件执行和内置终端，独立 Server 保留相应 Node 适配。执行范围由任务权限及具体计划授权控制，节点通过后仍需核验长期目标。详见[科研架构](2026-10-18-research-architecture.md)、[科研 API](../api/2026-10-15-research-runtime.md)与[决策层模块](../../server/src/research/decision/README.md)。
 - 文献视界通过 execute 和完整计划授权访问固定公共索引，保存来源与摘要，复用报告胶囊。不同索引的同一作品只算一源；双源候选不证明科学结论成立，详见[文献检索契约](../api/2026-10-19-research-literature.md)。
 - 团队服务维护独立 Rust 核心与可单独启动的对等节点，已提供本机多节点自动同步和断线恢复验证入口；跨真实设备的网络可达性与平台行为需单独验收，见[团队服务](../../team-service/README.md)。
@@ -49,7 +49,7 @@ Agent 目录优先级为 `YUNFENG_AGENT_DIR` > `LIN_CODING_AGENT_DIR` > `<YUNFEN
 
 科研常驻调度由 [Hook 层](../../server/src/research/hooks/README.md) 接收本地事件，合并后经 Context Builder 重读事实，再交给 Decision Layer 和 Pi。作业、模型规划和授权等待期间事件排队，单元释放后处理；文件通知只有实际内容改变才进入模型。当前接入生命周期、文件、授权和本地作业，机器人与远程平台适配器尚未接入。
 
-科研页面和状态胶囊展示后端快照，组件 API 沿用相同 TaskStore/SSE；原始过程默认折叠。共享动画与胶囊从 `app/src/components/common` 复用，交互样例见 `/dev/ui`，样例不作为真实 Runtime 或模型验收证据。
+科研页面和状态胶囊展示后端快照，组件 API 沿用相同 TaskStore/SSE；原始过程默认折叠。共享动画与胶囊从 `app/desktop/src/components/common` 复用，交互样例见 `/dev/ui`，样例不作为真实 Runtime 或模型验收证据。
 
 - [Server 配置与适配规则](../../server/README.md)
 - [桌面启动与编排](desktop-shell.md)

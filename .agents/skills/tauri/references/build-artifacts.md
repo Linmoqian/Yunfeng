@@ -20,7 +20,7 @@
 收集脚本加入构建收尾（PowerShell 示例，参数按项目实际 product 与版本调整）：
 
 ```powershell
-$bundle = "app/src-tauri/target/release/bundle"
+$bundle = "app/desktop/src-tauri/target/release/bundle"
 $dest = "app/dist/installers"
 New-Item -ItemType Directory -Force $dest | Out-Null
 $product = "linapp"; $version = "0.1.0"

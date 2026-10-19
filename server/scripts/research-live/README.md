@@ -28,7 +28,7 @@ pnpm exec tsx scripts/research-live/performance.ts /absolute/path/to/performance
 
 ## Rust 对照
 
-新增独立 [Rust 科研核心](../../../app/src-tauri/research-kernel/README.md)，构建并执行后在全新目录生成 `comparison.json`、SQLite 和日志。`native-worker.mjs` 复用当前 `server/dist` 生产代码，运行前需要 `pnpm --dir server build`；`native-compare.ts` 记录进程内调用、双方 JSON 管道完整往返、核心内部计时、冷启动及采样 RSS。默认每项 5 次预热和 100 次测量，无模型请求。脚本 RSS 与二进制定位按 macOS/Linux 设计，当前仅验收 macOS arm64。详见 [结果与限制](../../../docs/development/2026-10-18-research-rust-comparison.md)。
+新增独立 [Rust 科研核心](../../../app/desktop/src-tauri/research-kernel/README.md)，构建并执行后在全新目录生成 `comparison.json`、SQLite 和日志。`native-worker.mjs` 复用当前 `server/dist` 生产代码，运行前需要 `pnpm --dir server build`；`native-compare.ts` 记录进程内调用、双方 JSON 管道完整往返、核心内部计时、冷启动及采样 RSS。默认每项 5 次预热和 100 次测量，无模型请求。脚本 RSS 与二进制定位按 macOS/Linux 设计，当前仅验收 macOS arm64。详见 [结果与限制](../../../docs/development/2026-10-18-research-rust-comparison.md)。
 
 ## 固定复杂工作流对照（无 LLM）
 
@@ -49,7 +49,7 @@ pnpm exec tsx scripts/research-live/workflow-compare.ts /absolute/path/to/new-wo
 先构建 Server；在仓库根显式运行实际 Rust 私有通道与 TS ResearchService 的闭环验收：
 
 ```sh
-cargo test --locked --manifest-path app/src-tauri/Cargo.toml hybrid_typescript_orchestration -- --ignored --nocapture
+cargo test --locked --manifest-path app/desktop/src-tauri/Cargo.toml hybrid_typescript_orchestration -- --ignored --nocapture
 ```
 
 该入口不启动窗口、不读取真实团队/任务数据、不请求真实模型；Rust 测试注入现有桌面连接，TS 服务运行真实 Hook、权限、作业、反思与暂停重建恢复。两阶段文件写入和验收经过 Rust，规则替代模型，统计与指标为固定本地夹具。Node 只重建服务实例，Rust 通道宿主持续存在；不是桌面进程重启或 Pi 模型验收。
@@ -57,7 +57,7 @@ cargo test --locked --manifest-path app/src-tauri/Cargo.toml hybrid_typescript_o
 固定工作流可增加 `hybridSingle`、`hybridPipe` 两组：Node 工作进程继续编排和持久化，文件调用通过真实桌面私有 TCP 到 Rust，包含父子管道与 Rust TCP 两次进程边界。两组使用同一宿主、响应缓冲和 TS 代码，仅能力标识分别为1（逐项）与2（批量）。普通基线组清除原生能力标识，防止被父进程配置污染。先构建 Server 和独立 Rust release worker，在仓库根执行 release 宿主测试，输出目录必须不存在：
 
 ```sh
-YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-hybrid-comparison cargo test --release --locked --manifest-path app/src-tauri/Cargo.toml hybrid_workflow_three_round_comparison -- --ignored --nocapture
+YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-hybrid-comparison cargo test --release --locked --manifest-path app/desktop/src-tauri/Cargo.toml hybrid_workflow_three_round_comparison -- --ignored --nocapture
 ```
 
 完整执行3轮、每组36环节，五组共540条记录，无真实 LLM，保留原环节ID与产物。组顺序轮换，每环节保留系统时间和单调时钟耗时；工作进程逐环节报告原生请求提交计数，固定流程每轮单项28次、批量18次，并断言计数。计数包含失败尝试，成功基准中与实际私有请求对应。
@@ -69,7 +69,7 @@ YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-hybrid-comparison cargo test --r
 构建 Server 后，在仓库根执行：
 
 ```sh
-cargo test --locked --manifest-path app/src-tauri/Cargo.toml research_core_tools_authorization -- --ignored --nocapture
+cargo test --locked --manifest-path app/desktop/src-tauri/Cargo.toml research_core_tools_authorization -- --ignored --nocapture
 ```
 
 `core-tools-check.mjs` 由 Rust 测试注入私有通道，运行范围读取、唯一原文修改、结构化 argv PTY 和视界投影；核验授权前无修改/启动、暂停后真实 PID 退出、授权失效、恢复后新计划批准、真实报告和组件验收、未知作业恢复回收。输出仅汇总计数和状态；临时项目自动清理，不读取真实任务数据、不请求 LLM。宿主 Runtime 输出与桌面使用同一缓存，脚本不启动窗口，不代表 UI 呈现验收。
@@ -80,7 +80,7 @@ cargo test --locked --manifest-path app/src-tauri/Cargo.toml research_core_tools
 
 ```sh
 pnpm --dir server build
-YUNFENG_RESEARCH_LIVE=1 YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-core-tools cargo test --locked --manifest-path app/src-tauri/Cargo.toml research_core_tools_real_model_loop -- --ignored --nocapture
+YUNFENG_RESEARCH_LIVE=1 YUNFENG_ACCEPTANCE_OUTPUT=/absolute/path/to/new-core-tools cargo test --locked --manifest-path app/desktop/src-tauri/Cargo.toml research_core_tools_real_model_loop -- --ignored --nocapture
 ```
 
 Rust 测试宿主注入实际私有通道，依次启动两个 Node 进程。第一个由真实 Pi 决策等待 Hook，提交按行读取、ideas 视界、精确修改、结构化 argv 终端和报告发布计划；验收器先检查原始计划符合实验约束，再批准。实验启动后真实暂停并确认 PID 回收，旧授权失效。第二个进程从同一 SQLite 恢复，显式继续后反思取消结果、重新规划与授权；程序执行真实 gzip、独立解压核验，发布报告，完成实测验收及反思。

@@ -101,7 +101,7 @@ TS 的 `toolArbiter.run(call, operation)` 在入队和实际提交时重检权�
 在 `server/` 构建后，从仓库根显式执行：
 
 ```sh
-cargo test --locked --manifest-path app/src-tauri/Cargo.toml research_core_tools_authorization -- --ignored --nocapture
+cargo test --locked --manifest-path app/desktop/src-tauri/Cargo.toml research_core_tools_authorization -- --ignored --nocapture
 ```
 
 2026-10-18 macOS 实测：真实 Rust bridge、文件补丁和 PTY；首次无授权时配置和进程均未改变，批准后启动；运行中暂停回收真实 PID，旧授权失效；恢复先反思取消结果，新计划获批后完成真实报告和组件发布；共2次实验执行、3个不同作业的反思（含最终验收），无重放。另模拟 Server 丢失在途作业，按身份回收 Rust 持有的进程并保存 interrupted。模型调用为0，不代表真实模型质量或 UI 动画验收。

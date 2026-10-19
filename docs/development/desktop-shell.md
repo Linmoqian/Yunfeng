@@ -14,7 +14,7 @@
   4. `yunfeng-mobile-backend`（0.0.0.0:8788，自动生成配对码）
   5. RustDesk（如已安装）
 - 退出外壳时停止以上所有子进程。
-- 托盘菜单构建与状态同步在 `app/src-tauri/src/tray.rs`；命令包装与内部实现分离（`spawn_*_service` / `start_all_inner` 等 `pub(crate)` 函数供托盘与编排复用）。
+- 托盘菜单构建与状态同步在 `app/desktop/src-tauri/src/tray.rs`；命令包装与内部实现分离（`spawn_*_service` / `start_all_inner` 等 `pub(crate)` 函数供托盘与编排复用）。
 
 ## 运行
 
@@ -25,12 +25,12 @@ pnpm --filter yunfeng-server build
 pnpm --filter yunfeng-gateway build
 
 # 桌面端开发 / 打包
-cd app && pnpm tauri dev
+cd app/desktop && pnpm tauri dev
 ```
 
 ## 原生窗口
 
-窗口方案参考 LianAgent 的桌面壳。公共配置在 `app/src-tauri/tauri.conf.json`，macOS 在 `tauri.macos.conf.json` 覆盖整个窗口数组。调整窗口尺寸或 label 时须同步两份配置。
+窗口方案参考 LianAgent 的桌面壳。公共配置在 `app/desktop/src-tauri/tauri.conf.json`，macOS 在 `tauri.macos.conf.json` 覆盖整个窗口数组。调整窗口尺寸或 label 时须同步两份配置。
 
 macOS 使用 `Overlay` 标题栏、原生红绿灯、系统圆角和阴影。前端预留控制按钮空间并提供拖拽区，双击由 Tauri 的窗口脚本切换最大化。Windows/Linux 采用无边框窗口，前端提供最小化、最大化/还原和关闭按钮，按钮位于拖拽区之外并支持键盘焦点。界面内部继续使用 Yunfeng 圆角与颜色 token。
 
@@ -38,7 +38,7 @@ macOS 使用 `Overlay` 标题栏、原生红绿灯、系统圆角和阴影。前
 
 `desktop_window::show_main` 按取消最小化、显示、聚焦的顺序恢复窗口，供启动、macOS Dock 重新打开和托盘菜单共用。关闭仍进入托盘驻留。
 
-开发入口 `app/scripts/dev/tauri.mjs` 兼容 `pnpm tauri dev` 与 `npm run tauri dev`。macOS 的 Cargo runner 在 `target/debug/dev-bundle/` 生成临时签名的开发应用包，包含应用身份、可执行文件和图标。生成目录不入库，生产打包继续由 Tauri CLI 处理。Vite 使用严格的 5173 端口，端口占用时明确报错。
+开发入口 `app/desktop/scripts/dev/tauri.mjs` 兼容 `pnpm tauri dev` 与 `npm run tauri dev`。macOS 的 Cargo runner 在 `target/debug/dev-bundle/` 生成临时签名的开发应用包，包含应用身份、可执行文件和图标。生成目录不入库，生产打包继续由 Tauri CLI 处理。Vite 使用严格的 5173 端口，端口占用时明确报错。
 
 ### 2026-10-13 验证
 

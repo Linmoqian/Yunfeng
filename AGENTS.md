@@ -6,6 +6,7 @@ npm create tauri-app@latest
 ```
 
 - 使用生成器选择 React + TypeScript + Vite 模板，采用 TypeScript + Rust 技术路线
+- 客户端统一放在 `app/`：`desktop/` 为桌面端，`mobile/` 为移动端，`cli/` 为独立 CLI workspace；移动后端与历史原型分别放在 `app/mobile/backend/`、`app/mobile/legacy/`。运行入口见 [客户端说明](app/README.md)，共享服务继续位于根目录。
 - React 前端按需安装成熟依赖，不重复造车轮；动画库使用 Motion，路由库使用 React Router，图标库使用 Lucide React，UI 组件库使用 Ant Design：
 
     - motion
@@ -25,7 +26,7 @@ npm create tauri-app@latest
 
 - 前端模块化遵循 [详细规范](docs/development/frontend.md)：
 
-    - 项目动画、胶囊与交互优先复用 `app/src/components/common`，按[云枫 UI 使用规范](docs/development/2026-10-17-ui-library.md)接入；开发环境 `/dev/ui` 查看样例。
+    - 项目动画、胶囊与交互优先复用 `app/desktop/src/components/common`，按[云枫 UI 使用规范](docs/development/2026-10-17-ui-library.md)接入；开发环境 `/dev/ui` 查看样例。
 
     - 页面只负责组装；UI、业务逻辑、异步调用与状态管理按职责拆分
     - 仅跨两个以上功能稳定复用的组件进入共用组件；通用层不得反向依赖 feature

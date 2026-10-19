@@ -4,7 +4,7 @@
 // 前提：根 workspace 已 pnpm install；server/gateway 已完成 pnpm build。
 // 产物不包含 App 二进制；Tauri App 通过 YUNFENG_SERVICES_DIR=<out> 找到这些服务。
 // 依赖产出使用 pnpm deploy --prod：node_modules 为自包含真实文件，可脱离 pnpm store 分发。
-// Created on 2026-10-15
+// Created on 2026-10-19
 // @author: https://github.com/Linmoqian
 
 import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -68,7 +68,7 @@ deployService("yunfeng-server", { name: "server", path: join(ROOT, "server") }, 
 deployService("yunfeng-gateway", { name: "gateway", path: join(ROOT, "gateway") }, ["dist"], out);
 deployService(
   "yunfeng-mobile-backend",
-  { name: "yunfeng-mobile-backend", path: join(ROOT, "yunfeng-mobile-backend") },
+  { name: "yunfeng-mobile-backend", path: join(ROOT, "app", "mobile", "backend") },
   ["src", "scripts"],
   out,
 );
@@ -78,7 +78,7 @@ copyDir(join(ROOT, ".agents", "skills"), join(out, "pi-assets", "skills"));
 copyFile(join(ROOT, ".agents", "scientific-agent-skills.LICENSE.md"), join(out, "pi-assets", "scientific-agent-skills.LICENSE.md"));
 
 if (skipRustdesk === false) {
-  const rustdeskSrc = join(ROOT, "yunfeng-mobile-backend", "bin", "rustdesk");
+  const rustdeskSrc = join(ROOT, "app", "mobile", "backend", "bin", "rustdesk");
   if (existsSync(rustdeskSrc) === false) {
     console.log("[package] 准备 RustDesk ...");
     execFileSync("pnpm", ["--filter", "yunfeng-mobile-backend", "run", "setup:rustdesk"], {
@@ -94,8 +94,8 @@ if (skipRustdesk === false) {
 }
 
 const startHint = process.platform === "darwin"
-  ? `YUNFENG_SERVICES_DIR=${out} "${join(ROOT, "app", "src-tauri", "target", "release", "yunfeng-desktop")}"`
-  : `set YUNFENG_SERVICES_DIR=${out} && app\\yunfeng-desktop.exe`;
+  ? `YUNFENG_SERVICES_DIR=${out} "${join(ROOT, "app", "desktop", "src-tauri", "target", "release", "yunfeng-desktop")}"`
+  : `set YUNFENG_SERVICES_DIR=${out} && "${join(ROOT, "app", "desktop", "src-tauri", "target", "release", "yunfeng-desktop.exe")}"`;
 writeFileSync(
   join(out, "START.txt"),
   `Yunfeng 桌面端后端运行时\n\n启动 App 前设置：\n${startHint}\n\n或把 YUNFENG_SERVICES_DIR 固定写入环境变量后从托盘选择“启动全部服务”。\npi-assets（提示、扩展、技能与角色文件）已包含在产物中，桌面壳会在运行时 HOME 下播种到 .lin/agent，保留已有文件；角色执行仍需要子代理提供器。SciVerse 需要 SCIVERSE_API_TOKEN 环境变量。\n`,

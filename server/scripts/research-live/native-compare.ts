@@ -18,7 +18,7 @@ import { ResearchGraphStore } from "../../src/research/decision/store.js";
 const exec = promisify(execFile);
 const root = resolve(process.argv[2] ?? "");
 if (!process.argv[2]) throw new Error("需要尚不存在的独立输出目录");
-const binary = fileURLToPath(new URL("../../../app/src-tauri/research-kernel/target/release/yunfeng-research-kernel", import.meta.url));
+const binary = fileURLToPath(new URL("../../../app/desktop/src-tauri/research-kernel/target/release/yunfeng-research-kernel", import.meta.url));
 const nodeWorker = fileURLToPath(new URL("./native-worker.mjs", import.meta.url));
 const hash = async (path: string) => createHash("sha256").update(await readFile(path)).digest("hex");
 const sourceHashes = Object.fromEntries(await Promise.all(["../../dist/research/project.js", "../../dist/research/executor.js", "../../dist/research/decision/store.js", "../../dist/task/task-store.js", "../../dist/task/task-event-hub.js", "./native-worker.mjs", "./native-compare.ts"].map(async (path) => [path, await hash(fileURLToPath(new URL(path, import.meta.url)))])));

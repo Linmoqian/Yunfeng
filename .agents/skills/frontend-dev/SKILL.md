@@ -37,7 +37,7 @@ description: >-
 前端代码按以下职责组织；仅在实际需要时创建对应目录：
 
 ```text
-app/src/
+app/desktop/src/
 ├── components/
 │   └── common/
 ├── features/

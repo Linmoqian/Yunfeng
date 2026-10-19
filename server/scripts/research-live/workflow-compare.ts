@@ -24,7 +24,7 @@ if (hybrid) assert.ok(["2", "3"].includes(hybridEnv!.YUNFENG_RESEARCH_NATIVE ?? 
 delete process.env.YUNFENG_RESEARCH_NATIVE;
 const selectedLanes: Lane[] = [...lanes, ...(hybrid ? ["hybridSingle" as const, "hybridPipe" as const] : [])];
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
-const sources = ["./workflow-compare.ts", "./workflow-fixture.ts", "./workflow-transport.ts", "./native-worker.mjs", "../../dist/research/project.js", "../../dist/research/executor.js", "../../dist/research/native-files.js", "../../dist/research/execution-files.js", "../../dist/agent/desktop-client.js", "../../dist/research/decision/store.js", "../../dist/task/task-store.js", "../../dist/task/task-event-hub.js", "../../../app/src-tauri/src/terminal/agent_bridge.rs", "../../../app/src-tauri/research-kernel/src/execution.rs"];
+const sources = ["./workflow-compare.ts", "./workflow-fixture.ts", "./workflow-transport.ts", "./native-worker.mjs", "../../dist/research/project.js", "../../dist/research/executor.js", "../../dist/research/native-files.js", "../../dist/research/execution-files.js", "../../dist/agent/desktop-client.js", "../../dist/research/decision/store.js", "../../dist/task/task-store.js", "../../dist/task/task-event-hub.js", "../../../app/desktop/src-tauri/src/terminal/agent_bridge.rs", "../../../app/desktop/src-tauri/research-kernel/src/execution.rs"];
 const sourceHashes = Object.fromEntries(await Promise.all(sources.map(async (path) => [path, hash(await readFile(fileURLToPath(new URL(path, import.meta.url))))])));
 const binaryHash = hash(await readFile(binary));
 const hybridHostHash = hybrid && process.env.YUNFENG_ACCEPTANCE_RUST_HOST ? hash(await readFile(process.env.YUNFENG_ACCEPTANCE_RUST_HOST)) : undefined;

@@ -14,10 +14,10 @@ description: >-
 
 ## 目录与依赖方向
 
-Rust 代码位于 `app/src-tauri/`，按需创建以下目录：
+Rust 代码位于 `app/desktop/src-tauri/`，按需创建以下目录：
 
 ```text
-app/src-tauri/
+app/desktop/src-tauri/
 ├── src/
 │   ├── commands/
 │   ├── domain/
@@ -77,7 +77,7 @@ app/src-tauri/
 
 - 领域规则和纯逻辑应优先编写单元测试，覆盖正常路径、边界和错误路径。
 - command 测试聚焦输入校验、权限边界和 DTO 转换，不重复测试领域实现。
-- Rust 集成测试放在 `app/src-tauri/tests/`；项目根目录 `tests/` 用于跨栈和验收测试。
+- Rust 集成测试放在 `app/desktop/src-tauri/tests/`；项目根目录 `tests/` 用于跨栈和验收测试。
 - 外部系统能力应通过清晰边界隔离，使领域测试不依赖真实窗口、网络或用户环境。
 
 ## 文件规模
@@ -98,7 +98,7 @@ cargo test
 ```
 
 - 仅当项目完整支持全 feature 组合时，才对 Clippy 或测试启用 `--all-features`；否则运行项目定义的受支持 feature 集并说明范围。
-- 验证命令应在 `app/src-tauri/` 执行，所有警告和测试失败必须在提交前处理。
+- 验证命令应在 `app/desktop/src-tauri/` 执行，所有警告和测试失败必须在提交前处理。
 
 ## 官方依据
 

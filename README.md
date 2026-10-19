@@ -8,15 +8,16 @@ Yunfeng 是本地优先的个人 Agent 工作台。桌面 React 界面通过 HTT
 
 | 目录 | 职责与边界 |
 | --- | --- |
-| `app/` | React + TypeScript + Vite 桌面界面，Tauri 2 外壳；论文写作、终端和本地协作通过 Rust IPC 提供 |
+| `app/` | 三个客户端的统一入口，见[客户端索引](app/README.md) |
+| `app/desktop/` | React + TypeScript + Vite 桌面界面，Tauri 2 外壳；论文写作、终端和本地协作通过 Rust IPC 提供 |
 | `server/` | 任务、Agent 会话、审批、事件和记忆；Pi SDK 在 Server 进程内运行 |
 | `team-service/` | 独立 Rust 团队核心，可选本机 HTTP 对等节点；[启动与多节点验证](team-service/README.md) |
 | `gateway/` | Bearer 认证和路径白名单，向移动端转发 Server API |
-| `mobile-app/` | 移动薄客户端，任务与对话通过网关，远程屏幕通过移动后端 |
-| `yunfeng-mobile-backend/` | Node 24 的设备配对、设备认证与 RustDesk 远程屏幕服务 |
-| `yunfeng-cli/` | 独立 pnpm workspace 中的 TUI 组件与 CLI；当前普通消息为模拟回复，尚未连接真实 Agent |
+| `app/mobile/` | 移动薄客户端，任务与对话通过网关，远程屏幕通过移动后端 |
+| `app/mobile/backend/` | Node 24 的设备配对、设备认证与 RustDesk 远程屏幕服务 |
+| `app/cli/` | 独立 pnpm workspace 中的 TUI 组件与 CLI；当前普通消息为模拟回复，尚未连接真实 Agent |
 | `server-rpc/` | Pi 子进程方案实验，未接入当前桌面启动链 |
-| `yunfeng-mobile/` | 早期移动原型，仅保留参考 |
+| `app/mobile/legacy/` | 早期移动原型，仅保留参考 |
 | `pi-assets/` | 分发到 Lin Agent 目录的指令与扩展资产 |
 | `scripts/` | 后端打包及维护脚本 |
 | `docs/` | 当前说明、接口契约、工程规范和历史记录 |
@@ -36,11 +37,11 @@ Yunfeng 是本地优先的个人 Agent 工作台。桌面 React 界面通过 HTT
 pnpm install
 pnpm --filter yunfeng-server build
 pnpm --filter yunfeng-gateway build
-cd app
+cd app/desktop
 pnpm tauri dev
 ```
 
-桌面入口会启动 Vite、构建 Rust，并编排后端。修改 Server 源码后需重新构建和重启该服务；桌面优先运行 `server/dist/index.js`，Vite HMR 不会替它重载。详见[桌面启动说明](app/scripts/dev/README.md)。
+桌面入口会启动 Vite、构建 Rust，并编排后端。修改 Server 源码后需重新构建和重启该服务；桌面优先运行 `server/dist/index.js`，Vite HMR 不会替它重载。详见[桌面启动说明](app/desktop/scripts/dev/README.md)。
 
 首次使用在 `~/.lin/agent/` 独立配置模型和认证。默认不读取 `~/.pi` 或项目 `.pi`，旧任务与凭据不自动迁移。全局与项目资源规则见 [Server README](server/README.md)。
 
@@ -52,26 +53,26 @@ pnpm tauri dev
 pnpm --filter yunfeng-server dev
 pnpm --filter yunfeng-gateway dev
 pnpm --filter yunfeng-mobile-backend dev
-pnpm --dir mobile-app dev
+pnpm --dir app/mobile dev
 ```
 
 独立网关默认监听 `0.0.0.0:8787`；桌面编排当前固定为 `127.0.0.1:8787`，因此桌面默认网关地址不能直接用于其他设备。移动后端默认 `0.0.0.0:8788`。启动 token 和配对码不得提交到仓库。
 
-TUI 在独立 workspace 内运行：`cd yunfeng-cli` 后执行 `pnpm install`、`pnpm cli`。
+TUI 在独立 workspace 内运行：`cd app/cli` 后执行 `pnpm install`、`pnpm cli`。
 
 ## 验证
 
 | 范围 | 从仓库根目录执行 |
 | --- | --- |
 | 文档本地链接与检查器回归 | `pnpm check:docs`、`pnpm test:docs` |
-| 桌面前端 | `pnpm --dir app exec tsc --noEmit`、`pnpm --dir app test` |
+| 桌面前端 | `pnpm --dir app/desktop exec tsc --noEmit`、`pnpm --dir app/desktop test` |
 | Server | `pnpm --filter yunfeng-server build`、`pnpm --filter yunfeng-server test` |
 | Gateway | `pnpm --filter yunfeng-gateway test` |
-| 移动前端 | `pnpm --dir mobile-app test`、`pnpm --dir mobile-app build`、`pnpm --dir mobile-app check:api` |
+| 移动前端 | `pnpm --dir app/mobile test`、`pnpm --dir app/mobile build`、`pnpm --dir app/mobile check:api` |
 | 移动后端 | `pnpm --filter yunfeng-mobile-backend test`、`pnpm --filter yunfeng-mobile-backend smoke` |
-| Rust | 在 `app/src-tauri/` 执行 `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`、`cargo test` |
+| Rust | 在 `app/desktop/src-tauri/` 执行 `cargo fmt --check`、`cargo clippy --all-targets -- -D warnings`、`cargo test` |
 | 团队节点 | 在 `team-service/` 执行 `cargo test --features node`；构建节点后运行 `python3 tests/local_nodes.py` |
-| TUI | 在 `yunfeng-cli/` 执行 `pnpm test`、`pnpm smoke` |
+| TUI | 在 `app/cli/` 执行 `pnpm test`、`pnpm smoke` |
 
 实际验证结果属于对应任务记录；命令列表不代表全部能力已经验收。
 

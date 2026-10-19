@@ -28,6 +28,6 @@ Server 不默认读取 `~/.pi` 或项目 `.pi`，也不自动复制旧配置、�
 
 科研实现入口见 [research/README](src/research/README.md)，公开契约见[科研任务 API](../docs/api/2026-10-15-research-runtime.md)。首页选择科研并输入项目目录与目标后启动；暂停/继续以服务端检查点为准。
 
-在 `server/` 执行 `pnpm build`、`pnpm test`。桌面联调使用 `app/` 的 `pnpm tauri dev`。独立启动使用 `pnpm start`，可写 HOME 启动使用 `pnpm start:portable`。
+在 `server/` 执行 `pnpm build`、`pnpm test`。桌面联调使用 `app/desktop/` 的 `pnpm tauri dev`。独立启动使用 `pnpm start`，可写 HOME 启动使用 `pnpm start:portable`。
 
 适配依赖当前锁定的 Pi SDK 配置加载规则。升级 SDK 时须运行 Lin 隔离测试，核对项目资源、全局配置、会话路径及原包资产加载。

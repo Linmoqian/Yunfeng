@@ -1,5 +1,7 @@
 # TODO
 
+- [x] 将桌面、移动端与 CLI 收纳到 app/desktop、app/mobile 和 app/cli，修正 workspace、服务定位、打包与文档路径并验证各端启动和核心回归
+
 - [x] 同步单一 main 分支、会话模式与科研存储说明，补齐文档索引，扩展模块 README 检查并验证核心回归
 
 - [x] 会话列表传递真实模式，以开发和科研标签及轻量筛选区分会话，验证状态分组、归档、外部跳转与原生桌面交互
@@ -171,7 +173,7 @@
 ## 集成分支追加
 
 - [x] 合并 gateway / 移动薄客户端 / 桌面 Tauri 壳到集成工作树
-- [x] 移动端迁移到 mobile-app/（旧 yunfeng-mobile/ 当前仍保留为历史原型）
+- [x] 移动端迁移到 app/mobile/（旧 app/mobile/legacy/ 当前仍保留为历史原型）
 - [x] 桌面壳接入可写 HOME（历史提交 b80514a；当前使用 LIN_CODING_AGENT_DIR）
 - [x] 桌面壳一键启动编排（server + gateway + mobile-backend + RustDesk）
 - [x] 生产打包（pnpm deploy 自包含产物，含后端运行时与 pi-assets；RustDesk 可选）

@@ -23,7 +23,7 @@
 | [frontend.md](./development/frontend.md) | 前端模块化、组件规模与职责分层 |
 | [rust.md](./development/rust.md) | Rust 与 Tauri 开发规范 |
 | [desktop-shell.md](./development/desktop-shell.md) | 桌面 Tauri 外壳：托盘、后端编排、环境变量、Tauri 事件/命令契约 |
-| [hot-reload.md](./development/hot-reload.md) | 前后端热加载（app 与 mobile-app 两个壳） |
+| [hot-reload.md](./development/hot-reload.md) | 前后端热加载（desktop 与 mobile 两个壳） |
 | [verification.md](./development/verification.md) | 验证原则与页面验证方式 |
 | [api-documentation.md](./development/api-documentation.md) | 接口文档模板与契约要求 |
 | [code-comments.md](./development/code-comments.md) | 注释规范 |
@@ -48,7 +48,7 @@
 - [yunfeng-mobile-roadmap.md](./design/yunfeng-mobile-roadmap.md)：移动端功能补齐计划
 - [yunfeng-mobile-taskboard-mobile.md](./design/yunfeng-mobile-taskboard-mobile.md)：任务看板移动端适配计划
 - [plugin-system.md](./design/plugin-system.md)、[ui-language.md](./design/ui-language.md)
-- [移动端 Token](design/yunfeng-tokens.css)：移动端现有主题；桌面 Token 以 [tokens.css](../app/src/styles/tokens.css) 和 [ThemeProvider](../app/src/theme/ThemeProvider.tsx) 为准。
+- [移动端 Token](design/yunfeng-tokens.css)：移动端现有主题；桌面 Token 以 [tokens.css](../app/desktop/src/styles/tokens.css) 和 [ThemeProvider](../app/desktop/src/theme/ThemeProvider.tsx) 为准。
 
 ## 历史对话与迁移记录
 

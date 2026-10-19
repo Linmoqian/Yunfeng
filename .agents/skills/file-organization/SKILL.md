@@ -12,7 +12,7 @@ description: >-
 * `docs/` 存放开发文档和开发日志；`docs/wiki/` 是 GitHub Wiki 子模块挂载点（仅在仓库地址确认后创建）；`docs/api/`、`docs/review/` 按需存放实际接口文档与 Review 报告，不创建空目录。
 * `.githooks/` 存放版本控制的 Git 提交钩子；克隆后运行 `.githooks/setup.ps1` 启用。
 * `.agents/skills/` 存放全部工程规范 Skill；`.pi/agents/` 存放子代理定义。
-* `tests/` 存放跨技术栈测试和验收测试；语言工具链约定的测试放在对应 crate 或模块内，例如 Rust Cargo 集成测试放在 `app/src-tauri/tests/`。
+* `tests/` 存放跨技术栈测试和验收测试；语言工具链约定的测试放在对应 crate 或模块内，例如 Rust Cargo 集成测试放在 `app/desktop/src-tauri/tests/`。
 * 新增文件按上述结构放置；迁移、重命名或删除现有目录前必须取得工程师同意。
 
 ## 2. 层级组织原则

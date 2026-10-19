@@ -1,0 +1,40 @@
+[package]
+name = "yunfeng-desktop"
+version = "0.1.0"
+description = "Yunfeng 桌面端外壳：窗口 + 托盘 + 自动拉起 yunfeng-server"
+authors = ["Yunfeng"]
+edition = "2021"
+
+[lib]
+name = "yunfeng_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+yunfeng-research-kernel = { path = "research-kernel" }
+yunfeng-team = { path = "../../../team-service", default-features = false, features = ["node"] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.40.1", default-features = false, features = ["bundled"] }
+uuid = { version = "1", default-features = false, features = ["v4"] }
+url = { version = "2", default-features = false }
+portable-pty = "0.9"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+base64 = "0.22"
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+tauri-plugin-dialog = "=2.7.3"
+tempfile = "3"
+zip = { version = "2.4.2", default-features = false, features = ["deflate"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

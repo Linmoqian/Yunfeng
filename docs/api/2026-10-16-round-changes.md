@@ -22,4 +22,4 @@
 
 ## 验证
 
-`server/test/round-changes.test.ts` 覆盖脏文件、新增、删除、提交、子目录范围、冻结、重启和下一轮隔离；`app/tests/changeSummary.test.tsx` 覆盖历史隔离、服务端总计、未知行数及 Escape 焦点恢复。
+`server/test/round-changes.test.ts` 覆盖脏文件、新增、删除、提交、子目录范围、冻结、重启和下一轮隔离；`app/desktop/tests/changeSummary.test.tsx` 覆盖历史隔离、服务端总计、未知行数及 Escape 焦点恢复。

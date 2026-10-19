@@ -27,7 +27,7 @@
 ## 目录
 
 ```
-yunfeng-mobile-backend/
+app/mobile/backend/
   src/
     types.ts      协议类型（账号 + WS fallback）
     config.ts     CLI/env 配置解析

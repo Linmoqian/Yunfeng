@@ -8,7 +8,7 @@ import { once } from "node:events";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { at, type Lane, type Request } from "./workflow-fixture.js";
-export const binary = fileURLToPath(new URL("../../../app/src-tauri/research-kernel/target/release/yunfeng-research-kernel", import.meta.url));
+export const binary = fileURLToPath(new URL("../../../app/desktop/src-tauri/research-kernel/target/release/yunfeng-research-kernel", import.meta.url));
 export const nodeWorker = fileURLToPath(new URL("./native-worker.mjs", import.meta.url));
 export type Reply = { value: any; innerMs?: number; nativeRequests?: number };
 export type Target = { call: (request: Request) => Promise<Reply>; close: () => Promise<void> };

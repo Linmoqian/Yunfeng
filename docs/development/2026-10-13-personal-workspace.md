@@ -1,6 +1,6 @@
 # 个人 Agent 工作区
 
-工作区结构参考本机 LianAgent `a73bf448` 的 `AgentShell`、`ContextHeader`、工作台和团队组件。Yunfeng 的主题源仍为 `app/src/styles/tokens.css` 与 `ThemeProvider`；枫叶、云朵、云丛与云殿图像复用既有资产。
+工作区结构参考本机 LianAgent `a73bf448` 的 `AgentShell`、`ContextHeader`、工作台和团队组件。Yunfeng 的主题源仍为 `app/desktop/src/styles/tokens.css` 与 `ThemeProvider`；枫叶、云朵、云丛与云殿图像复用既有资产。
 
 ## 功能范围
 

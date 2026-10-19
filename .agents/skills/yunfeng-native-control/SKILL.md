@@ -9,12 +9,12 @@ description: "使用 Codex 原生应用工具定位并控制 yunfeng 的 Tauri �
 
 ## 定位开发应用
 
-启动规则见 [桌面开发启动](../../../app/scripts/dev/README.md)。先确认是否已有目标开发实例；需要启动或重启且任务已授权时，在 `app/` 执行 `pnpm tauri dev`，保留运行会话以读取编译和启动输出。只要求检查窗口时复用已有实例。新入口会核对并退出本仓库旧开发实例；Rust 重载的 runner 还会清理旧原生实例，不应为只读观察擅自重启。
+启动规则见 [桌面开发启动](../../../app/desktop/scripts/dev/README.md)。先确认是否已有目标开发实例；需要启动或重启且任务已授权时，在 `app/desktop/` 执行 `pnpm tauri dev`，保留运行会话以读取编译和启动输出。只要求检查窗口时复用已有实例。新入口会核对并退出本仓库旧开发实例；Rust 重载的 runner 还会清理旧原生实例，不应为只读观察擅自重启。
 
 macOS 当前启动链为 `scripts/dev/tauri.mjs` → Tauri/Cargo → `scripts/dev/macos-app.mjs` → 开发 `.app`。依据当前仓库绝对路径、实际编译输出和公共配置定位应用包，常规输出为：
 
 ```text
-app/src-tauri/target/debug/dev-bundle/Yunfeng 开发.app
+app/desktop/src-tauri/target/debug/dev-bundle/Yunfeng 开发.app
 ```
 
 从完整开发 `.app` 路径获取应用。已安装版本可能与开发版本共用 `com.yunfeng.desktop`，只传 Bundle ID 可能出现歧义。本项目的 `pnpm tauri dev` 已连接包装入口；旧的 `target/debug/yunfeng-desktop` 进程不能作为窗口已可识别的证据。自定义 target/profile 时以实际输出为准。
@@ -61,7 +61,7 @@ nodeRepl.write(screenshotPath);
 先区分进程未启动、启动了错误版本、应用标识歧义、窗口尚未加载及工具权限不足。根据具体失败读取日志或进行只读诊断，不反复猜应用名称。
 
 - macOS 可通过 `ps` 查实际进程，通过 `lsappinfo info -only name,bundleID,bundlepath,pid PID` 核对系统登记；PID 使用当前查询结果。
-- 核对 `app/src-tauri/Info.plist` 与 `tauri.conf.json` 的标识一致、`build.rs` 登记 plist 编译依赖、启动日志使用开发包入口。当前包装器会重新签名并复制应用图标；遇到失败先查实际脚本，不复制历史二进制偏移或沿用旧 PID。
+- 核对 `app/desktop/src-tauri/Info.plist` 与 `tauri.conf.json` 的标识一致、`build.rs` 登记 plist 编译依赖、启动日志使用开发包入口。当前包装器会重新签名并复制应用图标；遇到失败先查实际脚本，不复制历史二进制偏移或沿用旧 PID。
 - 编译成功而 Bundle ID 仍为空时，核对运行路径和是否复用了旧二进制。仅启动原始 Mach-O 或仅补嵌入 plist，曾不足以让窗口工具识别。修改配置后按项目要求检查并重启，再验证系统登记与真实窗口。
 - 工具报告权限问题时如实说明所需权限及阻塞；不自行放宽系统安全设置。无法读取窗口时报告缺少的原生证据，不宣称已完成交互验收。
 

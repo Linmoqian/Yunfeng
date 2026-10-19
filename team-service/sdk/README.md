@@ -67,7 +67,7 @@ await assistant.sendMessage("实验结果已整理");
 ```sh
 cargo build --manifest-path team-service/Cargo.toml --features node
 node --experimental-strip-types --test team-service/sdk/tests/*.test.ts
-pnpm --dir app exec tsc -p ../team-service/sdk/tsconfig.json
+pnpm --dir app/desktop exec tsc -p ../team-service/sdk/tsconfig.json
 ```
 
 测试启动自己的临时真实节点，验证身份、固定作者、即时权限与令牌轮换；机器人测试使用明确的测试适配器，验证未授权和过期遥测不会到达执行方法，以及离线急停路径。

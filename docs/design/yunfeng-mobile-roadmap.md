@@ -47,10 +47,10 @@
 
 - 调试信息总线（AGENTS.md 要求）。
 - 组件 / 页面测试 + Playwright 移动视口 e2e。
-- 设计 token 与 `app/` 共享收敛。
+- 设计 token 与 `app/desktop/` 共享收敛。
 
 ## 依赖与风险
 
 - P0 依赖电脑侧 yunfeng-server + yunfeng-gateway 已启动并完成网关 token 配置。
 - 真机与 Tauri mobile 验证未做。
-- 不引入重型状态库，沿用 `app/` 的 hook 风格。
+- 不引入重型状态库，沿用 `app/desktop/` 的 hook 风格。

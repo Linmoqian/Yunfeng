@@ -4,7 +4,7 @@
 
 2026-10-14，工程师允许评估新的 P2P 协议。先完成 Rust 本地协作存储，再验证认证、配对和网络传输。前端沿用 Yunfeng 的浅白、淡紫、枫叶及圆角 token。个人 Agent 会话沿用现有后端。
 
-本地参考是 `pod-agent/app/src-tauri` 的 team 服务、领域模型和 `crates/lian-peer-core`，检查时 HEAD 为 `a73bf448`。参考项目已使用 Axum、mDNS、Rustls、Reqwest 等库，不能把它整体视为手写网络实现。其签名事件与密钥身份需要在网络迁移阶段单独验证。
+本地参考是 `pod-agent/app/desktop/src-tauri` 的 team 服务、领域模型和 `crates/lian-peer-core`，检查时 HEAD 为 `a73bf448`。参考项目已使用 Axum、mDNS、Rustls、Reqwest 等库，不能把它整体视为手写网络实现。其签名事件与密钥身份需要在网络迁移阶段单独验证。
 
 ## 分批交付与验收
 
@@ -48,7 +48,7 @@ SQLite 通过 `rusqlite` 的 bundled 特性接入，锁定解析版本 0.40.2。
 
 原生控制不可用时，采用以下手动验收，不以打开页面替代交互验证：
 
-1. 在 `app/` 运行 `pnpm tauri dev`，等待应用重建完成，打开团队入口。预期显示持久化安装 UUID 和本地保存状态。
+1. 在 `app/desktop/` 运行 `pnpm tauri dev`，等待应用重建完成，打开团队入口。预期显示持久化安装 UUID 和本地保存状态。
 2. 创建“测试团队”，显示名使用“测试成员”。预期创建成功后列出本机成员；尚未联网提示可见。
 3. 发送“持久化测试消息”，编辑并保存“测试公告”，添加 `https://example.test/` 文档链接。预期 Rust 确认后展示内容；错误输入保留草稿。
 4. 关闭本地团队，再从本地列表恢复。预期原消息、公告及链接保留。

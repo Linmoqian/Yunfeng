@@ -4,7 +4,7 @@
 
 ## 范围与方法
 
-新增独立 [research-kernel](../../app/src-tauri/research-kernel/README.md) library，实现项目内路径检查、64 KiB 文本读写、原子替换、数值验收、SQLite v1 节点保存、关系恢复与事件游标。生产 Runtime、Pi SDK 和数据库归属不变；只运行显式建立的独立夹具。
+新增独立 [research-kernel](../../app/desktop/src-tauri/research-kernel/README.md) library，实现项目内路径检查、64 KiB 文本读写、原子替换、数值验收、SQLite v1 节点保存、关系恢复与事件游标。生产 Runtime、Pi SDK 和数据库归属不变；只运行显式建立的独立夹具。
 
 Node 对照直接复用已编译的生产 project、JobExecutor、TaskStore、TaskEventHub 和 ResearchGraphStore。Rust 使用单线程阻塞核心；Node 使用既有异步文件调用。写入结果均经真实文件存在验收；检查点和节点数量一致，事件均先追加日志再提交游标；日志中的随机身份与时间戳不同。SQLite 的版本和绑定、JSON 对象实现、任务管理包装、时间戳与 UUID 实现不同，因此比较的是当前实现与候选核心的实际开销，不能将全部差异归因为语言。
 
@@ -47,7 +47,7 @@ Rust 事件写入从格式化直接写文件改为先编码到单个缓冲区再
 - cargo fmt --check、cargo test、cargo clippy --all-targets --all-features -- -D warnings 通过，范围为新独立 crate；Server build、对照脚本 TypeScript 检查与 node --check 通过。
 - 原生 Tauri、Windows/Linux、跨机器、大文件传输、完整科研调度/审批/取消没有在 Rust 版本重写或验收。基准不用真实模型，LLM 速度不在本次比较中。
 
-复现命令见 [crate 说明](../../app/src-tauri/research-kernel/README.md)，脚本为 [native-compare.ts](../../server/scripts/research-live/native-compare.ts)。临时工作进程使用现有 JSON 行与管道形式，未新增生产 API、网络端口或模型工具。
+复现命令见 [crate 说明](../../app/desktop/src-tauri/research-kernel/README.md)，脚本为 [native-compare.ts](../../server/scripts/research-live/native-compare.ts)。临时工作进程使用现有 JSON 行与管道形式，未新增生产 API、网络端口或模型工具。
 
 本机原始证据（不入库）：
 

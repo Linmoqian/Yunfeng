@@ -47,8 +47,8 @@
 ```sh
 pnpm --dir server run build
 pnpm --dir server exec tsx --test test/research-literature.test.ts test/research-runtime.test.ts test/research-tools.test.ts test/research-feedback.test.ts test/research-lifecycle.test.ts
-pnpm --dir app exec tsc --noEmit
-pnpm --dir app exec vitest run tests/researchReport.test.tsx tests/researchMessage.test.tsx --environment jsdom
+pnpm --dir app/desktop exec tsc --noEmit
+pnpm --dir app/desktop exec vitest run tests/researchReport.test.tsx tests/researchMessage.test.tsx --environment jsdom
 pnpm check:docs
 ```
 

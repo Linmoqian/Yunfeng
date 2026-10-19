@@ -224,7 +224,7 @@ Yunfeng 是一个用于监视全部编码任务的个人工作台。界面首先
 ### 9.2 建议目录
 
 ```text
-app/src/
+app/desktop/src/
 ├── features/workbench/
 │   ├── WorkbenchPage.tsx
 │   ├── TaskSection.tsx
