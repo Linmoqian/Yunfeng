@@ -50,6 +50,10 @@ importers:
   packages/protocol: {}
 
   packages/tui:
+    dependencies:
+      '@yunfeng/design-tokens':
+        specifier: link:../../../../packages/design-tokens
+        version: link:../../../../packages/design-tokens
     devDependencies:
       '@types/node':
         specifier: ^24.0.0

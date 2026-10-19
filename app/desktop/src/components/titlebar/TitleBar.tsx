@@ -4,7 +4,7 @@
 import { Copy, Minus, Square, X } from "lucide-react";
 
 import { useWindowControls } from "./useWindowControls";
-import mapleMark from "../../assets/generated/maple-mark.png";
+import mapleMark from "@yunfeng/ui/assets/maple-mark.png";
 import styles from "./TitleBar.module.css";
 
 export function TitleBar() {

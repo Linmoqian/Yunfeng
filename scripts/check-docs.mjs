@@ -17,7 +17,7 @@ function markdownFiles(directory, readmesOnly = false) {
 
 /** 收集当前说明与模块 README；第三方技能和构建目录不属于维护范围。 */
 export function collectDocuments(root) {
-  const modules = ['app', 'server', 'gateway', 'team-service', 'server-rpc', 'pi-assets'];
+  const modules = ['app', 'packages', 'server', 'gateway', 'team-service', 'server-rpc', 'pi-assets'];
   return [...new Set([
     ...markdownFiles(join(root, 'docs')),
     ...modules.filter((name) => existsSync(join(root, name))).flatMap((name) => markdownFiles(join(root, name), true)),

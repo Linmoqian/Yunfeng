@@ -1,6 +1,7 @@
 import { ChevronLeft, MoreHorizontal, Plus } from "lucide-react";
 import type { TaskState } from "@/lib/types";
-import { BOARD_COLUMNS, groupTasksByStatus, statusLabel } from "@/lib/taskLabels";
+import { BOARD_COLUMNS, groupTasksByStatus } from "@/lib/taskLabels";
+import { TaskStatusCapsule } from "./TaskStatusCapsule";
 
 interface TaskBoardProps {
   tasks: TaskState[];
@@ -51,9 +52,7 @@ export function TaskBoard({ tasks, loading, onBack, onNewTask, onPick, onMore }:
                       title={task.cwd}
                     >
                       <span className="board-card-title">{task.title || "未命名任务"}</span>
-                      <span className={`board-card-status${task.status === "running" ? " is-running" : ""}`}>
-                        {statusLabel(task)}
-                      </span>
+                      <TaskStatusCapsule task={task} />
                       <small>
                         {task.updatedAt ? new Date(task.updatedAt).toLocaleString() : ""}
                       </small>

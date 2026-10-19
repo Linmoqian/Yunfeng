@@ -1,4 +1,4 @@
-import mapleMarkImage from "@/assets/maple-mark.png";
+import mapleMarkImage from "@yunfeng/ui/assets/maple-mark.png";
 
 interface MapleMarkProps {
   /** 视觉尺寸（px），默认 22，与桌面端消息行标记一致。 */

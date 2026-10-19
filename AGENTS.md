@@ -26,7 +26,7 @@ npm create tauri-app@latest
 
 - 前端模块化遵循 [详细规范](docs/development/frontend.md)：
 
-    - 项目动画、胶囊与交互优先复用 `app/desktop/src/components/common`，按[云枫 UI 使用规范](docs/development/2026-10-17-ui-library.md)接入；开发环境 `/dev/ui` 查看样例。
+    - 项目动画、胶囊与交互优先复用 `@yunfeng/ui`（`packages/ui`），三端设计变量使用 `@yunfeng/design-tokens`，桌面 `components/common` 仅保留兼容转发，按[云枫 UI 使用规范](docs/development/2026-10-17-ui-library.md)接入；开发环境 `/dev/ui` 查看样例。
 
     - 页面只负责组装；UI、业务逻辑、异步调用与状态管理按职责拆分
     - 仅跨两个以上功能稳定复用的组件进入共用组件；通用层不得反向依赖 feature

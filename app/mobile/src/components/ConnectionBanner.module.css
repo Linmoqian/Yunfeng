@@ -1,0 +1,9 @@
+/* 固定提示位置与触摸入口，恢复时不挤动正文。
+ * Created on 2026-10-19
+ * @author: https://github.com/Linmoqian
+ */
+.position { position: fixed; z-index: 95; top: calc(8px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); max-width: calc(100vw - 24px); }
+.capsule { min-height: 44px; gap: 7px; padding: 0 7px 0 12px; box-shadow: var(--yf-shadow-md); white-space: nowrap; }
+.retry { display: inline-flex; justify-content: center; align-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--yf-radius-pill); background: transparent; color: inherit; cursor: pointer; }
+.retry:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: -4px; }
+@media (hover: hover) { .retry:hover { background: var(--yf-bg-secondary); } }

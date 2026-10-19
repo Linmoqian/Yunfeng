@@ -57,7 +57,7 @@ app/desktop/src/
 
 ## 样式复用
 
-- 云枫项目动画、组件与交互优先复用 `app/desktop/src/components/common`，使用约定和示例见 [云枫 UI](2026-10-17-ui-library.md)；开发环境 `/dev/ui` 可查看样例。
+- 云枫项目动画、组件与交互优先复用 `@yunfeng/ui`（`packages/ui`），三端设计变量使用 `@yunfeng/design-tokens`，使用约定和示例见 [云枫 UI](2026-10-17-ui-library.md)；开发环境 `/dev/ui` 可查看样例。
 
 - 全局样式仅包含重置、字体、主题和应用级规则。
 - 组件样式使用同名 CSS Module，并与组件就近存放。

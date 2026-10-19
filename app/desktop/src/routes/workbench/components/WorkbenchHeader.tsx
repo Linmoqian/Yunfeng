@@ -1,7 +1,7 @@
 import { Button } from "antd";
 import { Plus, Settings } from "lucide-react";
 
-import cloudMascot from "../../../assets/generated/yunfeng-cloud.png";
+import cloudMascot from "@yunfeng/ui/assets/yunfeng-cloud.png";
 
 interface WorkbenchHeaderProps {
   sidebarCollapsed: boolean;

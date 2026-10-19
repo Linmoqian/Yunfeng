@@ -1,0 +1,51 @@
+{
+  "name": "@yunfeng/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./antd": "./src/Details.tsx",
+    "./styles/*": "./src/*",
+    "./assets/*": "./assets/*",
+    "./motion/*": "./src/motion/*.ts",
+    "./interaction/*": "./src/interaction/*.ts",
+    "./*": "./src/*.tsx"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "motion": ">=12.38.0 <14",
+    "antd": "^6.5.4",
+    "lucide-react": "^1.28.0"
+  },
+  "peerDependenciesMeta": {
+    "antd": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "motion": "13.1.1",
+    "antd": "6.6.1",
+    "lucide-react": "1.33.0",
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.7",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "jsdom": "^26.1.0"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

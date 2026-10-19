@@ -48,7 +48,7 @@
 - [yunfeng-mobile-roadmap.md](./design/yunfeng-mobile-roadmap.md)：移动端功能补齐计划
 - [yunfeng-mobile-taskboard-mobile.md](./design/yunfeng-mobile-taskboard-mobile.md)：任务看板移动端适配计划
 - [plugin-system.md](./design/plugin-system.md)、[ui-language.md](./design/ui-language.md)
-- [移动端 Token](design/yunfeng-tokens.css)：移动端现有主题；桌面 Token 以 [tokens.css](../app/desktop/src/styles/tokens.css) 和 [ThemeProvider](../app/desktop/src/theme/ThemeProvider.tsx) 为准。
+- [共享 UI](../packages/ui/README.md)、[设计变量](../packages/design-tokens/README.md)：桌面与移动共用组件、动效和品牌资源，CLI 共用语义色；桌面 [ThemeProvider](../app/desktop/src/theme/ThemeProvider.tsx)映射 Ant Design。
 
 ## 历史对话与迁移记录
 

@@ -6,7 +6,7 @@ import { Segmented } from "antd";
 import { Code2, FlaskConical } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
-import cloudMascot from "../../../assets/generated/yunfeng-cloud.png";
+import cloudMascot from "@yunfeng/ui/assets/yunfeng-cloud.png";
 import { SESSION_ENTER } from "../workspaceMotion";
 import styles from "./ConversationWelcome.module.css";
 

@@ -1,6 +1,6 @@
 import { ListTodo, MoreHorizontal } from "lucide-react";
 import type { TaskState } from "@/lib/types";
-import { statusLabel } from "@/lib/taskLabels";
+import { TaskStatusCapsule } from "./TaskStatusCapsule";
 
 interface TaskListProps {
   tasks: TaskState[];
@@ -32,9 +32,7 @@ export function TaskList({ tasks, loading, activeId, onPick, onMore }: TaskListP
               <ListTodo size={15} />
               <span className="task-list-title">
                 {task.title || "未命名任务"}
-                <small className={task.status === "running" ? "task-status is-running" : "task-status"}>
-                  {statusLabel(task)}
-                </small>
+                <TaskStatusCapsule task={task} />
               </span>
               <small>{task.updatedAt ? new Date(task.updatedAt).toLocaleDateString() : ""}</small>
             </button>

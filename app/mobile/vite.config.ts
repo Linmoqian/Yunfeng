@@ -11,6 +11,7 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   resolve: {
+    dedupe: ["react", "react-dom", "motion"],
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
     },

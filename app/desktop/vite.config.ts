@@ -8,6 +8,8 @@ const apiProxyTarget = process.env.YF_API_PROXY ?? "http://127.0.0.1:8000";
 export default defineConfig({
   clearScreen: false,
   plugins: [react()],
+  // 跨 workspace 组件与宿主共享上下文和动画实例。
+  resolve: { dedupe: ["react", "react-dom", "motion", "antd"] },
   server: {
     port: 5173,
     strictPort: true,

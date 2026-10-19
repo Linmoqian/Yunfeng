@@ -9,6 +9,7 @@ Yunfeng 是本地优先的个人 Agent 工作台。桌面 React 界面通过 HTT
 | 目录 | 职责与边界 |
 | --- | --- |
 | `app/` | 三个客户端的统一入口，见[客户端索引](app/README.md) |
+| `packages/` | [共享 UI](packages/ui/README.md)与[设计变量](packages/design-tokens/README.md)，供各客户端复用 |
 | `app/desktop/` | React + TypeScript + Vite 桌面界面，Tauri 2 外壳；论文写作、终端和本地协作通过 Rust IPC 提供 |
 | `server/` | 任务、Agent 会话、审批、事件和记忆；Pi SDK 在 Server 进程内运行 |
 | `team-service/` | 独立 Rust 团队核心，可选本机 HTTP 对等节点；[启动与多节点验证](team-service/README.md) |
@@ -64,6 +65,7 @@ TUI 在独立 workspace 内运行：`cd app/cli` 后执行 `pnpm install`、`pnp
 
 | 范围 | 从仓库根目录执行 |
 | --- | --- |
+| 共享 UI 与设计变量 | `pnpm --filter @yunfeng/ui check`、`pnpm --filter @yunfeng/ui test`、`pnpm --filter @yunfeng/design-tokens test` |
 | 文档本地链接与检查器回归 | `pnpm check:docs`、`pnpm test:docs` |
 | 桌面前端 | `pnpm --dir app/desktop exec tsc --noEmit`、`pnpm --dir app/desktop test` |
 | Server | `pnpm --filter yunfeng-server build`、`pnpm --filter yunfeng-server test` |

@@ -82,8 +82,8 @@ describe('OSC 10/11 主题探测', () => {
 	});
 
 	it('主题 token 与项目设计 token 一致', () => {
-		expect(YUNFENG_LIGHT_THEME.brand).toBe('#0066cc');
-		expect(YUNFENG_DARK_THEME.brand).toBe('#2997ff');
+		expect(YUNFENG_LIGHT_THEME.brand).toBe('#8665a6');
+		expect(YUNFENG_DARK_THEME.brand).toBe('#c3a6e0');
 		expect(YUNFENG_LIGHT_THEME.canvas).toBe('#ffffff');
 		expect(YUNFENG_DARK_THEME.canvas).toBe('#000000');
 	});

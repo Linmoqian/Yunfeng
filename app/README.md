@@ -9,3 +9,5 @@
 移动后端在 [mobile/backend](mobile/backend/README.md)，早期原型在 [mobile/legacy](mobile/legacy/README.md)。根 workspace 中的客户端成员为桌面、当前移动客户端和移动后端；CLI 使用已有独立锁文件，原型不参与根 workspace。
 
 共享 Server、Gateway 与团队服务继续位于仓库根目录，职责见[项目说明](../README.md)。目录迁移不改变用户数据、服务名称或发布包内的后端布局。
+
+UI 共用 [@yunfeng/ui](../packages/ui/README.md)，颜色、字体与动效基础共用 [@yunfeng/design-tokens](../packages/design-tokens/README.md)。桌面与移动端使用相同胶囊和加载实现；CLI 复用语义色并保留终端渲染。

@@ -1,22 +1,29 @@
-import { RefreshCw, WifiOff } from "lucide-react";
-import { Button } from "./ui/button";
+/* 移动端连接提示复用共享胶囊、品牌加载和稳定显示策略。
+ * Created on 2026-10-19
+ * @author: https://github.com/Linmoqian
+ */
+import { RefreshCw } from "lucide-react";
+import { Capsule, MapleCloudLoading, useStableVisibility } from "@yunfeng/ui";
+import styles from "./ConnectionBanner.module.css";
 
 interface ConnectionBannerProps {
   online: boolean | null;
   onRetry: () => void;
 }
 
-/** 全局断线横幅：网关不可达时提示重连中，提供手动重试。 */
+/** 只展示真实连接状态，短暂断连不闪现，恢复稳定后收起。 */
 export function ConnectionBanner({ online, onRetry }: ConnectionBannerProps) {
-  if (online !== false) return null;
+  const visible = useStableVisibility(online === false);
+  if (!visible) return null;
   return (
-    <div className="connection-banner" role="alert">
-      <WifiOff size={15} />
-      <span>与电脑的连接已断开，正在自动重连…</span>
-      <Button size="sm" variant="outline" onClick={onRetry}>
-        <RefreshCw size={12} />
-        立即重试
-      </Button>
+    <div className={styles.position} role="status" aria-live="polite">
+      <Capsule className={styles.capsule} tone="warning" animateOnMount={false}>
+        {online === false && <MapleCloudLoading compact />}
+        <span>{online === false ? "正在重新连接" : "连接已恢复"}</span>
+        {online === false && <button className={styles.retry} type="button" onClick={onRetry} aria-label="立即重试" title="立即重试">
+          <RefreshCw size={14} aria-hidden="true" />
+        </button>}
+      </Capsule>
     </div>
   );
 }

@@ -1,10 +1,12 @@
 /**
  * 云枫 TUI 主题层：明暗双主题 + 终端配色探测。
  *
- * 颜色 token 与 docs/design/yunfeng-tokens.css 保持一致；
+ * 颜色来自 @yunfeng/design-tokens，与桌面和移动端同源；
  * 明暗自动探测参考 pi 的 terminal-colors 与 OpenTUI 的 theme_mode：
  * 通过 OSC 10/11 查询终端前/背景色，并按背景亮度选择主题。
  */
+import { palettes } from '@yunfeng/design-tokens';
+
 export type ThemeMode = 'light' | 'dark';
 export type ThemePreference = ThemeMode | 'auto';
 
@@ -44,45 +46,15 @@ export interface YunfengTheme {
 	info: string;
 }
 
-export const YUNFENG_LIGHT_THEME: Readonly<YunfengTheme> = {
+export const YUNFENG_LIGHT_THEME: Readonly<YunfengTheme> = Object.freeze({
 	mode: 'light',
-	brand: '#0066cc',
-	brandHover: '#0071e3',
-	onBrand: '#ffffff',
-	canvas: '#ffffff',
-	canvasSecondary: '#f5f5f7',
-	surface: '#fafafc',
-	elevated: '#ffffff',
-	text: '#1d1d1f',
-	textSecondary: '#6e6e73',
-	textTertiary: '#86868b',
-	border: '#d2d2d7',
-	divider: '#f0f0f0',
-	success: '#34c759',
-	warning: '#ff9500',
-	error: '#ff3b30',
-	info: '#0066cc',
-};
+	...palettes.light,
+});
 
-export const YUNFENG_DARK_THEME: Readonly<YunfengTheme> = {
+export const YUNFENG_DARK_THEME: Readonly<YunfengTheme> = Object.freeze({
 	mode: 'dark',
-	brand: '#2997ff',
-	brandHover: '#4da3ff',
-	onBrand: '#ffffff',
-	canvas: '#000000',
-	canvasSecondary: '#1c1c1e',
-	surface: '#2c2c2e',
-	elevated: '#333336',
-	text: '#f5f5f7',
-	textSecondary: '#98989d',
-	textTertiary: '#636366',
-	border: '#3a3a3c',
-	divider: '#2c2c2e',
-	success: '#30d158',
-	warning: '#ff9f0a',
-	error: '#ff453a',
-	info: '#2997ff',
-};
+	...palettes.dark,
+});
 
 let themePreference: ThemePreference = 'auto';
 let activeMode: ThemeMode = 'dark';

@@ -1,0 +1,20 @@
+{
+  "name": "@yunfeng/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs"
+    },
+    "./styles.css": "./tokens.css",
+    "./tokens.json": "./tokens.json"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

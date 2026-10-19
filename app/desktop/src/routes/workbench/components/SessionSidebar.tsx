@@ -4,7 +4,7 @@ import { ArrowUpRight, ChevronRight, Plus, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import yuncongCloud from "../../../assets/generated/yuncong-cloud.png";
-import cloudMascot from "../../../assets/generated/yunfeng-cloud.png";
+import cloudMascot from "@yunfeng/ui/assets/yunfeng-cloud.png";
 import yundianPalace from "../../../assets/generated/yundian-palace.png";
 import { MapleStatusMark } from "../../../features/workbench/MapleStatusMark";
 import { TaskRow } from "../../../features/workbench/TaskRow";

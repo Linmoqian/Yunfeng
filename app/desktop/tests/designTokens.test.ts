@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const tokenCss = readFileSync(new URL("../src/styles/tokens.css", import.meta.url), "utf8").toLowerCase();
+const tokenCss = readFileSync(new URL("../../../packages/design-tokens/tokens.css", import.meta.url), "utf8").toLowerCase();
 const tokenSource = JSON.parse(
-  readFileSync(new URL("../../../docs/design/yunfeng-tokens.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../../../packages/design-tokens/tokens.json", import.meta.url), "utf8"),
 ) as {
   color: Record<string, Record<string, { $value: { light: string; dark: string } }>>;
   radius: Record<string, { $value: string }>;

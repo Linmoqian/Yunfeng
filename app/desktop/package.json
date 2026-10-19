@@ -27,7 +27,9 @@
     "react-markdown": "^10.1.0",
     "react-redux": "^9.3.0",
     "react-router-dom": "^7.18.2",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "@yunfeng/ui": "workspace:*",
+    "@yunfeng/design-tokens": "workspace:*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",

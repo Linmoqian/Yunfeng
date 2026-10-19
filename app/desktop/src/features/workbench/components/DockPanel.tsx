@@ -9,7 +9,7 @@ import type { useWorkspaceLayout } from "../hooks/useWorkspaceLayout";
 import { DEFAULT_LAYOUT, PANEL_MAX_WIDTH, type PanelId } from "../workspaceLayout";
 import { SPRING_LAYOUT } from "../workspaceMotion";
 import styles from "./WorkspaceShell.module.css";
-import cloudMascot from "../../../assets/generated/yunfeng-cloud.png";
+import cloudMascot from "@yunfeng/ui/assets/yunfeng-cloud.png";
 
 export function DockPanel({ panel, title, dock, children }: {
   panel: PanelId; title: string; dock: ReturnType<typeof useWorkspaceLayout>; children: ReactNode;

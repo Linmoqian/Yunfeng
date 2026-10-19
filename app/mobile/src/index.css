@@ -1,13 +1,13 @@
 /* ============================================================
    Yunfeng Mobile — 与桌面端共用 Yunfeng Design Tokens
-   - 颜色 / 圆角 / 阴影：docs/design/yunfeng-tokens.css
+   - 颜色 / 圆角 / 阴影：@yunfeng/design-tokens/styles.css
    - Tailwind 映射：docs/design/yunfeng-tokens.tailwind.css
    - 下方 --background/--accent 等仅为旧样式兼容别名，禁止新增语义
    ============================================================ */
 
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "../../../docs/design/yunfeng-tokens.css";
+@import "@yunfeng/design-tokens/styles.css";
 
 @custom-variant dark (&:is([data-theme="dark"] *));
 
@@ -39,8 +39,7 @@
 
 /* ---------- 兼容别名：旧样式仍工作，语义一律由 yf token 派生 ---------- */
 :root {
-  /* 人文衬线用于页面问候、任务标题和关键结论，与桌面端字体系统保持一致。 */
-  --font-display: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  --font-sans: var(--font-body);
   --background: var(--yf-bg-canvas);
   --foreground: var(--yf-text-primary);
   --surface: var(--yf-bg-elevated);
@@ -1349,13 +1348,6 @@ button:not(:disabled):active {
   min-width: 0;
   text-align: left;
 }
-.task-status {
-  font-size: 11px;
-  color: var(--yf-text-secondary);
-}
-.task-status.is-running {
-  color: var(--accent, #2f5cff);
-}
 .chat-status-dot.is-busy {
   animation: status-pulse 1.4s ease-in-out infinite;
 }
@@ -1651,28 +1643,6 @@ button:not(:disabled):active {
   word-break: break-word;
 }
 
-.connection-banner {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  z-index: 95;
-  display: flex;
-  width: min(92vw, 560px);
-  align-items: center;
-  gap: 10px;
-  border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
-  border-radius: 12px;
-  padding: 9px 12px;
-  color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 10%, var(--surface-solid));
-  box-shadow: var(--shadow);
-  font-size: 12.5px;
-  transform: translateX(-50%);
-}
-.connection-banner span {
-  flex: 1;
-  min-width: 0;
-}
 
 /* ---------- 任务看板 ---------- */
 .sidebar-view-switch {
@@ -1820,13 +1790,6 @@ button:not(:disabled):active {
   font-weight: 500;
   line-height: 1.4;
   word-break: break-word;
-}
-.board-card-status {
-  color: var(--muted-foreground);
-  font-size: 11px;
-}
-.board-card-status.is-running {
-  color: var(--accent);
 }
 .board-card-main small {
   color: var(--faint);
@@ -1999,9 +1962,6 @@ button:not(:disabled):active {
   }
   .task-board-header {
     padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
-  }
-  .connection-banner {
-    top: calc(8px + env(safe-area-inset-top));
   }
   .task-board-scroll {
     gap: 10px;
