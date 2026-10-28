@@ -562,6 +562,10 @@
   scroll-behavior: smooth;
 }
 
+.conversation-message__activity {
+  align-self: flex-start;
+}
+
 .conversation-message {
   max-width: min(76%, 650px);
   padding: 13px 15px;
@@ -620,10 +624,6 @@
 
 .conversation-message__thinking {
   margin: 0 0 14px;
-  padding: 10px 12px;
-  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
-  border-radius: 0 8px 8px 0;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
   color: var(--text-secondary);
   font-size: 12px;
 }
@@ -3609,8 +3609,7 @@
 
 .conversation-message--assistant {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  column-gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
   padding: 4px 0 22px;
 }
 
@@ -3636,7 +3635,7 @@
 
 .conversation-message--assistant .conversation-message__content,
 .conversation-message--assistant .conversation-message__actions {
-  grid-column: 2;
+  grid-column: 1;
   padding-right: 0;
 }
 
@@ -4072,8 +4071,7 @@
   }
 
   .conversation-message--assistant {
-    grid-template-columns: 26px minmax(0, 1fr);
-    column-gap: 9px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .conversation-message--assistant .conversation-message__role {

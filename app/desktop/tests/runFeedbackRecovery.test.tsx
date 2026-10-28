@@ -36,3 +36,19 @@ test("重连保留回执，恢复最新阶段且旧快照和旧文本不能覆�
   expect(result.current.activeTask?.autonomy?.phase).toBe("REFLECTING");
   expect(api.subscribe).toHaveBeenCalledTimes(1);
 });
+
+test("开发运行结束后刷新真实会话，工具记录进入对话顺序", async () => {
+  const task = { id: "task", sessionId: "session", mode: "development", lastEventSeq: 20, updatedAt: "2026-10-19T01:00:00Z", status: "running" } as TaskState;
+  let receive!: (event: TaskStreamEvent) => void;
+  api.conversation.mockResolvedValueOnce([]).mockResolvedValue([
+    { id: "a", role: "assistant", content: [{ type: "toolCall", id: "call", name: "read", arguments: { path: "a.txt" } }] },
+    { id: "r", role: "toolResult", toolCallId: "call", content: [{ type: "text", text: "内容" }], isError: false },
+  ]);
+  api.interventions.mockResolvedValue([]);
+  api.subscribe.mockImplementation((_id, listener) => { receive = listener; return vi.fn(); });
+  const { result } = renderHook(() => useTaskStream({ task, sessionId: task.sessionId, isDraft: false, isLegacy: false, onTaskUpdated: vi.fn() }));
+  await waitFor(() => expect(result.current.conversationLoading).toBe(false));
+  act(() => receive({ type: "run_settled", seq: 21, data: {} }));
+  await waitFor(() => expect(result.current.conversation[0]?.toolCalls?.[0]).toMatchObject({ callId: "call", outcome: "succeeded", result: "内容" }));
+  expect(api.conversation).toHaveBeenCalledTimes(2);
+});

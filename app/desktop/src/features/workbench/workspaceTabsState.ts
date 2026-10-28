@@ -29,3 +29,16 @@ export function closeWorkspaceTabs(state: WorkspaceTabsState, ids: string[]): Wo
   return { ...state, items, active, closed: [...state.closed, ...removed].slice(-20),
     collapsedGroups: group ? state.collapsedGroups.filter((value) => value !== group) : state.collapsedGroups };
 }
+
+/** 将标签放到目标前或后；分组只在明确要求时创建。 */
+export function reorderWorkspaceTabs(state: WorkspaceTabsState, id: string, targetId: string, after: boolean, groupName?: string): WorkspaceTabsState {
+  const moving = state.items.find((item) => item.id === id);
+  const target = state.items.find((item) => item.id === targetId);
+  if (!moving || !target || id === targetId) return state;
+  const items = state.items.filter((item) => item.id !== id);
+  const index = items.findIndex((item) => item.id === targetId);
+  const group = groupName ?? target.group;
+  if (groupName) items[index] = { ...target, group };
+  items.splice(index + (after ? 1 : 0), 0, { ...moving, group });
+  return { ...state, items };
+}

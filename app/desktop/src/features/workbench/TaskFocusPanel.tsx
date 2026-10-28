@@ -228,6 +228,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
             items={researchConversation(conversation, activeTask?.mode)}
             toolCalls={toolCalls}
             loading={conversationLoading}
+            running={running}
             streamStatus={streamStatus}
             approvals={approvals}
             streamError={streamError}

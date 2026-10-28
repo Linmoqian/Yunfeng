@@ -5,7 +5,7 @@
 import { App, Dropdown, Input } from "antd";
 import { MessageSquare, Plus, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { useWorkspaceTabs, WorkspaceTab } from "../hooks/useWorkspaceTabs";
 import { SPRING_LAYOUT } from "../workspaceMotion";
 import { visibleWorkspaceTabs } from "../workspaceTabsState";
@@ -19,6 +19,7 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
   const { modal } = App.useApp();
   const root = useRef<HTMLDivElement>(null);
   const menuOrigin = useRef<HTMLButtonElement | null>(null);
+  const [drag, setDrag] = useState<{ id: string; target?: string; after?: boolean } | null>(null);
   const shownGroups = new Set<string>();
   const visibleTabs = visibleWorkspaceTabs(tabs.items, tabs.collapsedGroups);
   function rename(tab: WorkspaceTab) {
@@ -40,9 +41,27 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
       if (key === "group") tab.group ? tabs.removeFromGroup(tab.id) : tabs.group(tab.id);
     }}}>
       <motion.div layout={reduced ? false : "position"} transition={SPRING_LAYOUT} className={styles.tab} data-active={tabs.active === tab.id || undefined}
+        data-dragging={drag?.id === tab.id || undefined} data-drop={drag?.target === tab.id ? (drag.after ? "after" : "before") : undefined}
         onContextMenu={(event) => { event.stopPropagation(); menuOrigin.current = event.currentTarget.querySelector<HTMLButtonElement>('[role="tab"]'); menuOrigin.current?.focus({ preventScroll: true }); }}
-        draggable onDragStartCapture={(event) => event.dataTransfer.setData("application/yunfeng-tab", tab.id)}
-        onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const drag = event as unknown as React.DragEvent; tabs.reorder(drag.dataTransfer.getData("application/yunfeng-tab"), tab.id, drag.altKey); }}
+        draggable onDragStartCapture={(event) => { event.dataTransfer.setData("application/yunfeng-tab", tab.id); event.dataTransfer.effectAllowed = "move"; setDrag({ id: tab.id }); }}
+        onDragEnd={() => setDrag(null)}
+        onDragOver={(event) => {
+          const e = event as unknown as React.DragEvent<HTMLDivElement>;
+          if (!Array.from(e.dataTransfer.types).includes("application/yunfeng-tab")) return;
+          e.preventDefault(); e.dataTransfer.dropEffect = "move";
+          const rect = e.currentTarget.getBoundingClientRect();
+          const after = e.clientX >= rect.left + rect.width / 2;
+          setDrag((current) => current && current.id !== tab.id ? { ...current, target: tab.id, after } : current);
+        }}
+        onDrop={(event) => {
+          const e = event as unknown as React.DragEvent<HTMLDivElement>;
+          const id = e.dataTransfer.getData("application/yunfeng-tab");
+          if (!id) return;
+          e.preventDefault(); e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          tabs.reorder(id, tab.id, e.altKey, e.clientX >= rect.left + rect.width / 2);
+          setDrag(null);
+        }}
         onAuxClick={(event) => { if (event.button === 1) { event.preventDefault(); onClose(tab.id); } }}>
         <button className={styles.tabLabel} type="button" role="tab" aria-selected={tabs.active === tab.id} tabIndex={tabs.active === tab.id ? 0 : -1} onClick={() => onActivate(tab.id)}>
           <MessageSquare size={13} aria-hidden /><span>{title}</span>

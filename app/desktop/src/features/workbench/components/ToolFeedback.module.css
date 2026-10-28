@@ -1,22 +1,27 @@
-/* 工具回执复用胶囊语义色；只旋转活动图标，保持消息布局稳定。
- * Created on 2026-10-19
+/* 工具调用沿对话流紧凑排列，展开时展示服务端返回的摘要。
+ * Created on 2026-10-28
  * @author: https://github.com/Linmoqian
  */
-.feedback { margin: 16px 0; min-width: 0; padding: 12px 14px; border: 1px solid var(--yf-border-divider); border-radius: 16px; background: var(--yf-bg-canvas); }
-.heading { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; color: var(--yf-text-secondary); font-size: 12px; }
-.heading small { margin-left: auto; color: var(--yf-text-tertiary); font-size: 11px; }
-.receipts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-.receipt { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; min-width: 0; max-width: 100%; font-size: 12px; }
-.name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-.receipt time { opacity: .75; font-size: 11px; font-variant-numeric: tabular-nums; }
-.receipt[data-tone="success"] { color: color-mix(in srgb, var(--yf-semantic-success) 60%, var(--yf-text-primary)); background: color-mix(in srgb, var(--yf-semantic-success) 7%, var(--yf-bg-canvas)); }
-.receipt[data-tone="danger"] { color: var(--yf-semantic-error); background: color-mix(in srgb, var(--yf-semantic-error) 7%, var(--yf-bg-canvas)); }
-.receipt[data-tone="warning"] { color: color-mix(in srgb, var(--yf-semantic-warning) 65%, var(--yf-text-primary)); background: color-mix(in srgb, var(--yf-semantic-warning) 7%, var(--yf-bg-canvas)); }
-.feedback small { color: var(--yf-text-tertiary); font-size: 11px; }
-.records { padding: 0; margin: 6px 0; list-style: none; max-height: 220px; overflow: auto; font-size: 12px; color: var(--yf-text-secondary); }
-.records li { display: grid; grid-template-columns: minmax(0, 1fr) auto 64px; gap: 10px; padding: 6px 0; }
-.records li > :first-child { overflow-wrap: anywhere; }
-.records time { text-align: right; font-variant-numeric: tabular-nums; }
-.running { animation: toolSpin 1.4s linear infinite; }
+.feedback { min-width: 0; margin: 8px 0 14px; color: var(--yf-text-secondary); font: 12px/1.5 var(--font-body); }
+.heading { display: flex; align-items: center; gap: 6px; margin: 0 0 5px; color: var(--yf-text-tertiary); }
+.row { min-width: 0; }
+.feedback .trigger { display: flex; align-items: center; gap: 7px; width: 100%; min-height: 30px; padding: 4px 7px; border: 0; border-radius: var(--yf-radius-sm); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.trigger:hover, .trigger:focus-visible { background: var(--yf-bg-secondary); }
+.trigger:focus-visible { outline: 2px solid var(--yf-brand-primary); outline-offset: 1px; }
+.chevron { flex: none; transition: transform var(--yf-motion-fast) var(--yf-motion-ease); }
+.trigger[aria-expanded="true"] .chevron { transform: rotate(90deg); }
+.icon, .running { flex: none; color: var(--yf-text-tertiary); }
+.row[data-outcome="running"] .running { color: var(--yf-brand-primary); animation: toolSpin 1.4s linear infinite; }
+.row[data-outcome="failed"] .icon { color: var(--yf-semantic-error); }
+.row[data-outcome="cancelled"] .icon, .row[data-outcome="unknown"] .icon { color: var(--yf-semantic-warning); }
+.name { flex: none; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--yf-text-primary); font-weight: 500; }
+.target { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status { margin-left: auto; white-space: nowrap; }
+.row[data-outcome="failed"] .status { color: var(--yf-semantic-error); }
+.trigger time { flex: none; color: var(--yf-text-tertiary); font-variant-numeric: tabular-nums; }
+.detail { margin: 2px 7px 8px 28px; padding: 8px 10px; border-radius: var(--yf-radius-sm); background: var(--yf-bg-secondary); }
+.detail section + section { margin-top: 8px; }
+.detail section > span { color: var(--yf-text-tertiary); }
+.detail pre { max-height: 180px; margin: 4px 0 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.5 var(--font-mono); user-select: text; }
 @keyframes toolSpin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .running { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .running { animation: none !important; } .chevron { transition: none; } }
