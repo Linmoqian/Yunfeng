@@ -3,7 +3,7 @@
  * @author: https://github.com/Linmoqian
  */
 import { useState } from "react";
-import { closeWorkspaceTabs, EMPTY_TABS, type WorkspaceTab } from "../workspaceTabsState";
+import { closeWorkspaceTabs, reorderWorkspaceTabs, EMPTY_TABS, type WorkspaceTab } from "../workspaceTabsState";
 export type { WorkspaceTab } from "../workspaceTabsState";
 export function useWorkspaceTabs() {
   const [state, setState] = useState(EMPTY_TABS);
@@ -29,17 +29,11 @@ export function useWorkspaceTabs() {
     setState((current) => ({ ...current, items: current.items.map((item) => item.id === id ? { ...tab, group: item.group } : item),
       active: current.active === id ? tab.id : current.active }));
   }
-  function reorder(id: string, beforeId: string, group = false) {
+  function reorder(id: string, targetId: string, group = false, after = false) {
     setState((current) => {
-      const moving = current.items.find((item) => item.id === id);
-      const target = current.items.find((item) => item.id === beforeId);
-      if (!moving || !target || id === beforeId) return current;
-      const items = current.items.filter((item) => item.id !== id);
-      const index = items.findIndex((item) => item.id === beforeId);
-      const groupName = target.group ?? `分组 ${crypto.randomUUID().slice(0, 4)}`;
-      if (group) items[index] = { ...target, group: groupName };
-      items.splice(index, 0, { ...moving, group: group ? groupName : target.group });
-      return { ...current, items };
+      const target = current.items.find((item) => item.id === targetId);
+      const groupName = group && target ? target.group ?? `分组 ${crypto.randomUUID().slice(0, 4)}` : undefined;
+      return reorderWorkspaceTabs(current, id, targetId, after, groupName);
     });
   }
   function reopen() {

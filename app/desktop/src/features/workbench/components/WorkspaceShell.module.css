@@ -60,10 +60,16 @@
 .navFooter .navButton { flex: 1; }
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px 16px; color: var(--yf-text-tertiary); text-align: center; font-size: 12px; }
 .empty p { margin: 0; }
-.tabsHeader { display: flex; flex: 0 0 55px; align-items: center; min-width: 0; padding: 0 76px 0 16px; border-bottom: 1px solid var(--yf-border-divider); }
-.tabList { display: flex; flex: 1; align-items: center; gap: 4px; min-width: 0; overflow: auto; scrollbar-width: none; }
-.tab { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; min-width: 100px; max-width: 200px; padding: 3px 5px 3px 10px; border: 1px solid transparent; border-radius: var(--yf-radius-sm); color: var(--yf-text-tertiary); background: transparent; cursor: grab; }
-.tab[data-active="true"] { border-color: var(--yf-border-divider); background: var(--yf-bg-elevated); color: var(--yf-text-primary); box-shadow: var(--yf-shadow-sm); }
+/* 连续标签栏，活动页与内容区衔接；拖动落点使用细线提示。 */
+.tabsHeader { display: flex; flex: 0 0 48px; align-items: end; min-width: 0; padding: 0 76px 0 12px; border-bottom: 1px solid var(--yf-border-divider); background: var(--yf-bg-secondary); }
+.tabList { display: flex; flex: 1; align-items: end; gap: 2px; min-width: 0; overflow: auto; scrollbar-width: none; }
+.tab { position: relative; display: flex; flex: 0 0 auto; align-items: center; gap: 2px; min-width: 100px; max-width: 200px; height: 38px; padding: 3px 5px 3px 10px; border: 1px solid transparent; border-bottom: 0; border-radius: var(--yf-radius-sm) var(--yf-radius-sm) 0 0; color: var(--yf-text-secondary); background: transparent; cursor: grab; }
+.tab:hover { background: color-mix(in srgb, var(--yf-bg-canvas) 45%, transparent); }
+.tab[data-active="true"] { border-color: var(--yf-border-divider); background: var(--yf-bg-canvas); color: var(--yf-text-primary); }
+.tab[data-dragging="true"] { opacity: .42; }
+.tab[data-drop]::after { position: absolute; z-index: 1; top: 5px; bottom: 5px; width: 2px; border-radius: 2px; background: var(--yf-brand-primary); content: ""; pointer-events: none; }
+.tab[data-drop="before"]::after { left: 0; }
+.tab[data-drop="after"]::after { right: 0; }
 .tabLabel { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; padding: 4px 0; color: inherit; background: transparent; border: 0; text-align: left; font-size: 12px; cursor: pointer; }
 .tabLabel span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab .iconButton { width: 24px; height: 24px; opacity: 0; }
