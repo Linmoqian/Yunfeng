@@ -1,0 +1,21 @@
+/* 研究工具的共享三栏样式。
+ * Created on 2026-10-14
+ * @author: https://github.com/Linmoqian
+ */
+.writingEditor { min-height: 360px; height: 100%; font-size: 14px; }
+.center { display: flex; flex-direction: column; gap: 16px; padding: 24px; height: 100%; box-sizing: border-box; overflow: auto; min-width: 0; color: var(--yf-text-primary); }
+.center[data-focus] { position: fixed; inset: 44px 12px 12px; z-index: 30; background: var(--yf-bg-canvas); border-radius: var(--yf-radius-lg); }
+.header, .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.header { justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--yf-border-divider); }
+.identity { display: flex; align-items: center; flex: 1; gap: 8px; min-width: min(100%, 260px); }
+.identity strong { white-space: nowrap; flex-shrink: 0; }
+.identity input { max-width: 480px; min-width: 0; flex: 1; }
+.canvas { flex: 1 0 360px; min-width: 0; border: 0; border-radius: var(--yf-radius-lg); overflow: hidden; }
+.reading { padding: 24px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--yf-text-secondary); font-size: 12px; }
+.sidebar { display: flex; flex-direction: column; gap: 12px; padding: 16px; min-width: 0; overflow: auto; }
+.list { display: flex; flex-direction: column; gap: 4px; }
+.list button { text-align: start; justify-content: start; height: auto; white-space: normal; padding-block: 8px; }
+.material { display: flex; flex-direction: column; gap: 8px; padding: 12px; min-width: 0; border: 1px solid var(--yf-border-divider); border-radius: var(--yf-radius-md); overflow-wrap: anywhere; }
+.muted { font-size: 12px; line-height: 1.8; color: var(--yf-text-secondary); margin: 0; }
+.field { display: flex; flex-direction: column; gap: 6px; }

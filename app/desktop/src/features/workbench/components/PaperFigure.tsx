@@ -18,7 +18,7 @@ export function PaperFigure({ asset }: { asset: PaperAsset }) {
     <strong>{asset.name}</strong><small>{asset.width} × {asset.height} · {(asset.size/1024).toFixed(0)} KiB</small>
     <Input aria-label={`图注：${asset.name}`} placeholder="填写图注…" value={caption} maxLength={500} onChange={(event) => setCaption(event.target.value)} />
     <Button size="small" disabled={paper.materials.busy || caption === asset.caption} onClick={() => { void paper.materials.act({action:"caption",id:asset.id,caption}); }}>保存图注</Button>
-    <Button disabled={!paper.ready || paperByteLength(next) > MAX_PAPER_BYTES} onClick={() => { paper.update({body:next}); paper.setView("编辑"); }}>插入正文</Button>
-    <Button size="small" disabled={paper.materials.busy} onClick={() => { void paper.materials.act({action:asset.archived ? "restore" : "archive",id:asset.id}); }}>{asset.archived ? "恢复素材" : "移出素材"}</Button>
+    <Button disabled={!paper.ready || paperByteLength(next) > MAX_PAPER_BYTES} onClick={() => paper.insert(assetMarkdown({ ...asset, caption }))}>插入正文</Button>
+    <Button size="small" disabled={paper.materials.busy || (!asset.archived && [paper.workspace.body, paper.workspace.analysis?.body, paper.workspace.design?.body, paper.workspace.literature?.body].some((body) => body?.includes(`paper-asset:${asset.id}`)))} onClick={() => { void paper.materials.act({action:asset.archived ? "restore" : "archive",id:asset.id}); }}>{asset.archived ? "恢复素材" : "移出素材"}</Button>
   </article>;
 }

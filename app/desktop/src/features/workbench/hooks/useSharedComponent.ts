@@ -7,7 +7,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { componentDefaults, patchComponent, readComponent, sharingError, subscribeComponent, type ComponentSnapshot, type ComponentStates, type SharedComponentId } from "../services/componentSharing";
 
-export function useSharedComponent<K extends SharedComponentId>(component: K) {
+export function useSharedComponent<K extends SharedComponentId>(component: K, delay = 0) {
   const [value, setValue] = useState<ComponentStates[K]>(componentDefaults[component]);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(!isTauri());
@@ -16,6 +16,7 @@ export function useSharedComponent<K extends SharedComponentId>(component: K) {
   const pending = useRef<Partial<ComponentStates[K]>>({});
   const queued = useRef<Partial<ComponentStates[K]>>({});
   const busy = useRef(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   function accept(snapshot: ComponentSnapshot<K>) {
     if (snapshot.revision < revision.current) return;
@@ -52,7 +53,10 @@ export function useSharedComponent<K extends SharedComponentId>(component: K) {
     if (!isTauri()) return;
     pending.current = { ...pending.current, ...patch };
     queued.current = { ...queued.current, ...patch };
-    void flush();
+    setSyncing(true);
+    clearTimeout(saveTimer.current);
+    if (delay) saveTimer.current = setTimeout(() => { void flush(); }, delay);
+    else void flush();
   }
   useEffect(() => {
     if (!isTauri()) return;
@@ -74,7 +78,7 @@ export function useSharedComponent<K extends SharedComponentId>(component: K) {
       void poll();
     }).catch((reason) => { if (alive) { setError(sharingError(reason)); void poll(); } });
     window.addEventListener("focus", refresh);
-    return () => { alive = false; unsubscribe?.(); clearTimeout(timer); window.removeEventListener("focus", refresh); };
+    return () => { alive = false; unsubscribe?.(); clearTimeout(timer); clearTimeout(saveTimer.current); void flush(); window.removeEventListener("focus", refresh); };
     // 每个组件实例的 ID 固定，accept 只使用 ref 和状态 setter。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [component]);
@@ -83,5 +87,5 @@ export function useSharedComponent<K extends SharedComponentId>(component: K) {
     catch (reason) { setError(sharingError(reason)); }
   }
   useComponentPresentation(component, revision.current, ready, Object.keys(pending.current).length > 0);
-  return { value, update, error, ready, syncing, retry };
+  return { value, update, error, ready, syncing, retry, saveNow: flush };
 }

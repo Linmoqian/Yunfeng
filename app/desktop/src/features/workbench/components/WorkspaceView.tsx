@@ -24,6 +24,7 @@ import { PaperWritingContext, usePaperWriting } from "../hooks/usePaperWriting";
 import { PaperNavigation } from "./PaperNavigation";
 import { PaperMaterials } from "./PaperMaterials";
 import { PaperWriting } from "./PaperWriting";
+import { isResearchTool, RESEARCH_TOOLS } from "../research-tools/model";
 
 const TaskFocusPanel = lazy(() => import("../TaskFocusPanel").then((module) => ({ default: module.TaskFocusPanel })));
 const TaskboardPage = lazy(() => import("../../../routes/taskboard/TaskboardPage").then((module) => ({ default: module.TaskboardPage })));
@@ -43,6 +44,9 @@ interface WorkspaceViewProps {
 export function WorkspaceView(props: WorkspaceViewProps) {
   const tabs = useWorkspaceTabs();
   const paper = usePaperWriting();
+  const researchId = tabs.active.replace(/^tool-/, "");
+  const research = isResearchTool(researchId) ? RESEARCH_TOOLS.find((tool) => tool.id === researchId) : undefined;
+  useEffect(() => { if (isResearchTool(researchId)) paper.open(researchId); }, [researchId]);
   const [teamOpen, setTeamOpen] = useState(false);
   const team = useTeamWorkspace(teamOpen);
   const [infoContainer, setInfoContainer] = useState<HTMLDivElement | null>(null);
@@ -98,7 +102,7 @@ export function WorkspaceView(props: WorkspaceViewProps) {
     const session = props.sessions.find((item) => item.id === tab.entityId);
     if (tab.kind === "utility") {
       if (tab.id === "board") return tabs.active === tab.id && !teamOpen ? <TaskboardPage embedded /> : null;
-      if (tab.id === "tool-writing") return <PaperWriting />;
+      if (isResearchTool(tab.id.replace(/^tool-/, ""))) return tabs.active === tab.id ? <PaperWriting /> : null;
       return <WorkspaceUtility id={tab.id} title={tab.title} />;
     }
     if (tab.kind !== "draft" && !task && !session) return props.navigationLoading ? <ConversationLoading /> : <div className={shell.notice} role="status">
@@ -113,7 +117,7 @@ export function WorkspaceView(props: WorkspaceViewProps) {
   }
   return <WorkspaceLoadingProvider><PaperWritingContext.Provider value={paper}>
     <WorkspaceShell team={teamOpen}
-      toolPanels={!teamOpen && tabs.active === "tool-writing" ? { leftTitle: "参考文献与章节", rightTitle: "图文素材", left: <PaperNavigation onBack={() => { tabs.setActive("home"); props.onClear(); }} />, right: <PaperMaterials /> } : undefined}
+      toolPanels={!teamOpen && research ? { leftTitle: research.left, rightTitle: research.right, left: <PaperNavigation onBack={() => { tabs.setActive("home"); props.onClear(); }} onTool={(id) => openUtility(`tool-${id}`, RESEARCH_TOOLS.find((tool) => tool.id === id)!.label)} />, right: <PaperMaterials /> } : undefined}
       navigation={<><div className={shell.dockStage} hidden={teamOpen}><WorkspaceNavigation loading={props.navigationLoading && !props.tasks.length && !props.sessions.length} error={props.navigationError} onRetry={props.onReconnect} tasks={props.summaries} activeId={props.currentTaskId ?? props.currentSessionId ?? undefined}
         search={props.search} onSearch={props.onSearch} onOpen={openTask} onNew={startNew} onUtility={openUtility} onTeam={() => setTeamOpen(true)} onSettings={props.onSettings} onRename={props.onRename} onArchive={props.onArchive} onReopen={props.onReopen} archived={props.archived} onArchivedChange={props.onArchivedChange} /></div>
         <div className={shell.dockStage} hidden={!teamOpen}><TeamContacts state={team} onBack={() => setTeamOpen(false)} /></div></>}
