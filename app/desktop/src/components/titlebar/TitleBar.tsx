@@ -1,5 +1,7 @@
 // macOS 使用覆盖式原生标题栏；其他桌面平台提供自绘窗口按钮。
 // 拖拽区与交互按钮互为兄弟节点，双击由 Tauri 内建脚本处理。
+// Created on 2026-10-28
+// @author: https://github.com/Linmoqian
 
 import { Copy, Minus, Square, X } from "lucide-react";
 
@@ -16,7 +18,7 @@ export function TitleBar() {
       <div className={styles.dragRegion} data-tauri-drag-region>
         <img src={mapleMark} className={styles.logo} alt="" aria-hidden="true" draggable="false" />
         <span className={styles.titleText}>云枫 Yunfeng</span>
-        <span className={styles.workspaceLabel}>个人工作区</span>
+        <span className={styles.workspaceLabel} data-workspace-label>个人工作区</span>
       </div>
       {error && <span className={styles.error} role="alert">{error}</span>}
       {isDesktop && platform !== "macos" && <div className={styles.windowControls}>

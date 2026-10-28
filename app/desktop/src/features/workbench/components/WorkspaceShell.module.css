@@ -1,5 +1,5 @@
 /* LianAgent 的 6px 间隙、圆角停靠面板与标签结构，颜色来自 Yunfeng token。
- * Created on 2026-10-16
+ * Created on 2026-10-28
  * @author: https://github.com/Linmoqian
  */
 .shell { display: flex; flex: 1; min-height: 0; overflow: hidden; color: var(--yf-text-primary); font-size: 14px; }
@@ -61,9 +61,9 @@
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px 16px; color: var(--yf-text-tertiary); text-align: center; font-size: 12px; }
 .empty p { margin: 0; }
 /* 连续标签栏，活动页与内容区衔接；拖动落点使用细线提示。 */
-.tabsHeader { display: flex; flex: 0 0 48px; align-items: end; min-width: 0; padding: 0 76px 0 12px; border-bottom: 1px solid var(--yf-border-divider); background: var(--yf-bg-secondary); }
+.tabsHeader { position: fixed; z-index: 10; top: 0; display: flex; align-items: end; height: var(--yf-titlebar-height); min-width: 0; padding: 0 4px; background: var(--yf-bg-secondary); }
 .tabList { display: flex; flex: 1; align-items: end; gap: 2px; min-width: 0; overflow: auto; scrollbar-width: none; }
-.tab { position: relative; display: flex; flex: 0 0 auto; align-items: center; gap: 2px; min-width: 100px; max-width: 200px; height: 38px; padding: 3px 5px 3px 10px; border: 1px solid transparent; border-bottom: 0; border-radius: var(--yf-radius-sm) var(--yf-radius-sm) 0 0; color: var(--yf-text-secondary); background: transparent; cursor: grab; }
+.tab { position: relative; display: flex; flex: 0 0 auto; align-items: center; gap: 2px; min-width: 100px; max-width: 200px; height: 32px; padding: 3px 5px 3px 10px; border: 1px solid transparent; border-bottom: 0; border-radius: var(--yf-radius-sm) var(--yf-radius-sm) 0 0; color: var(--yf-text-secondary); background: transparent; cursor: grab; }
 .tab:hover { background: color-mix(in srgb, var(--yf-bg-canvas) 45%, transparent); }
 .tab[data-active="true"] { border-color: var(--yf-border-divider); background: var(--yf-bg-canvas); color: var(--yf-text-primary); }
 .tab[data-dragging="true"] { opacity: .42; }

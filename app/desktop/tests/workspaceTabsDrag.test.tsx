@@ -3,11 +3,20 @@
  * @author: https://github.com/Linmoqian
  */
 import { App } from "antd";
-import { createEvent, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, createEvent, fireEvent, render, screen, within } from "@testing-library/react";
 import { useEffect } from "react";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { WorkspaceTabs } from "../src/features/workbench/components/WorkspaceTabs";
 import { useWorkspaceTabs } from "../src/features/workbench/hooks/useWorkspaceTabs";
+
+let titlebar: HTMLElement;
+beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+  titlebar = document.createElement("header");
+  titlebar.setAttribute("aria-label", "桌面标题栏");
+  document.body.append(titlebar);
+});
+afterEach(() => { cleanup(); titlebar.remove(); vi.unstubAllGlobals(); });
 
 function Example() {
   const tabs = useWorkspaceTabs();
@@ -17,6 +26,7 @@ function Example() {
 test("拖动标签到目标后方时保留激活标签", () => {
   render(<Example />);
   const tabs = screen.getByRole("tablist");
+  expect(titlebar.contains(tabs)).toBe(true);
   const first = screen.getByRole("tab", { name: "甲" }).parentElement!;
   const second = screen.getByRole("tab", { name: "乙" }).parentElement!;
   second.getBoundingClientRect = () => ({ left: 0, width: 100 } as DOMRect);

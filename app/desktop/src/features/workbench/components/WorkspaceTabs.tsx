@@ -5,7 +5,8 @@
 import { App, Dropdown, Input } from "antd";
 import { MessageSquare, Plus, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { useWorkspaceTabs, WorkspaceTab } from "../hooks/useWorkspaceTabs";
 import { SPRING_LAYOUT } from "../workspaceMotion";
 import { visibleWorkspaceTabs } from "../workspaceTabsState";
@@ -18,10 +19,36 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
   const reduced = useReducedMotion();
   const { modal } = App.useApp();
   const root = useRef<HTMLDivElement>(null);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [placement, setPlacement] = useState<{ left: number; width: number } | null>(null);
   const menuOrigin = useRef<HTMLButtonElement | null>(null);
   const [drag, setDrag] = useState<{ id: string; target?: string; after?: boolean } | null>(null);
   const shownGroups = new Set<string>();
   const visibleTabs = visibleWorkspaceTabs(tabs.items, tabs.collapsedGroups);
+  useLayoutEffect(() => {
+    const center = anchor.current?.parentElement;
+    const bar = document.querySelector<HTMLElement>('[aria-label="桌面标题栏"]');
+    if (!center || !bar) return;
+    const update = () => {
+      const bounds = center.getBoundingClientRect();
+      const label = bar.querySelector<HTMLElement>("[data-workspace-label]")?.getBoundingClientRect();
+      const controls = bar.querySelector<HTMLElement>('[aria-label="最小化窗口"]')?.parentElement?.getBoundingClientRect();
+      const left = Math.max(bounds.left, (label?.right ?? 0) + 8);
+      const right = Math.min(bounds.right, controls ? controls.left - 8 : window.innerWidth - 8);
+      setPlacement({ left, width: Math.max(0, right - left) });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(center);
+    observer.observe(bar);
+    const mutations = new MutationObserver(update);
+    for (const sibling of Array.from(center.parentElement?.children ?? [])) {
+      observer.observe(sibling);
+      mutations.observe(sibling, { attributes: true, attributeFilter: ["style", "data-open", "data-side"] });
+    }
+    window.addEventListener("resize", update);
+    return () => { observer.disconnect(); mutations.disconnect(); window.removeEventListener("resize", update); };
+  }, []);
   function rename(tab: WorkspaceTab) {
     let title = resolveTitle(tab);
     modal.confirm({ title: "重命名标签", icon: null, content: <Input defaultValue={title} maxLength={80} aria-label="标签名称" onChange={(event) => { title = event.target.value; }} />,
@@ -70,7 +97,7 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
       </motion.div>
     </Dropdown>;
   }
-  return <header className={styles.tabsHeader}>
+  const header = <header className={styles.tabsHeader} style={placement ? { left: placement.left, width: placement.width } : { visibility: "hidden" }}>
     <Dropdown trigger={["contextMenu"]} menu={{ items: [
       { key: "new", label: "新建标签页" }, { key: "reopen", label: "重新打开关闭的标签页", disabled: !tabs.canReopen },
     ], onClick: ({ key }) => key === "new" ? onNew() : onReopen() }}>
@@ -101,4 +128,6 @@ export function WorkspaceTabs({ tabs, onActivate, onClose, onNew, onReopen, reso
       </div>
     </Dropdown>
   </header>;
+  const titlebar = document.querySelector<HTMLElement>('[aria-label="桌面标题栏"]');
+  return <><span ref={anchor} hidden />{titlebar ? createPortal(header, titlebar) : null}</>;
 }
