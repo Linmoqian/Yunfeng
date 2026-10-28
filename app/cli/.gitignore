@@ -1,0 +1,7 @@
+# Node
+node_modules/
+dist/
+*.log
+
+# 构建缓存
+*.tsbuildinfo
