@@ -1,6 +1,6 @@
-// Yunfeng 后端适配层：将 Yunfeng 的 TaskState 映射为 Dashi 看板数据模型。
-// 已对接 Yunfeng 后端的 API 委托给 yunfengAdapter；
-// 后端不支持的能力（评论、附件、关系、标签、AI 聊天等）保留签名但返回空数据或抛出。
+// 看板 API：工作流使用服务端持久化，部分议题能力仍通过 Yunfeng 适配层提供。
+// Created on 2026-10-28
+// @author: https://github.com/Linmoqian
 
 import type {
   ActorIdentity,
@@ -34,7 +34,6 @@ import {
   adapterGetProjectSummary,
   adapterGetTaskboardMetadata,
   adapterGetTaskboardRevision,
-  adapterGetWorkflowWorkspace,
   adapterListAttachments,
   adapterListComments,
   adapterListDevelopmentContexts,
@@ -129,7 +128,14 @@ export function getWorkflowWorkspace<T>(
   projectId: string,
   signal?: AbortSignal,
 ): Promise<WorkflowWorkspaceRecord<T>> {
-  return adapterGetWorkflowWorkspace<T>(projectId, signal);
+  return workflowRequest<T>(projectId, { signal });
+}
+
+async function workflowRequest<T>(projectId: string, init: RequestInit): Promise<WorkflowWorkspaceRecord<T>> {
+  const response = await fetch(`/api/taskboard/projects/${encodeURIComponent(projectId)}/workflow`, init);
+  const body = await response.json();
+  if (!response.ok) throw new ApiError(response.status, body);
+  return body as WorkflowWorkspaceRecord<T>;
 }
 
 export function listDevelopmentContexts(
@@ -266,11 +272,11 @@ export function subscribeAiChatThread(
 }
 
 export async function saveWorkflowWorkspace<T>(
-  _projectId: string,
+  projectId: string,
   workspace: T,
-  _version: number,
+  version: number,
 ): Promise<WorkflowWorkspaceRecord<T>> {
-  return { projectId: _projectId, workspace, version: 0, updatedAt: null };
+  return workflowRequest<T>(projectId, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspace, version }) });
 }
 
 export async function addTaskRelation(

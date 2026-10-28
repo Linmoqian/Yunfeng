@@ -59,6 +59,7 @@ import { getPluginRegistry } from "./plugin/instance.js";
 import type { CollectedRoute } from "./plugin/registry.js";
 import type { RouteContext } from "./plugin/types.js";
 import { getResearchService } from "./research/service.js";
+import { handleWorkflow } from "./taskboard/workflow-routes.js";
 
 interface CliArgs {
   port: number;
@@ -148,6 +149,10 @@ const server = createServer(async (req, res) => {
   const route = path.startsWith("/api/") ? path.slice(4) : path;
 
   try {
+    const workflowMatch = route.match(/^\/taskboard\/projects\/([^/]+)\/workflow$/);
+    if (workflowMatch && (method === "GET" || method === "PUT")) {
+      return sendResult(res, handleWorkflow(decodeURIComponent(workflowMatch[1]), method, method === "PUT" ? await readJsonBody(req) : {}));
+    }
     // 健康检查
     if (method === "GET" && route === "/health") {
       return sendResult(res, json({ ok: true, service: "yunfeng-server", version: "0.1.0" }));

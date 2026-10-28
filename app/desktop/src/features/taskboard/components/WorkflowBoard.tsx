@@ -1,3 +1,7 @@
+// 工作流画布及项目工作流的编辑与同步。
+// Created on 2026-10-28
+// @author: https://github.com/Linmoqian
+
 import {
   useCallback,
   useEffect,
@@ -651,6 +655,9 @@ export function WorkflowBoard({
             const latest = parseWorkflowWorkspace(record.workspace);
             if (!latest) throw error;
             workspace = legacy ? mergeLegacyWorkspace(latest, legacy) : latest;
+            if (legacy) {
+              record = await saveWorkflowWorkspace(projectId, serializeWorkflowWorkspace(workspace.tabs, workspace.activeWorkflowId, workspace.snapshots), record.version);
+            }
           }
         } else if (legacy) {
           const merged = mergeLegacyWorkspace(workspace, legacy);
@@ -675,12 +682,11 @@ export function WorkflowBoard({
         clearLegacyWorkflowWorkspace(projectId);
         applyWorkspace(workspace);
         setPersistenceError("");
+        setHydrated(true);
       } catch {
         if (cancelled) return;
         setPersistenceError("流程暂时无法同步到任务面板服务");
         onWorkflowsChange(initialWorkspace.tabs);
-      } finally {
-        if (!cancelled) setHydrated(true);
       }
     }
 
@@ -743,7 +749,7 @@ export function WorkflowBoard({
                 remoteVersionRef.current = latest.version;
                 lastRemoteWorkspaceRef.current = JSON.stringify(latest.workspace);
                 applyWorkspace(latestWorkspace);
-                setPersistenceError("");
+                setPersistenceError("流程已在其他窗口更新，已重新加载最新版本。");
                 return;
               }
             } catch {
