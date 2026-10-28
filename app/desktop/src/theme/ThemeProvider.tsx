@@ -125,6 +125,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     // 先应用已解析的主题再读取 token，避免系统深色下首次浅色界面读到深色文字。
     document.documentElement.dataset.theme = resolvedMode;
+    document.documentElement.style.colorScheme = resolvedMode;
     if (mode === "system") window.localStorage.removeItem(STORAGE_KEY);
     else window.localStorage.setItem(STORAGE_KEY, mode);
 

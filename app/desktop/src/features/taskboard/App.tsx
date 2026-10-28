@@ -11,6 +11,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import { useThemeMode } from "../../theme/ThemeProvider";
 import {
   isAutomationModel,
   isAutomationReasoningEffort,
@@ -284,14 +285,6 @@ function isTheme(value: unknown): value is Theme {
   return value === "light" || value === "dark";
 }
 
-function getInitialTheme(): Theme {
-  const fromQuery = new URLSearchParams(window.location.search).get("theme");
-  if (isTheme(fromQuery)) return fromQuery;
-  const stored = window.localStorage.getItem("taskboard.theme");
-  if (isTheme(stored)) return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
 function readDeviceWorkspacePaths(): Record<string, string> {
   try {
     const value = JSON.parse(window.localStorage.getItem(DEVICE_WORKSPACE_PATHS_KEY) ?? "{}");
@@ -559,7 +552,7 @@ export function App() {
   const host = query.get("host");
   const embedded = host === "codex" || host === "workbuddy";
   const undoShortcut = navigator.userAgent.includes("Macintosh") ? "⌘Z" : "Ctrl+Z";
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const { resolvedMode: theme, setMode: setTheme } = useThemeMode();
   const [hostContext, setHostContext] = useState<HostContext | null>(null);
   const [developmentScan, setDevelopmentScan] = useState<DevelopmentScan>({ workspacePath: null, contexts: [] });
   const [developmentScanLoading, setDevelopmentScanLoading] = useState(false);
@@ -1066,11 +1059,8 @@ export function App() {
   }, [selectedProjectId]);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.embedded = String(embedded);
-    document.documentElement.style.colorScheme = theme;
-    if (!embedded) window.localStorage.setItem("taskboard.theme", theme);
-  }, [embedded, theme]);
+  }, [embedded]);
 
   useEffect(() => {
     if (selectedProjectId) setBoardView(readProjectBoardView(selectedProjectId));
@@ -1192,7 +1182,7 @@ export function App() {
       }
       pendingAutomationRequestsRef.current.clear();
     };
-  }, [embedded, host]);
+  }, [embedded, host, setTheme]);
 
   useEffect(() => {
     if (host !== "workbuddy") return;
@@ -2139,7 +2129,7 @@ export function App() {
             <button
               type="button"
               className="theme-toggle"
-              onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
             >
               <span aria-hidden="true"><LinearIcon name={theme === "dark" ? "sun" : "moon"} /></span>

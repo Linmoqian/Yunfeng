@@ -57,3 +57,11 @@ test("淡紫强调色与主按钮文字在明暗主题均保持可读对比度",
     assert.ok(contrast(primary, surface) >= 4.5, `${mode} 强调文字`);
   }
 });
+
+test("云殿共享应用主题，挂载时不覆盖全局主题或读取独立偏好", () => {
+  const board = readFileSync(new URL("../src/features/taskboard/App.tsx", import.meta.url), "utf8");
+  assert.match(board, /resolvedMode: theme, setMode: setTheme.*useThemeMode\(\)/);
+  assert.doesNotMatch(board, /document\.documentElement\.(?:dataset\.theme|style\.colorScheme)\s*=/);
+  assert.doesNotMatch(board, /taskboard\.theme|getInitialTheme|prefers-color-scheme/);
+  assert.match(board, /setTheme\(theme === "dark" \? "light" : "dark"\)/);
+});
