@@ -624,10 +624,6 @@
 
 .conversation-message__thinking {
   margin: 0 0 14px;
-  padding: 10px 12px;
-  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
-  border-radius: 0 8px 8px 0;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
   color: var(--text-secondary);
   font-size: 12px;
 }
