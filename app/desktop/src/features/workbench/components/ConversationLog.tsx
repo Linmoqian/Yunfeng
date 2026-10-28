@@ -4,10 +4,10 @@
  */
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
+import { Check, Copy, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState, type ReactNode } from "react";
 
-import { MapleStatusMark } from "../MapleStatusMark";
+import { Capsule, Details, MapleCloudLoading } from "../../../components/common";
 import { ConversationLoading } from "./ConversationLoading";
 import { ResearchApprovalPlan, ResearchMessage } from "./ResearchMessage";
 import {
@@ -39,14 +39,13 @@ interface ConversationLogProps {
   items: ConversationItem[];
   toolCalls: ToolCallInfo[];
   loading: boolean;
+  running?: boolean;
   streamStatus: "connecting" | "idle" | "streaming" | "error";
   approvals: ApprovalInfo[];
   streamError: string | null;
   busyCommand: string | null;
-  hasTask: boolean;
   showThinking: boolean;
   onCopy: (text: string) => void;
-  onFork: (entryId: string) => void;
   onResend: (itemId: string, text: string) => void;
   onApproval: (requestId: string, decision: "approve" | "reject", value?: string) => void;
 }
@@ -133,7 +132,7 @@ function ConversationMarkdown({ text }: { text: string }) {
 function RoleIcon({ role }: { role: ConversationRole }) {
   if (role === "user") return <User size={14} aria-hidden="true" />;
   if (role === "tool") return <Wrench size={14} aria-hidden="true" />;
-  return <MapleStatusMark className="conversation-message__yunfeng-mark" />;
+  return null;
 }
 
 function ApprovalCard({
@@ -193,7 +192,7 @@ function ApprovalCard({
 }
 
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
-  { items, research, activity, toolCalls, loading, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
+  { items, research, activity, toolCalls, loading, running, streamStatus, approvals, busyCommand, showThinking, onCopy, onResend, onApproval, streamError },
   ref,
 ) {
   const visibleItems = items.filter((item) => item.role !== "tool");
@@ -208,15 +207,17 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
           key={item.id}
           className={`conversation-message conversation-message--${item.role} ${item.streaming ? "conversation-message--streaming" : ""} ${item.status === "failed" ? "conversation-message--failed" : ""}`.trim()}
         >
-          <span className="conversation-message__role">
+          {item.role !== "assistant" ? <span className="conversation-message__role">
             <RoleIcon role={item.role} />
             <span className="conversation-message__role-label">{ROLE_LABEL[item.role]}</span>
-          </span>
+          </span> : null}
           <div className="conversation-message__content">
-            {showThinking && item.thinking ? (
+            {item.thinking && !research ? (
               <div className="conversation-message__thinking">
                 <span>思考过程</span>
-                <ConversationMarkdown text={item.thinking} />
+                <Details key={String(showThinking)} label="查看思考内容" defaultOpen={showThinking || item.streaming}>
+                  <ConversationMarkdown text={item.thinking} />
+                </Details>
               </div>
             ) : null}
             {item.text ? research && item.role === "assistant" ? <ResearchMessage text={item.text} /> : <ConversationMarkdown text={item.text} /> : null}
@@ -227,24 +228,23 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
               </span>
             ) : null}
           </div>
-          <div className="conversation-message__actions">
+          {item.role === "user" ? <div className="conversation-message__actions">
             <button type="button" className="text-button" onClick={() => onCopy(item.text)}>
               <Copy size={12} aria-hidden="true" /> 复制
             </button>
-            {item.role === "assistant" && hasTask ? (
-              <button type="button" className="text-button" onClick={() => onFork(item.id)}>
-                <GitFork size={12} aria-hidden="true" /> 从此分支
-              </button>
-            ) : null}
             {item.role === "user" && item.status === "failed" ? (
               <button type="button" className="text-button" onClick={() => onResend(item.id, item.text)}>
                 <RefreshCw size={12} aria-hidden="true" /> 重新发送
               </button>
             ) : null}
-          </div>
+          </div> : null}
         </article>
       ))}
 
+      {running && !research ? <Capsule className="conversation-message__activity" tone="accent" animateOnMount={false} status="running">
+        <MapleCloudLoading compact />
+        {toolCalls.some((call) => !call.finishedAt) ? "正在调用工具" : items.some((item) => item.streaming && item.text) ? "正在回复" : "思考中"}
+      </Capsule> : null}
       <ToolFeedback calls={toolCalls} />
 
       {approvals.map((approval) => (
