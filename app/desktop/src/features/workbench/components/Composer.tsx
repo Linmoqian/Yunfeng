@@ -1,9 +1,9 @@
 /* 会话输入与发送，科研模式统一补充目标，运行控制由状态栏承载。
- * Created on 2026-10-16
+ * Created on 2026-10-28
  * @author: https://github.com/Linmoqian
  */
-import { Button, Dropdown, Input } from "antd";
-import { ArrowUp, ChevronDown, Code2, FlaskConical, Square, Zap } from "lucide-react";
+import { Button, Input } from "antd";
+import { ArrowUp, Code2, FlaskConical, Square, Zap } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import styles from "./Composer.module.css";
 
@@ -21,7 +21,7 @@ interface ComposerProps {
   sending: boolean;
   streamStatus: StreamStatus;
   stopping: boolean;
-  onSubmit: (text: string, mode: "steer" | "followUp") => Promise<void>;
+  onSubmit: (text: string) => Promise<void>;
   onStop: () => Promise<void>;
 }
 
@@ -29,7 +29,6 @@ export function Composer({ isDraft, research = false, status, changes, queued, m
   const [draft, setDraft] = useState("");
   const messageId = useId();
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [nextActionMode, setNextActionMode] = useState<"steer" | "followUp">("followUp");
 
   const streaming = streamStatus === "streaming";
   const hasDraft = Boolean(draft.trim());
@@ -42,7 +41,7 @@ export function Composer({ isDraft, research = false, status, changes, queued, m
     setDraft("");
     setFeedback(null);
     try {
-      await onSubmit(next, nextActionMode);
+      await onSubmit(next);
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "发送失败，请稍后重试。");
     }
@@ -62,6 +61,7 @@ export function Composer({ isDraft, research = false, status, changes, queued, m
     >
       <label className="sr-only" htmlFor={messageId}>输入消息</label>
       <Input.TextArea
+        className={styles.message}
         id={messageId}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
@@ -79,9 +79,6 @@ export function Composer({ isDraft, research = false, status, changes, queued, m
       {feedback && <p className={styles.feedback} role="alert">{feedback}</p>}
       <div className={styles.footer}>
         <span className={styles.mode}>{research ? <FlaskConical size={14} /> : <Code2 size={14} />}{research ? "科研" : "开发"}</span>
-        {!research && running && <Dropdown trigger={["click"]} menu={{ selectable: true, selectedKeys: [nextActionMode], items: [{ key: "followUp", label: "排队到下一轮" }, { key: "steer", label: "立即引导" }], onClick: ({ key }) => setNextActionMode(key as "steer" | "followUp") }}>
-          <Button type="text" size="small" className={styles.queueMode} aria-label="消息处理方式">{nextActionMode === "followUp" ? "排队" : "引导"}<ChevronDown size={11} /></Button>
-        </Dropdown>}
         <span className={styles.model} title={modelLabel}><Zap size={13} aria-hidden="true" /><span>{modelLabel || (research ? "项目默认模型" : "服务默认模型")}</span></span>
         {showStop ? (
           <Button
@@ -104,7 +101,7 @@ export function Composer({ isDraft, research = false, status, changes, queued, m
             disabled={disabled}
             loading={sending}
             icon={<ArrowUp size={17} />}
-            aria-label={isLegacy ? "发送并接入任务" : !research && running ? (nextActionMode === "steer" ? "转向" : "发送到下一轮") : "发送消息"}
+            aria-label={isLegacy ? "发送并接入任务" : !research && running ? "发送到下一轮" : "发送消息"}
             title="发送消息"
           />
         )}

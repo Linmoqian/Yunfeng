@@ -19,17 +19,18 @@ test("科研运行时仅补充目标，不提供重复停止或两种调度选�
   await userEvent.type(screen.getByRole("textbox"), "比较更低耗时的参数");
   expect(screen.queryByRole("button", { name: "消息处理方式" })).toBeNull();
   await userEvent.click(screen.getByRole("button", { name: "发送消息" }));
-  expect(onSubmit).toHaveBeenCalledExactlyOnceWith("比较更低耗时的参数", "followUp");
+  expect(onSubmit).toHaveBeenCalledExactlyOnceWith("比较更低耗时的参数");
   expect(onStop).not.toHaveBeenCalled();
 });
 
-test("开发会话仍可停止生成，有草稿时仍能选择处理方式", async () => {
+test("开发会话运行时可停止生成，输入消息直接排队", async () => {
   const onStop = vi.fn(async () => {});
-  render(<Composer {...props} onSubmit={vi.fn(async () => {})} onStop={onStop} />);
+  const onSubmit = vi.fn(async () => {});
+  render(<Composer {...props} onSubmit={onSubmit} onStop={onStop} />);
   await userEvent.click(screen.getByRole("button", { name: "停止生成" }));
   expect(onStop).toHaveBeenCalledOnce();
   await userEvent.type(screen.getByRole("textbox"), "补充需求");
-  await userEvent.click(screen.getByRole("button", { name: "消息处理方式" }));
-  await userEvent.click(await screen.findByText("立即引导"));
-  expect(screen.getByRole("button", { name: "转向" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "消息处理方式" })).toBeNull();
+  await userEvent.click(screen.getByRole("button", { name: "发送到下一轮" }));
+  expect(onSubmit).toHaveBeenCalledExactlyOnceWith("补充需求");
 });

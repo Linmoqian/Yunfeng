@@ -586,10 +586,6 @@
   background: transparent;
 }
 
-.conversation-message--streaming {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-
 .conversation-message__role {
   display: block;
   margin-bottom: 6px;

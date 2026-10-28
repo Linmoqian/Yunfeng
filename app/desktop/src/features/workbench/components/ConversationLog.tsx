@@ -9,6 +9,7 @@ import { forwardRef, Fragment, useState, type ReactNode } from "react";
 
 import { Capsule, Details, MapleCloudLoading } from "../../../components/common";
 import { ConversationLoading } from "./ConversationLoading";
+import { ThinkingActivity } from "./ThinkingActivity";
 import { ResearchApprovalPlan, ResearchMessage } from "./ResearchMessage";
 import {
   type ConversationItem,
@@ -76,7 +77,13 @@ export function getThinkingDelta(event: { type: string; data?: unknown }): strin
   return data && typeof data.delta === "string" ? data.delta : null;
 }
 
-function ConversationMarkdown({ text }: { text: string }) {
+function streamingMarkdown(text: string): string {
+  // 加粗标记可能跨增量到达；只临时补齐行尾未闭合标记，不修改原始消息。
+  if ((text.match(/(?<!\\)`/g)?.length ?? 0) % 2 !== 0) return text;
+  return /(^|[^\\`])\*\*\S[^*\n]*\S$|(^|[^\\`])\*\*\S$/.test(text) ? `${text}**` : text;
+}
+
+function ConversationMarkdown({ text, streaming = false }: { text: string; streaming?: boolean }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -86,7 +93,7 @@ function ConversationMarkdown({ text }: { text: string }) {
         ),
       }}
     >
-      {text}
+      {streaming ? streamingMarkdown(text) : text}
     </ReactMarkdown>
   );
 }
@@ -160,6 +167,10 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
   const visibleItems = items.filter((item) => item.role !== "tool");
   const historicalIds = new Set(visibleItems.flatMap((item) => item.toolCalls?.map((call) => call.callId) ?? []));
   const liveById = new Map(toolCalls.map((call) => [call.callId, call]));
+  const toolRunning = toolCalls.some((call) => !call.finishedAt);
+  const replying = items.some((item) => item.streaming && item.text);
+  const thinkingActive = Boolean(running && !research && !toolRunning && !replying);
+  const liveThinking = thinkingActive ? visibleItems.find((item) => item.streaming && item.thinking) : undefined;
 
   return (
     <div ref={ref} className="conversation-log" role="log" aria-label="任务对话" aria-live="polite">
@@ -168,7 +179,7 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
 
       {visibleItems.map((item) => (
         <Fragment key={item.id}>
-        {(item.text || item.thinking || item.role === "user") && <article
+        {(item.text || (item.thinking && item !== liveThinking) || item.role === "user") && <article
           className={`conversation-message conversation-message--${item.role} ${item.streaming ? "conversation-message--streaming" : ""} ${item.status === "failed" ? "conversation-message--failed" : ""}`.trim()}
         >
           {item.role !== "assistant" ? <span className="conversation-message__role">
@@ -176,19 +187,19 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
             <span className="conversation-message__role-label">{ROLE_LABEL[item.role]}</span>
           </span> : null}
           <div className="conversation-message__content">
-            {item.thinking && !research ? (
+            {item.thinking && !research && item !== liveThinking ? (
               <div className="conversation-message__thinking">
                 <span>思考过程</span>
-                <Details key={String(showThinking)} label="查看思考内容" defaultOpen={showThinking || item.streaming}>
+                <Details key={String(showThinking)} label="查看思考内容" defaultOpen={showThinking}>
                   <ConversationMarkdown text={item.thinking} />
                 </Details>
               </div>
             ) : null}
-            {item.text ? research && item.role === "assistant" ? <ResearchMessage text={item.text} /> : <ConversationMarkdown text={item.text} /> : null}
-            {item.role === "user" && item.status ? (
+            {item.text ? research && item.role === "assistant" ? <ResearchMessage text={item.text} /> : <ConversationMarkdown text={item.text} streaming={item.role === "assistant" && item.streaming} /> : null}
+            {item.role === "user" && item.status && item.status !== "sent" ? (
               <span className={`conversation-message__delivery conversation-message__delivery--${item.status}`}>
                 <span className={`message-dot message-dot--${item.status}`} aria-hidden="true" />
-                {item.status === "failed" ? "发送失败" : item.status === "sending" ? "发送中" : "已发送"}
+                {item.status === "failed" ? "发送失败" : "发送中"}
               </span>
             ) : null}
           </div>
@@ -215,9 +226,11 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
         </Fragment>
       ))}
 
-      {running && !research ? <Capsule className="conversation-message__activity" tone="accent" animateOnMount={false} status="running">
+      {thinkingActive ? <ThinkingActivity defaultOpen={showThinking}>
+        {liveThinking?.thinking ? <ConversationMarkdown text={liveThinking.thinking} /> : null}
+      </ThinkingActivity> : running && !research ? <Capsule className="conversation-message__activity" tone="accent" animateOnMount={false} status="running">
         <MapleCloudLoading compact />
-        {toolCalls.some((call) => !call.finishedAt) ? "正在调用工具" : items.some((item) => item.streaming && item.text) ? "正在回复" : "思考中"}
+        {toolRunning ? "正在调用工具" : "正在回复"}
       </Capsule> : null}
       <ToolFeedback calls={toolCalls.filter((call) => !historicalIds.has(call.callId))} />
 

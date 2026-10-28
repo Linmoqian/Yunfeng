@@ -109,7 +109,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     return imported;
   }
 
-  async function handleSubmit(text: string, mode: "steer" | "followUp") {
+  async function handleSubmit(text: string) {
     const next = text.trim();
     if (!next || sending) return;
 
@@ -130,7 +130,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
         onTaskCreated?.(imported, next);
       } else if (activeTask) {
         // 科研指令统一更新目标并重新观察；不提供与后端行为不一致的排队选项。
-        const commandType = activeTask.mode === "research" ? "prompt" : running ? mode : "prompt";
+        const commandType = activeTask.mode === "research" ? "prompt" : running ? "followUp" : "prompt";
         await sendTaskCommand(activeTask.id, { type: commandType, message: next });
         setMessageStatus(optimisticId, "sent");
       }
@@ -147,7 +147,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     if (!activeTask || sending) return;
     setMessageStatus(itemId, "sending");
     try {
-      const commandType = activeTask.mode === "research" ? "prompt" : running ? "steer" : "prompt";
+      const commandType = activeTask.mode === "research" ? "prompt" : running ? "followUp" : "prompt";
       await sendTaskCommand(activeTask.id, { type: commandType, message: text });
       setMessageStatus(itemId, "sent");
     } catch (error) {
@@ -254,7 +254,7 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
           sending={sending}
           streamStatus={streamStatus}
           stopping={busyCommand === "abort"}
-          onSubmit={(text, mode) => handleSubmit(text, mode)}
+          onSubmit={handleSubmit}
           onStop={() => handleStop()}
         />
       </div>

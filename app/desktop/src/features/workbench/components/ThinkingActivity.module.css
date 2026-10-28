@@ -1,0 +1,34 @@
+/* 思考状态展开区域沿用工作台文本和胶囊颜色。
+ * Created on 2026-10-28
+ * @author: https://github.com/Linmoqian
+ */
+.activity {
+  align-self: flex-start;
+  max-width: min(76%, 650px);
+}
+
+.trigger {
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.content {
+  margin: 8px 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.content p { margin: 0 0 8px; white-space: pre-wrap; }
+
+.expanded { transform: rotate(180deg); }
