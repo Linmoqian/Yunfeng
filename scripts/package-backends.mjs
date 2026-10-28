@@ -1,6 +1,6 @@
 // 生产打包后端运行时：把 server/gateway/mobile-backend/RustDesk/pi-assets 组装到 release/yunfeng-desktop。
 // 用法：
-//   pnpm package:backends [-- --out release/yunfeng-desktop] [-- --skip-rustdesk]
+//   pnpm package:backends [-- --out release/yunfeng-desktop] [-- --skip-rustdesk] [-- --node-archive <官方发行包>]
 // 前提：根 workspace 已 pnpm install；server/gateway 已完成 pnpm build。
 // 产物不包含 App 二进制；Tauri App 通过 YUNFENG_SERVICES_DIR=<out> 找到这些服务。
 // 依赖产出使用 pnpm deploy --prod：node_modules 为自包含真实文件，可脱离 pnpm store 分发。
@@ -11,14 +11,19 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync, writeFileSync } fr
 import { execFileSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stageNodeRuntime } from "./node-runtime.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv) {
-  const args = { out: join(ROOT, "release", "yunfeng-desktop"), skipRustdesk: false };
+  const args = { out: join(ROOT, "release", "yunfeng-desktop"), skipRustdesk: false, nodeArchive: undefined };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--out") args.out = resolve(argv[++i] ?? args.out);
     else if (argv[i] === "--skip-rustdesk") args.skipRustdesk = true;
+    else if (argv[i] === "--node-archive") {
+      if (!argv[i + 1] || argv[i + 1].startsWith("--")) throw new Error("--node-archive 需要发行包路径");
+      args.nodeArchive = resolve(argv[++i]);
+    }
   }
   return args;
 }
@@ -57,12 +62,15 @@ function deployService(filterName, srcDir, contentDirs, out) {
   copyFile(join(srcDir.path, "package.json"), join(target, "package.json"));
 }
 
-const { out, skipRustdesk } = parseArgs(process.argv.slice(2));
+const { out, skipRustdesk, nodeArchive } = parseArgs(process.argv.slice(2));
 mkdirSync(out, { recursive: true });
 
 requireDir(join(ROOT, "server", "dist"), "server/dist");
 requireDir(join(ROOT, "gateway", "dist"), "gateway/dist");
 requireDir(join(ROOT, "pi-assets", "AGENTS.md"), "pi-assets/AGENTS.md");
+
+if (nodeArchive) stageNodeRuntime(nodeArchive, join(out, "node-runtime"));
+else console.warn("[警告] 未提供 Node 发行包；该目录仍依赖系统 Node，不能作为独立安装包。");
 
 deployService("yunfeng-server", { name: "server", path: join(ROOT, "server") }, ["dist"], out);
 deployService("yunfeng-gateway", { name: "gateway", path: join(ROOT, "gateway") }, ["dist"], out);

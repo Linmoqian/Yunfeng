@@ -104,3 +104,4 @@ macOS 原生进程已从开发应用包启动。窗口实际显示枫叶标题�
 - gateway token 与 mobile-backend 配对码在每次自动生成时会打印到外壳 stdout，并通过 Tauri 事件与托盘状态暴露，请勿写入仓库。
 - RustDesk 的 ID/一次性密码仍由 `yunfeng-mobile-backend` 提供；外壳只负责进程启停，避免密码逻辑漂移。
 - 生产打包：`pnpm package:backends [-- --out release/yunfeng-desktop] [-- --skip-rustdesk]` 用 `pnpm deploy --prod --legacy` 产出各自包含 node_modules 的服务目录，连同 `pi-assets/` 与 RustDesk 组装到 `release/yunfeng-desktop`；Tauri App 通过 `YUNFENG_SERVICES_DIR=<out>` 定位这些服务；脚本产物不包含 App 二进制。
+- 后端打包可用 `--node-archive <官方发行包路径>` 校验并准备 Node 22.23.4；各平台文件名与 SHA-256 固定在 `scripts/node-runtime.mjs`。目标 `node-runtime` 目录已存在时拒绝覆盖。当前桌面启动与 Tauri 资源尚未接入该目录，提供 Node 并不代表产物已成为独立安装包。
