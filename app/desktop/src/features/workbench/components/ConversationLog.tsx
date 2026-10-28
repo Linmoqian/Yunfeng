@@ -5,7 +5,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
-import { forwardRef, useState, type ReactNode } from "react";
+import { forwardRef, Fragment, useState, type ReactNode } from "react";
 
 import { Capsule, Details, MapleCloudLoading } from "../../../components/common";
 import { ConversationLoading } from "./ConversationLoading";
@@ -58,47 +58,7 @@ const ROLE_LABEL: Record<ConversationRole, string> = {
   tool: "工具",
 };
 
-function contentToText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    return content.map((block) => {
-      if (typeof block === "string") return block;
-      if (!block || typeof block !== "object") return "";
-      const candidate = block as { type?: string; text?: string; thinking?: string; content?: unknown };
-      if (candidate.type === "text" && typeof candidate.text === "string") return candidate.text;
-      if (candidate.type === "thinking") return "";
-      return typeof candidate.content === "string" ? candidate.content : "";
-    }).filter(Boolean).join("");
-  }
-  if (content && typeof content === "object" && "text" in content) {
-    const text = (content as { text?: unknown }).text;
-    return typeof text === "string" ? text : "";
-  }
-  return "";
-}
-
-function contentToThinking(content: unknown): string {
-  if (!Array.isArray(content)) return "";
-  return content.map((block) => {
-    if (!block || typeof block !== "object") return "";
-    const candidate = block as { type?: string; thinking?: string };
-    return candidate.type === "thinking" && typeof candidate.thinking === "string" ? candidate.thinking : "";
-  }).filter(Boolean).join("");
-}
-
-export function normalizeConversationMessage(message: unknown, index: number): ConversationItem | null {
-  const candidate = message as { id?: string; role?: string; content?: unknown };
-  const text = contentToText(candidate.content).trim();
-  const thinking = contentToThinking(candidate.content).trim();
-  if (!text && !thinking) return null;
-  const role: ConversationRole = candidate.role === "user" ? "user" : candidate.role === "assistant" ? "assistant" : "tool";
-  return {
-    id: candidate.id ?? `${role}-${index}`,
-    role,
-    text,
-    ...(thinking ? { thinking } : {}),
-  };
-}
+export { normalizeConversationMessage, normalizeConversationMessages } from "../conversationMessages";
 
 export { mergeConversation } from "../conversationState";
 
@@ -198,6 +158,8 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
   ref,
 ) {
   const visibleItems = items.filter((item) => item.role !== "tool");
+  const historicalIds = new Set(visibleItems.flatMap((item) => item.toolCalls?.map((call) => call.callId) ?? []));
+  const liveById = new Map(toolCalls.map((call) => [call.callId, call]));
 
   return (
     <div ref={ref} className="conversation-log" role="log" aria-label="任务对话" aria-live="polite">
@@ -205,8 +167,8 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
       {!loading && !streamError && visibleItems.length === 0 ? <p className="conversation-placeholder">这段会话还没有可展示的消息。</p> : null}
 
       {visibleItems.map((item) => (
-        <article
-          key={item.id}
+        <Fragment key={item.id}>
+        {(item.text || item.thinking || item.role === "user") && <article
           className={`conversation-message conversation-message--${item.role} ${item.streaming ? "conversation-message--streaming" : ""} ${item.status === "failed" ? "conversation-message--failed" : ""}`.trim()}
         >
           {item.role !== "assistant" ? <span className="conversation-message__role">
@@ -245,14 +207,19 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
               </button>
             ) : null}
           </div>
-        </article>
+        </article>}
+        {item.toolCalls?.length ? <ToolFeedback calls={item.toolCalls.map((call) => {
+          const live = liveById.get(call.callId);
+          return live && (live.finishedAt || call.outcome === "unknown") ? { ...call, ...live } : call;
+        })} /> : null}
+        </Fragment>
       ))}
 
       {running && !research ? <Capsule className="conversation-message__activity" tone="accent" animateOnMount={false} status="running">
         <MapleCloudLoading compact />
         {toolCalls.some((call) => !call.finishedAt) ? "正在调用工具" : items.some((item) => item.streaming && item.text) ? "正在回复" : "思考中"}
       </Capsule> : null}
-      <ToolFeedback calls={toolCalls} />
+      <ToolFeedback calls={toolCalls.filter((call) => !historicalIds.has(call.callId))} />
 
       {approvals.map((approval) => (
         <ApprovalCard

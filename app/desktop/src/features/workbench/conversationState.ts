@@ -1,3 +1,9 @@
+/* 会话条目与服务端快照、乐观消息的合并。
+ * Created on 2026-10-28
+ * @author: https://github.com/Linmoqian
+ */
+import type { ToolCallInfo } from "./toolFeedback";
+
 export type ConversationRole = "user" | "assistant" | "tool";
 export type MessageStatus = "sending" | "sent" | "failed" | undefined;
 
@@ -6,6 +12,7 @@ export interface ConversationItem {
   role: ConversationRole;
   text: string;
   thinking?: string;
+  toolCalls?: ToolCallInfo[];
   streaming?: boolean;
   status?: MessageStatus;
 }

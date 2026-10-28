@@ -19,13 +19,13 @@ import {
   getTextDelta,
   getThinkingDelta,
   mergeConversation,
-  normalizeConversationMessage,
   STREAMING_MESSAGE_ID,
   type ApprovalInfo,
   type ConversationItem,
   type ToolCallInfo,
 } from "../components/ConversationLog";
 
+import { normalizeConversationMessage, normalizeConversationMessages } from "../conversationMessages";
 import { reduceToolFeedback, settleToolFeedback } from "../toolFeedback";
 
 export type StreamStatus = "connecting" | "idle" | "streaming" | "error";
@@ -218,7 +218,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
           if (controller.signal.aborted) return;
           setStreamStatus("idle");
           setStreamError(null);
-          const loaded = messages.map(normalizeConversationMessage).filter((item): item is ConversationItem => item !== null);
+          const loaded = normalizeConversationMessages(messages);
           setConversation((current) => mergeConversation(current, loaded));
         })
         .catch((error: unknown) => {
@@ -234,13 +234,15 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
     const taskId = activeTask.id;
 
     let reading = false;
+    let refreshPending = false;
     const refreshConversation = async () => {
-      if (reading || controller.signal.aborted) return;
+      if (controller.signal.aborted) return;
+      if (reading) { refreshPending = true; return; }
       reading = true;
       try {
         const messages = await loadTaskConversation(taskId, controller.signal);
         if (controller.signal.aborted) return;
-        const loaded = messages.map(normalizeConversationMessage).filter((item): item is ConversationItem => item !== null);
+        const loaded = normalizeConversationMessages(messages);
         setConversation((current) => mergeConversation(current, loaded));
         setStreamError(null);
       } catch (error) {
@@ -249,7 +251,10 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
         setStreamStatus("error");
       } finally {
         reading = false;
-        if (!controller.signal.aborted) setConversationLoading(false);
+        if (!controller.signal.aborted) {
+          setConversationLoading(false);
+          if (refreshPending) { refreshPending = false; void refreshConversation(); }
+        }
       }
     };
     const initialSeq = activeTask.lastEventSeq;
@@ -263,6 +268,7 @@ export function useTaskStream({ task, isDraft, isLegacy, initialMessage, session
         return;
       }
       handleStreamEvent(event);
+      if (event.type === "run_settled") void refreshConversation();
     }, (connected) => {
       if (!connected) setStreamStatus("connecting");
       else {
