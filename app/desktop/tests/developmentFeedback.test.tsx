@@ -22,7 +22,7 @@ test("运行提示随回复和工具状态变化，思考内容可展开", async
   view.rerender(<ConversationLog {...common} items={[]} toolCalls={[{ callId: "1", name: "read" }]} />);
   expect(screen.getByText("正在调用工具")).toBeTruthy();
   expect(screen.getByText("读取")).toBeTruthy();
-  expect(screen.getByText("处理中")).toBeTruthy();
+  expect(screen.getByText("运行中")).toBeTruthy();
   view.rerender(<ConversationLog {...common} running={false} items={[]} toolCalls={[{ callId: "1", name: "read", finishedAt: "now", outcome: "succeeded" }]} />);
   expect(screen.queryByText("正在调用工具")).toBeNull();
   expect(screen.getByText("已完成")).toBeTruthy();

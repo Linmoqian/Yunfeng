@@ -25,7 +25,7 @@ test("结束事件先到或重复补发时不回退，更新不会覆盖输入�
   expect(calls.map((call) => call.callId)).toEqual(["next"]);
 });
 
-test("工具成功不宣称实验通过，错误与取消可见，调用详情默认折叠且不显示输出", async () => {
+test("工具回执保留错误状态，参数与结果只在展开后显示", async () => {
   render(<ToolFeedback calls={[
     { callId: "a", name: "read", finishedAt: "now", elapsedMs: 123, outcome: "succeeded", result: "private-output" },
     { callId: "b", name: "modify", finishedAt: "now", outcome: "failed" },
@@ -35,7 +35,7 @@ test("工具成功不宣称实验通过，错误与取消可见，调用详情�
   expect(screen.getByText("失败")).toBeTruthy(); expect(screen.getByText("已取消")).toBeTruthy();
   expect(screen.getByText("结果待核对")).toBeTruthy();
   expect(screen.queryByText(/验收通过/)).toBeNull(); expect(screen.queryByText("private-output")).toBeNull();
-  expect(screen.queryByText("123 ms")).toBeNull();
-  await userEvent.click(screen.getByRole("button", { name: "调用记录" }));
   expect(screen.getByText("123 ms")).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: /读取.*已完成/ }));
+  expect(screen.getByText("private-output")).toBeTruthy();
 });

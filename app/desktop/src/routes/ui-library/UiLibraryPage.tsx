@@ -11,6 +11,7 @@ import { ModeSample, CapsuleSample, QueueSample } from "./InteractionSamples";
 import { ConnectionSample } from "./ConnectionSample";
 import { ResearchLoopSample } from "./ResearchLoopSample";
 import { DragPlayground } from "./DragPlayground";
+import { ToolFeedback } from "../../features/workbench/components/ToolFeedback";
 
 export function UiLibraryPage() {
   const [completed, setCompleted] = useState(2);
@@ -19,9 +20,10 @@ export function UiLibraryPage() {
   const { reduced } = useYunfengMotion();
   return <main className={styles.page}>
     <header className={styles.header}><Link to="/" aria-label="返回工作区"><ArrowLeft size={16} /></Link><strong>UI 审阅</strong><Capsule animateOnMount={false}>开发样例</Capsule><button className={interactionStyles.pressable} type="button" onClick={() => { setCompleted(2); setRevision(0); setReset((value) => value + 1); }}>重置样例</button></header>
-    <nav className={styles.navigation} aria-label="审阅分区">{[["capsules", "胶囊"], ["mode", "模式"], ["research", "科研闭环"], ["queue", "排队"], ["progress", "进度"], ["details", "详情"], ["loading", "加载"], ["drag", "拖放"]].map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}</nav>
+    <nav className={styles.navigation} aria-label="审阅分区">{[["capsules", "胶囊"], ["tools", "工具反馈"], ["mode", "模式"], ["research", "科研闭环"], ["queue", "排队"], ["progress", "进度"], ["details", "详情"], ["loading", "加载"], ["drag", "拖放"]].map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}</nav>
     <div className={styles.grid}>
       <section id="capsules" className={styles.sample}><h2>信息胶囊</h2><div className={styles.row}><Capsule tone="accent"><FlaskConical size={13} />科研</Capsule><Capsule tone="success"><Check size={13} />验收通过</Capsule><Capsule tone="warning">待复核</Capsule><Capsule tone="danger">需要处理</Capsule></div><CapsuleSample key={reset} /></section>
+      <section id="tools" className={styles.sample}><h2>工具反馈 · 样例</h2><ToolFeedback key={reset} calls={[{ callId: "sample-read", name: "read", args: { path: "src/main.ts" }, result: "文件读取完成", finishedAt: "sample", elapsedMs: 120 }, { callId: "sample-run", name: "terminal", args: { command: "npm test" } }]} /></section>
       <section id="mode" className={styles.sample}><h2>模式切换</h2><ModeSample key={reset} /></section>
       <section id="research" className={`${styles.sample} ${styles.wide}`}><h2>科研闭环</h2><ResearchLoopSample key={reset} /></section>
       <section id="queue" className={`${styles.sample} ${styles.wide}`}><h2>消息排队</h2><QueueSample key={reset} /></section>
