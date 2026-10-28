@@ -53,7 +53,7 @@ test("结论保留实测结果，方式展开可查看原执行描述，风险�
 test("科研授权步骤、完整写入内容与验收可见，确认仍使用原请求身份", async () => {
   const onApproval = vi.fn();
   render(<ConversationLog research items={[]} toolCalls={[]} loading={false} streamStatus="idle" streamError={null}
-    busyCommand={null} showThinking={false} onCopy={vi.fn()} onResend={vi.fn()} onApproval={onApproval}
+    busyCommand={null} hasTask={false} showThinking={false} onCopy={vi.fn()} onFork={vi.fn()} onResend={vi.fn()} onApproval={onApproval}
     approvals={[{ requestId: "approval-1", kind: "confirm", title: "执行科研计划", message: '比较参数\n\n{"steps":[{"action":"write_file","path":"config.json","content":"完整配置"},{"action":"run_command","program":"node","args":["experiment.mjs"]}],"success_condition":{"kind":"metric","path":"report.json","key":"accuracy","operator":">=","value":0.93}}', impact: "命令使用本机权限执行", status: "pending" }]} />);
   expect(screen.getByText("完整配置")).toBeTruthy();
   expect(screen.getByText('node "experiment.mjs"')).toBeTruthy();

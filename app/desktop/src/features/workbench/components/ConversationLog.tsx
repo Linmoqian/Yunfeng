@@ -4,7 +4,7 @@
  */
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy, RefreshCw, User, Wrench, X } from "lucide-react";
+import { Check, Copy, GitFork, RefreshCw, User, Wrench, X } from "lucide-react";
 import { forwardRef, useState, type ReactNode } from "react";
 
 import { Capsule, Details, MapleCloudLoading } from "../../../components/common";
@@ -44,8 +44,10 @@ interface ConversationLogProps {
   approvals: ApprovalInfo[];
   streamError: string | null;
   busyCommand: string | null;
+  hasTask: boolean;
   showThinking: boolean;
   onCopy: (text: string) => void;
+  onFork: (entryId: string) => void;
   onResend: (itemId: string, text: string) => void;
   onApproval: (requestId: string, decision: "approve" | "reject", value?: string) => void;
 }
@@ -192,7 +194,7 @@ function ApprovalCard({
 }
 
 export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(function ConversationLog(
-  { items, research, activity, toolCalls, loading, running, streamStatus, approvals, busyCommand, showThinking, onCopy, onResend, onApproval, streamError },
+  { items, research, activity, toolCalls, loading, running, streamStatus, approvals, busyCommand, hasTask, showThinking, onCopy, onFork, onResend, onApproval, streamError },
   ref,
 ) {
   const visibleItems = items.filter((item) => item.role !== "tool");
@@ -228,16 +230,21 @@ export const ConversationLog = forwardRef<HTMLDivElement, ConversationLogProps>(
               </span>
             ) : null}
           </div>
-          {item.role === "user" ? <div className="conversation-message__actions">
+          <div className="conversation-message__actions">
             <button type="button" className="text-button" onClick={() => onCopy(item.text)}>
               <Copy size={12} aria-hidden="true" /> 复制
             </button>
+            {item.role === "assistant" && hasTask ? (
+              <button type="button" className="text-button" onClick={() => onFork(item.id)}>
+                <GitFork size={12} aria-hidden="true" /> 从此分支
+              </button>
+            ) : null}
             {item.role === "user" && item.status === "failed" ? (
               <button type="button" className="text-button" onClick={() => onResend(item.id, item.text)}>
                 <RefreshCw size={12} aria-hidden="true" /> 重新发送
               </button>
             ) : null}
-          </div> : null}
+          </div>
         </article>
       ))}
 

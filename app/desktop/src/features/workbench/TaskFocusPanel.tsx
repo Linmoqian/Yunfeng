@@ -176,6 +176,24 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
     );
   }
 
+  async function handleFork(entryId: string) {
+    if (!activeTask) return;
+    setBusyCommand("fork");
+    try {
+      const result = (await sendTaskCommand(activeTask.id, { type: "fork", entryId })) as { newTaskId?: string; newSessionId?: string } | undefined;
+      if (result?.newTaskId) {
+        message.success("已创建分支任务。");
+        onTaskUpdated({ ...activeTask, id: result.newTaskId, sessionId: result.newSessionId ?? activeTask.sessionId, title: `分支：${activeTask.title}` } as TaskState);
+      } else {
+        message.success("分支创建为当前会话。");
+      }
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "分支失败。");
+    } finally {
+      setBusyCommand(null);
+    }
+  }
+
   async function handleApproval(requestId: string, decision: "approve" | "reject", value?: string) {
     if (!activeTask) return;
     setBusyCommand(`approval-${requestId}`);
@@ -215,8 +233,10 @@ export function TaskFocusPanel({ draft = false, task, legacySession, sessions, o
             approvals={approvals}
             streamError={streamError}
             busyCommand={busyCommand}
+            hasTask={Boolean(activeTask) && activeTask?.mode !== "research"}
             showThinking={showThinking}
             onCopy={copyMessage}
+            onFork={(entryId) => void handleFork(entryId)}
             onResend={(itemId, text) => void handleResend(itemId, text)}
             onApproval={(requestId, decision, value) => void handleApproval(requestId, decision, value)}
           />}
